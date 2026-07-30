@@ -4,6 +4,8 @@
 > Research baseline: July 30, 2026  
 > Target repository: `github.com/featbit/terraform-provider-featbit`  
 > Intended Registry address: `registry.terraform.io/featbit/featbit`
+>
+> Active execution package: [Phase 0 — Empirical API compatibility and ADRs](./plan-execution-phase-0/README.md)
 
 ## 1. Conclusions and implementation principles
 
