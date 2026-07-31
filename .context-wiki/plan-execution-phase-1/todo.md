@@ -1,13 +1,21 @@
 # Phase 1 TODO — Repository and Provider Scaffold
 
-Status: **Ready to start**
+Status: **In progress — P1-001 complete**
 
 Check an item only when its stated result exists. Record concise verification
 under the item instead of creating a new context file by default.
 
 ## A. Baseline and decisions
 
-- [ ] **P1-001** Read the Phase 0 handoff and all five Accepted ADRs; confirm the exit gate still passes.
+- [x] **P1-001** Read the Phase 0 handoff and all five Accepted ADRs; confirm the exit gate still passes.
+  Verification (2026-08-01): reviewed the handoff and ADR-001 through
+  ADR-005 with no contradiction or unresolved Phase 1 assumption. Re-ran the
+  Phase 0 local gate: `gofmt`, `go test ./...`, `go vet ./...`, the 20-run
+  normalization/probe suite, deterministic OpenAPI check, context/evidence
+  check, repository secret scan, and `git diff --check` all passed. The
+  context check reported 76/76 TODOs, five Accepted ADRs, and zero findings;
+  the secret scan reported 70 files and zero findings. No live API request or
+  credential read was used. The Phase 0 exit gate remains passed.
 - [ ] **P1-002** Inspect `git status` and preserve every pre-existing change.
 - [ ] **P1-003** Record installed Go/Terraform/tool versions and gaps against ADR-005.
 - [ ] **P1-004** Resolve MPL-2.0 versus MIT before adding scaffold-derived files.

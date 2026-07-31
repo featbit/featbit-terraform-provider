@@ -1,6 +1,6 @@
 # Phase 1 — Repository and Provider Scaffold
 
-State: **Ready to start; implementation has not begun**
+State: **In progress — P1-001 complete**
 Prepared: **2026-08-01**
 
 Phase 1 turns the accepted Phase 0 API contract into a loadable Terraform
@@ -44,7 +44,6 @@ file only when it has a clear reader and cannot fit here.
 
 ## Next action
 
-After the separately requested Phase 0/`tools` cleanup, inspect the dirty
-worktree and preserve the retained Phase 0 decisions. Then execute `P1-001`
-onward from [todo.md](todo.md). Do not implement a production Terraform
-resource during this phase.
+Execute `P1-002`: inspect the current worktree and record the baseline while
+preserving every pre-existing change. Then continue in TODO order. Do not
+implement a production Terraform resource during this phase.
