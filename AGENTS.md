@@ -13,10 +13,13 @@ FeatBit customer workflows and the current public FeatBit API define the provide
 Before working, read:
 
 1. `.context-wiki/plan.md`
-2. The active phase's `README.md`, `status.md`, `todo.md`, and `handoff.md`
-3. Any linked findings, ADRs, and evidence
+2. The active phase's `README.md`, `plan.md`, and `todo.md`
+3. Any completed-phase handoff, ADR, finding, or evidence linked from them
 
-After material work, update the active phase's TODO, status, session log, and handoff. Do not delete historical findings; supersede them with a dated correction. Follow the active phase's `context-protocol.md`.
+After material work, update the compact documents named by the active phase's
+README. Add a new context file only when it has a clear reader and cannot fit
+those documents. Preserve accepted ADRs and historical findings; supersede
+them with a dated correction instead of silently rewriting them.
 
 ## Guardrails
 

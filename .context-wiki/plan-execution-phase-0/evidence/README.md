@@ -1,107 +1,41 @@
-# Phase 0 Evidence
+# Phase 0 Evidence Index
 
-Store only sanitized, reproducible observations here. Evidence supports findings and ADRs; it is not a dump of raw HTTP traffic.
+Phase 0 evidence is intentionally consolidated. Read an evidence file only
+when an ADR, finding, or compatibility row needs its underlying observation.
 
-## Filename convention
+| Evidence | What it proves |
+|---|---|
+| [Cloud authentication](20260731-cloud-auth.md) | direct access-token transport; missing/malformed 401; no required context headers |
+| [Cloud project/environment](20260731-cloud-project-environment.md) | lifecycle, defaults, validation, duplicates, secrets metadata, child missing reads, and exact absence |
+| [Cloud feature flags](20260731-cloud-feature-flags.md) | Boolean/String/Number/JSON lifecycle, canonicalization, ownership boundary, archive/hard-Delete, and cleanup |
+| [Cloud segments](20260731-cloud-segments.md) | environment-specific segment scope, complex updates, reference preflight, archive/hard-Delete, and shared-scope reduction |
+| [Offline contracts](20260731-offline-contracts.md) | pinned OpenAPI/toolchains, probe safety, normalization, errors/retry, exact identity, recovery, Import, and IAM boundary |
 
-```text
-YYYYMMDD-<target-id>-<topic>.md
-YYYYMMDD-<target-id>-<topic>.json
-```
+The four Cloud files contain sanitized target observations. The offline file is
+not deployment evidence; executable Go tests and lock files remain the
+reproducible source for those contracts.
 
-Examples:
+## Consolidation record
 
-```text
-20260731-cloud-current-project-not-found.md
-20260731-selfhosted-min-flag-roundtrip.json
-```
+On 2026-08-01, 19 narrowly scoped Phase 0 records were merged into the five
+records above at the product owner's request. No conclusion was removed:
 
-## Required metadata
+- two authentication records became **Cloud authentication**;
+- three parent/absence records became **Cloud project/environment**;
+- two flag records became **Cloud feature flags**;
+- one live segment record became **Cloud segments**; and
+- eleven specification/mock/toolchain records became **Offline contracts**.
 
-Every evidence record must include:
+All ADR, finding, TODO, status, handoff, compatibility, and session-log links
+were redirected. The old files were then deleted rather than kept as unread
+duplicates.
 
-- Related TODO ID
-- UTC timestamp
-- Target ID from `compatibility-matrix.md`
-- FeatBit version/build when known
-- Probe commit or working-tree identifier
-- Request method and path template
-- Preconditions
-- Expected behavior
-- Observed HTTP status
-- Observed `success`, data shape, and redacted errors
-- Exact-match or normalization result
-- Created-resource identities in sanitized form
-- Cleanup result
-- Redactions performed
-- Reproduction command using environment-variable names only
+## Redaction and cleanup
 
-## Evidence template
+Evidence must never contain tokens, authorization values, passwords,
+environment secret values, private tenant identifiers, runtime IDs/keys, or
+real member emails. Only public path templates and sanitized shapes/counts are
+retained.
 
-```markdown
-# <Topic>
-
-- TODO: `P0-000`
-- Timestamp (UTC): `YYYY-MM-DDTHH:MM:SSZ`
-- Target: `cloud-current | selfhosted-min`
-- FeatBit version/build: `<value or unknown>`
-- Probe revision: `<commit or dirty identifier>`
-
-## Preconditions
-
-<Describe target state and permissions without private identifiers.>
-
-## Request
-
-- Method: `GET`
-- Path template: `/api/v1/...`
-- Authentication: `Authorization: <REDACTED>`
-
-## Expected
-
-<Expected result.>
-
-## Observed
-
-- HTTP status: `<code>`
-- Envelope success: `<true|false|missing>`
-- Data shape: `<sanitized description>`
-- Errors: `<sanitized description>`
-
-## Interpretation
-
-<Exact provider behavior supported by this observation.>
-
-## Cleanup
-
-<Deleted, not applicable, or exact remaining cleanup action and owner.>
-
-## Reproduce
-
-`<command containing environment-variable names only>`
-```
-
-## Redaction rules
-
-Never store:
-
-- `Authorization` header values
-- Access tokens, JWTs, passwords, or cookies
-- Environment secret values or SDK keys
-- Full private tenant, organization, or workspace identifiers
-- Real member email addresses
-- Unredacted request/response dumps
-
-Use deterministic placeholders such as `<TOKEN>`, `<TENANT>`, `<MEMBER_EMAIL>`, and `<SECRET_VALUE>`. Retain only data shapes and non-sensitive randomly generated test IDs needed to establish identity behavior.
-
-## Immutability
-
-After an evidence record is referenced by a finding or ADR, do not silently change its observation. Create a new dated file and mark the old finding superseded.
-
-## Cleanup inventory
-
-Maintain this table during execution. The phase cannot close with an unowned entry.
-
-| Created at | Target | Resource type | Sanitized identity | Creating TODO | Cleanup status | Owner/action |
-|---|---|---|---|---|---|---|
-| — | — | — | — | — | Empty | — |
+Every Phase 0-created remote object is exactly absent. Final cleanup state:
+`pending=0`; no manual owner/action.

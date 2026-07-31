@@ -1,0 +1,6 @@
+# Phase 0 probe runtime state and build artifacts.
+.featbit-api-probe-cleanup.json
+tools/api-probe/.featbit-api-probe-cleanup.json
+tools/api-probe/featbit-api-probe
+tools/api-probe/featbit-api-probe.exe
+

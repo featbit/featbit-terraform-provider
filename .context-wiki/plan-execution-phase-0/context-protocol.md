@@ -95,5 +95,7 @@ Phase 1 may start only after the Phase 0 exit gate is recorded as passed. When i
 2. Complete the cleanup inventory.
 3. Set `status.md` to `Complete — Ready for Phase 1`.
 4. Add a final session-log entry.
-5. Update `handoff.md` to point to [phase-1-execution-prompt.md](phase-1-execution-prompt.md).
-6. In the Phase 1 session, create `.context-wiki/plan-execution-phase-1/` before material implementation and follow the same context protocol.
+5. Update `handoff.md` to point to the formal
+   [Phase 1 package](../plan-execution-phase-1/README.md).
+6. Keep the Phase 1 package compact unless an additional file has a clear
+   reader and cannot fit its README, plan, or TODO.

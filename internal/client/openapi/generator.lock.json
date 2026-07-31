@@ -1,0 +1,7 @@
+{
+  "module": "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen",
+  "version": "v2.8.0",
+  "minimum_go": "1.25.0",
+  "configuration_schema": "https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.8.0/configuration-schema.json"
+}
+

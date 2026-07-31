@@ -2,7 +2,7 @@
 
 Phase: **Empirical API compatibility and ADRs**  
 Estimated effort: **3–5 person-days**  
-Execution status: **Ready to start**  
+Execution status: **Complete**
 Master roadmap: [../plan.md](../plan.md)
 
 ## Purpose
@@ -43,7 +43,6 @@ The phase answers five questions:
 | [evidence/](evidence/) | Sanitized, reproducible evidence |
 | [handoff.md](handoff.md) | Exact next action and continuation state |
 | [phase-0-execution-prompt.md](phase-0-execution-prompt.md) | Copyable prompt to start Phase 0 in a new session |
-| [phase-1-execution-prompt.md](phase-1-execution-prompt.md) | Copyable prompt to start Phase 1 after this phase passes |
 
 ## Source-of-truth hierarchy
 
@@ -69,4 +68,6 @@ Phase 0 is complete only when:
 - `status.md` says `Ready for Phase 1`.
 - `handoff.md` contains no unresolved blocker to starting the Phase 1 scaffold.
 
-The next session should use [phase-0-execution-prompt.md](phase-0-execution-prompt.md). Do not use the Phase 1 prompt until this definition of done is met.
+Phase 1 planning now lives in
+[../plan-execution-phase-1/](../plan-execution-phase-1/README.md). This completed
+package remains the decision and evidence archive for that work.
