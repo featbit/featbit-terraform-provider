@@ -1,6 +1,6 @@
 # Phase 1 TODO — Repository and Provider Scaffold
 
-Status: **In progress — P1-001 complete**
+Status: **In progress — baseline and decisions complete**
 
 Check an item only when its stated result exists. Record concise verification
 under the item instead of creating a new context file by default.
@@ -16,10 +16,37 @@ under the item instead of creating a new context file by default.
   context check reported 76/76 TODOs, five Accepted ADRs, and zero findings;
   the secret scan reported 70 files and zero findings. No live API request or
   credential read was used. The Phase 0 exit gate remains passed.
-- [ ] **P1-002** Inspect `git status` and preserve every pre-existing change.
-- [ ] **P1-003** Record installed Go/Terraform/tool versions and gaps against ADR-005.
-- [ ] **P1-004** Resolve MPL-2.0 versus MIT before adding scaffold-derived files.
-- [ ] **P1-005** Confirm the final Phase 1 package/module layout before generating code.
+- [x] **P1-002** Inspect `git status` and preserve every pre-existing change.
+  Verification (2026-08-01): baseline HEAD was
+  `f685852fc50bbae94cf563acbbd1ed98d7dc6070` on `main`, aligned with
+  `origin/main`; tracked changes, staged changes, and untracked files were all
+  empty. No stash, reset, clean, checkout, or unrelated edit was performed.
+- [x] **P1-003** Record installed Go/Terraform/tool versions and gaps against ADR-005.
+  Verification (2026-08-01, Windows/amd64): Go is `1.19.4` with CGO enabled,
+  below the `1.25.8` module baseline and both CI lines. Terraform is `1.5.6`,
+  which meets the `1.0.0` minimum but is below the `1.15.8` current test line.
+  Git is `2.36.0.windows.1`. GNU Make, GCC, Clang, `golangci-lint`,
+  `govulncheck`, `oapi-codegen`, `tfplugindocs`, GoReleaser, and GPG are not
+  installed. Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing
+  `v1.16.0`, Plugin Log `v0.10.0`, Plugin Docs `v0.25.0`, and
+  `oapi-codegen v2.8.0` remain module/tool pins rather than global installs.
+  Upgrade Go before P1-010, provide a C compiler for the race gate, and use
+  the future pinned tools module/CI for missing executables.
+- [x] **P1-004** Resolve MPL-2.0 versus MIT before adding scaffold-derived files.
+  Decision (2026-08-01): license this provider under MPL-2.0. The
+  [pinned HashiCorp scaffold](https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/f781750309d9d63c50f9d6992a788fa7245ec7fc/LICENSE)
+  is MPL-2.0. The separate [FeatBit server repository](https://github.com/featbit/featbit/blob/main/LICENSE)
+  is MIT, but no accepted requirement mandates the same license here. Using
+  MPL-2.0 avoids a mixed-license scaffold baseline. P1-011 will add the full
+  license and appropriate notices; copied or modified upstream files retain
+  their applicable copyright notices. A future MIT mandate requires a
+  separate provenance/license review before relicensing.
+- [x] **P1-005** Confirm the final Phase 1 package/module layout before generating code.
+  Verification (2026-08-01): the root runtime module, separate `tools/`
+  module, retained Phase 0 probe module, provider package, handwritten client,
+  generated client, and pinned OpenAPI input boundaries are fixed in
+  [plan.md](plan.md#confirmed-phase-1-module-and-package-layout). No generated
+  code or scaffold source was added during this decision task.
 
 ## B. Repository and provider scaffold
 

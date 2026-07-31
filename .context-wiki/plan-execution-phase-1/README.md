@@ -1,6 +1,6 @@
 # Phase 1 — Repository and Provider Scaffold
 
-State: **In progress — P1-001 complete**
+State: **In progress — baseline and decisions complete**
 Prepared: **2026-08-01**
 
 Phase 1 turns the accepted Phase 0 API contract into a loadable Terraform
@@ -44,6 +44,7 @@ file only when it has a clear reader and cannot fit here.
 
 ## Next action
 
-Execute `P1-002`: inspect the current worktree and record the baseline while
-preserving every pre-existing change. Then continue in TODO order. Do not
+Execute `P1-010`: create the root provider module with the ADR-005 dependency
+pins. The current workstation must first use Go `1.25.8` or newer; its
+installed Go `1.19.4` cannot build the accepted module baseline. Do not
 implement a production Terraform resource during this phase.

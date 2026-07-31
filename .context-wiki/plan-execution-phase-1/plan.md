@@ -31,8 +31,9 @@ undocumented endpoints.
   Log, Plugin Docs, `oapi-codegen`, Terraform CLI, and Protocol v6 versions
   accepted by ADR-005.
 - Add the provider server entry point and version injection.
-- Resolve the repository license before importing scaffold material. Use
-  HashiCorp patterns as reference; do not copy LaunchDarkly source.
+- Use MPL-2.0 for this provider. Preserve notices on any scaffold-derived
+  source, use HashiCorp patterns as reference, and do not copy LaunchDarkly
+  source. P1-011 adds the license text and source notices.
 
 ### 2. Provider configuration
 
@@ -73,6 +74,49 @@ undocumented endpoints.
   fork-safe secret policy.
 - Run the race suite in an environment with a C compiler; the Phase 0 Windows
   workstation could not run it.
+
+## Confirmed Phase 1 module and package layout
+
+P1-005 fixes the package boundaries before generation:
+
+```text
+.
+├─ main.go
+├─ go.mod                         # github.com/featbit/terraform-provider-featbit
+├─ go.sum
+├─ terraform-registry-manifest.json
+├─ internal/
+│  ├─ provider/                   # Framework provider/configuration and tests
+│  └─ client/
+│     ├─ generated/
+│     │  └─ client.gen.go         # generated only; never edited manually
+│     ├─ openapi/                 # retained pinned snapshot, overlay, and locks
+│     └─ *.go                     # handwritten transport wrapper and tests
+├─ tools/
+│  ├─ go.mod                      # module tools; pinned build/generation tools
+│  ├─ go.sum
+│  ├─ tools.go
+│  └─ api-probe/                  # retained independent Phase 0 module
+├─ GNUmakefile
+└─ .github/workflows/
+```
+
+- The module identities are
+  `github.com/featbit/terraform-provider-featbit`, `tools`, and the retained
+  `github.com/featbit/terraform-provider-featbit/tools/api-probe`. They are
+  independent; do not add a committed `go.work`.
+- `internal/provider` depends only on the handwritten `internal/client`
+  contract. Only `internal/client` may import `internal/client/generated`.
+- Generation runs from `internal/client/openapi` and writes the one committed
+  output already declared by `oapi-codegen.yaml` at
+  `internal/client/generated/client.gen.go`.
+- The tooling module pins generators and documentation tools without adding
+  them to the provider runtime dependency graph. The Phase 0 probe is never
+  imported by either Phase 1 module.
+- Add resource-specific model or validator packages only when a later phase
+  has real consumers; Phase 1 does not create empty placeholder packages or
+  scaffold example resources, data sources, actions, functions, or ephemeral
+  resources.
 
 ## Execution order
 
