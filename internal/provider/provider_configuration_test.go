@@ -8,15 +8,19 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/featbit/terraform-provider-featbit/internal/client"
 	frameworkprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tfsdklog"
@@ -30,6 +34,77 @@ type capturedClientConfiguration struct {
 }
 
 type protocolUnknownValue struct{}
+
+func TestProviderConfigureConstructsSharedClientWithoutRequest(t *testing.T) {
+	t.Parallel()
+
+	var constructorCalls atomic.Int32
+	var requestCount atomic.Int32
+	var constructedClient *client.Client
+	var configuredBaseURL string
+	apiServer := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		requestCount.Add(1)
+	}))
+	defer apiServer.Close()
+
+	providerUnderTest := &FeatBitProvider{
+		version:   "test",
+		lookupEnv: func(string) (string, bool) { return "", false },
+		newClient: func(baseURL *url.URL, accessToken string, options client.Options) (*client.Client, error) {
+			constructorCalls.Add(1)
+			configuredBaseURL = baseURL.String()
+			var err error
+			constructedClient, err = client.New(baseURL, accessToken, options)
+			return constructedClient, err
+		},
+	}
+
+	ctx := context.Background()
+	var schemaResponse frameworkprovider.SchemaResponse
+	providerUnderTest.Schema(ctx, frameworkprovider.SchemaRequest{}, &schemaResponse)
+	terraformType, ok := schemaResponse.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	if !ok {
+		t.Fatal("provider schema did not produce an object type")
+	}
+	values := make(map[string]tftypes.Value, len(terraformType.AttributeTypes))
+	for name, attributeType := range terraformType.AttributeTypes {
+		switch name {
+		case "api_url":
+			values[name] = tftypes.NewValue(attributeType, apiServer.URL)
+		case "access_token":
+			values[name] = tftypes.NewValue(attributeType, syntheticProviderAccessToken)
+		default:
+			values[name] = tftypes.NewValue(attributeType, nil)
+		}
+	}
+	config := tfsdk.Config{
+		Raw:    tftypes.NewValue(terraformType, values),
+		Schema: schemaResponse.Schema,
+	}
+	var configureResponse frameworkprovider.ConfigureResponse
+	providerUnderTest.Configure(
+		ctx,
+		frameworkprovider.ConfigureRequest{Config: config, TerraformVersion: "test"},
+		&configureResponse,
+	)
+
+	if configureResponse.Diagnostics.HasError() {
+		t.Fatal("provider.Configure returned an unexpected diagnostic")
+	}
+	if constructorCalls.Load() != 1 {
+		t.Fatal("provider.Configure did not call client.New exactly once")
+	}
+	if configuredBaseURL != apiServer.URL+"/api/v1" {
+		t.Fatal("provider.Configure did not normalize the API URL to /api/v1")
+	}
+	if constructedClient == nil || configureResponse.ResourceData != constructedClient ||
+		configureResponse.DataSourceData != constructedClient {
+		t.Fatal("provider.Configure did not share one client across resources and data sources")
+	}
+	if requestCount.Load() != 0 {
+		t.Fatal("provider.Configure performed an unexpected API request")
+	}
+}
 
 func TestProtocol6ProviderConfigurationExplicitValues(t *testing.T) {
 	t.Parallel()

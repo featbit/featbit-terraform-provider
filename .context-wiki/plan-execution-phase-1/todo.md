@@ -1,7 +1,7 @@
 # Phase 1 TODO — Provider foundation
 
 Status: **In progress**
-Next: **P1-040**
+Next: **P1-041**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -14,7 +14,7 @@ Do not create a separate ADR, evidence file, session log, or handoff.
 
 ## Shared client tests
 
-- [ ] **P1-040 — Complete request and error-contract tests.**
+- [x] **P1-040 — Complete request and error-contract tests.**
 
   Exercise the shared client through an `httptest` server. Cover the normalized
   `/api/v1` path, direct `Authorization`, User-Agent, removal of unsupported
@@ -26,6 +26,20 @@ Do not create a separate ADR, evidence file, session log, or handoff.
   client.New` constructs the shared client without a request; a synthetic
   endpoint request then calls `Client.Do -> authorizationTransport`, followed
   by `Client.DecodeResponse` for envelope/error classification.
+
+  Result (2026-08-02): Added `internal/client/request_contract_test.go` and
+  extended `internal/provider/provider_configuration_test.go`. The provider
+  test proves `FeatBitProvider.Configure -> client.New` normalizes the API root,
+  constructs one client shared by resources and data sources, and performs no
+  request. The `httptest` contracts prove `Client.Do -> authorizationTransport
+  -> HTTP server -> Client.DecodeResponse`, including the required headers,
+  `/api/v1` boundary, success data, every listed HTTP classification, and
+  malformed envelopes without assertion output containing credentials or raw
+  bodies. Passed `gofmt -l .`, `go vet ./...`, `git diff --check`, `go test
+  ./...`, `go test ./internal/client -run
+  'TestClient(RequestAndSuccessEnvelopeContract|ErrorEnvelopeContract)$'
+  -count=20`, and `go test ./internal/provider -run
+  '^TestProviderConfigureConstructsSharedClientWithoutRequest$' -count=20`.
 
 - [ ] **P1-041 — Complete cancellation and response-boundary tests.**
 

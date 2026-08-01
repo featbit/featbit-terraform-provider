@@ -20,12 +20,13 @@ Phase 1 is in progress. The repository currently has:
 - a shared handwritten HTTP client runtime with authentication, cancellation,
   bounded responses, error classification, safe-read retry, concurrency
   limiting, and redaction; and
-- unit and protocol-level tests for the provider configuration and existing
-  client behavior.
+- unit and protocol-level tests for the provider configuration plus complete
+  shared-client request and error contracts.
 
 No Terraform resource, data source, or FeatBit endpoint adapter exists yet.
-Phase 1 still needs complete client contract tests, developer commands, CI,
-local provider loading, and schema verification. The next task is `P1-040` in
+Phase 1 still needs the remaining boundary, retry, concurrency, and redaction
+client tests, developer commands, CI, local provider loading, and schema
+verification. The next task is `P1-041` in
 the [active TODO](plan-execution-phase-1/todo.md).
 
 ## 2. Product boundary

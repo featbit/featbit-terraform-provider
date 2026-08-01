@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-02**
-- Next task: `P1-040`
+- Next task: `P1-041`
 
 Read [AGENTS.md](../../AGENTS.md), the
 [current project plan](../plan.md), then [todo.md](todo.md). No completed phase
@@ -22,7 +22,8 @@ The provider already has:
   origin, plus provider User-Agent;
 - bounded responses, timeout/cancellation, error/envelope classification,
   bodyless-GET retry, request concurrency, and redaction; and
-- provider configuration and existing client unit/protocol tests.
+- provider configuration tests plus complete shared-client request and error
+  contracts through a synthetic HTTP server.
 
 There are intentionally no resources, data sources, endpoint-specific API
 models, pagination helpers, existence resolvers, or per-object write locks yet.
@@ -32,7 +33,8 @@ Those belong to the first production lifecycle that consumes them.
 
 Phase 1 now finishes only:
 
-1. focused shared-client runtime tests;
+1. the remaining shared-client boundary, retry, concurrency, and redaction
+   tests;
 2. dependency and race verification;
 3. developer commands and fork-safe CI;
 4. local provider override and schema loading; and
