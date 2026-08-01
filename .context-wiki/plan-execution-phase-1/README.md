@@ -1,6 +1,6 @@
 # Phase 1 — Repository and Provider Scaffold
 
-State: **In progress — baseline and decisions complete**
+State: **In progress — provider scaffold complete through P1-014**
 Prepared: **2026-08-01**
 
 Phase 1 turns the accepted Phase 0 API contract into a loadable Terraform
@@ -44,7 +44,8 @@ file only when it has a clear reader and cannot fit here.
 
 ## Next action
 
-Execute `P1-010`: create the root provider module with the ADR-005 dependency
-pins. The current workstation must first use Go `1.25.8` or newer; its
-installed Go `1.19.4` cannot build the accepted module baseline. Do not
-implement a production Terraform resource during this phase.
+Execute `P1-020`: implement `api_url`, its `FEATBIT_API_URL` fallback, and URL
+validation. Continue using the verified user-scoped Go `1.26.5` toolchain;
+the older machine-wide Go remains installed because this session cannot
+elevate the MSI installer. Do not implement a production Terraform resource
+during this phase.

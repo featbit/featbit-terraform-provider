@@ -1,6 +1,6 @@
 # Phase 1 TODO — Repository and Provider Scaffold
 
-Status: **In progress — baseline and decisions complete**
+Status: **In progress — provider scaffold complete through P1-014**
 
 Check an item only when its stated result exists. Record concise verification
 under the item instead of creating a new context file by default.
@@ -32,6 +32,12 @@ under the item instead of creating a new context file by default.
   `oapi-codegen v2.8.0` remain module/tool pins rather than global installs.
   Upgrade Go before P1-010, provide a C compiler for the race gate, and use
   the future pinned tools module/CI for missing executables.
+  Update (2026-08-01): the official Windows/amd64 Go `1.26.5` archive was
+  installed at user scope after SHA-256 verification. All P1-010 through
+  P1-014 commands used that binary with `GOTOOLCHAIN=local`. The machine-wide
+  `go` command remains `1.19.4` because the non-elevated MSI upgrade could not
+  complete; the missing C compiler/race-suite gap remains assigned to P1-045
+  and CI.
 - [x] **P1-004** Resolve MPL-2.0 versus MIT before adding scaffold-derived files.
   Decision (2026-08-01): license this provider under MPL-2.0. The
   [pinned HashiCorp scaffold](https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/f781750309d9d63c50f9d6992a788fa7245ec7fc/LICENSE)
@@ -50,11 +56,34 @@ under the item instead of creating a new context file by default.
 
 ## B. Repository and provider scaffold
 
-- [ ] **P1-010** Normalize the root Go module and pin direct dependencies.
-- [ ] **P1-011** Add license, editor settings, and provider-safe `.gitignore` rules.
-- [ ] **P1-012** Add version injection and a Protocol v6 provider server entry point.
-- [ ] **P1-013** Add the minimal provider implementation and schema registration.
-- [ ] **P1-014** Prove the provider binary builds without importing the Phase 0 probe module.
+- [x] **P1-010** Normalize the root Go module and pin direct dependencies.
+  Verification (2026-08-01): root module
+  `github.com/featbit/terraform-provider-featbit` uses `go 1.25.8` and pins
+  Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Log `v0.10.0`, and Plugin
+  Testing `v1.16.0`. Go `1.26.5` produced `go.sum`; `go mod tidy` and
+  `go mod verify` passed.
+- [x] **P1-011** Add license, editor settings, and provider-safe `.gitignore` rules.
+  Verification (2026-08-01): added the full MPL-2.0 `LICENSE`, source SPDX and
+  retained scaffold copyright notices, `.editorconfig`, and ignore rules for
+  credentials, Go artifacts, Terraform state/plans, local CLI configuration,
+  editor files, and the existing Phase 0 cleanup inventory.
+- [x] **P1-012** Add version injection and a Protocol v6 provider server entry point.
+  Verification (2026-08-01): `main.go` serves
+  `registry.terraform.io/featbit/featbit`, accepts the Framework debug flag,
+  and exposes linker-injected `main.version`. A temporary build with
+  `-X main.version=p1-014` contained the injected value; the Registry manifest
+  declares protocol `6.0`, and the provider factory test creates a Protocol v6
+  server.
+- [x] **P1-013** Add the minimal provider implementation and schema registration.
+  Verification (2026-08-01): the provider reports type `featbit` and its build
+  version, exposes an intentionally empty Phase 1 configuration schema, logs
+  only a constant Configure message, and registers no resources or data
+  sources. Metadata, schema, registration, and Protocol v6 tests pass.
+- [x] **P1-014** Prove the provider binary builds without importing the Phase 0 probe module.
+  Verification (2026-08-01): `go test ./...`, `go vet ./...`, and
+  `go build ./...` passed under Go `1.26.5`. `go list -deps ./...` contained no
+  `github.com/featbit/terraform-provider-featbit/tools/api-probe` dependency;
+  the retained probe remains an independent nested module.
 
 ## C. Provider configuration
 

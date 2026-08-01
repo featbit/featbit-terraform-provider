@@ -1,6 +1,46 @@
+# Local environment files may contain provider credentials.
+.env
+.env.*
+!.env.example
+
+# Go build, test, coverage, and debug artifacts.
+/bin/
+/dist/
+/terraform-provider-featbit
+/terraform-provider-featbit.exe
+*.dll
+*.exe
+*.test
+*.out
+coverage.*
+__debug_bin*
+
+# Terraform working directories, plans, state, and crash output.
+.terraform/
+*.tfplan
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local provider CLI configuration.
+.terraformrc
+terraform.rc
+
+# Editors and operating systems.
+.DS_Store
+.idea/
+.vscode/
+*.bak
+*.swp
+*~
+
 # Phase 0 probe runtime state and build artifacts.
 .featbit-api-probe-cleanup.json
 tools/api-probe/.featbit-api-probe-cleanup.json
 tools/api-probe/featbit-api-probe
 tools/api-probe/featbit-api-probe.exe
-
