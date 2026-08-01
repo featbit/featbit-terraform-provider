@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	frameworkprovider "github.com/hashicorp/terraform-plugin-framework/provider"
+	providerschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -30,7 +31,7 @@ func TestProviderMetadata(t *testing.T) {
 	}
 }
 
-func TestProviderSchemaIsMinimal(t *testing.T) {
+func TestProviderSchema(t *testing.T) {
 	t.Parallel()
 
 	providerUnderTest := New("test")()
@@ -41,8 +42,19 @@ func TestProviderSchemaIsMinimal(t *testing.T) {
 	if response.Diagnostics.HasError() {
 		t.Fatalf("unexpected schema diagnostics: %v", response.Diagnostics)
 	}
-	if got := len(response.Schema.Attributes); got != 0 {
-		t.Fatalf("expected no configuration attributes before P1-020, got %d", got)
+	if got := len(response.Schema.Attributes); got != 1 {
+		t.Fatalf("expected one configuration attribute after P1-020, got %d", got)
+	}
+
+	apiURLAttribute, ok := response.Schema.Attributes["api_url"].(providerschema.StringAttribute)
+	if !ok {
+		t.Fatalf("expected api_url to be a string attribute, got %T", response.Schema.Attributes["api_url"])
+	}
+	if !apiURLAttribute.Optional || apiURLAttribute.Required {
+		t.Fatal("expected api_url to be optional and not required")
+	}
+	if got := len(apiURLAttribute.Validators); got != 1 {
+		t.Fatalf("expected api_url to have one validator, got %d", got)
 	}
 }
 

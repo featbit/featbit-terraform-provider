@@ -1,6 +1,6 @@
 # Phase 1 TODO — Repository and Provider Scaffold
 
-Status: **In progress — provider scaffold complete through P1-014**
+Status: **In progress — provider configuration complete through P1-020**
 
 Check an item only when its stated result exists. Record concise verification
 under the item instead of creating a new context file by default.
@@ -87,7 +87,17 @@ under the item instead of creating a new context file by default.
 
 ## C. Provider configuration
 
-- [ ] **P1-020** Implement `api_url` plus `FEATBIT_API_URL` fallback and validation.
+- [x] **P1-020** Implement `api_url` plus `FEATBIT_API_URL` fallback and validation.
+  Verification (2026-08-01): added the optional `api_url` provider schema
+  attribute, explicit-value/`FEATBIT_API_URL`/Cloud-default precedence, and a
+  shared validator/runtime parser. HTTP and HTTPS origins or `/api/v1` roots
+  are accepted and normalized to `/api/v1`; credentials, query parameters,
+  fragments, invalid ports, whitespace, relative URLs, and other paths are
+  rejected without echoing the configured URL. Focused precedence and URL
+  tests pass. Under the verified user-scoped Go `1.26.5`, the formatting check
+  returned no files and `go test ./...`, `go vet ./...`, and `go build ./...`
+  passed. Protocol-level aggregate configuration coverage remains assigned to
+  P1-024.
 - [ ] **P1-021** Implement Sensitive `access_token` plus `FEATBIT_ACCESS_TOKEN` fallback.
 - [ ] **P1-022** Implement bounded timeout, concurrency, and retry configuration.
 - [ ] **P1-023** Configure the client with direct `Authorization` and no login/context-header flow.

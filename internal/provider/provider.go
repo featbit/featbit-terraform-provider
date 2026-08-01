@@ -6,11 +6,13 @@ package provider
 
 import (
 	"context"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -31,8 +33,7 @@ func (p *FeatBitProvider) Metadata(
 	resp.Version = p.version
 }
 
-// Schema returns the provider configuration schema. Configuration attributes
-// are added in P1-020 through P1-022.
+// Schema returns the provider configuration schema.
 func (p *FeatBitProvider) Schema(
 	_ context.Context,
 	_ provider.SchemaRequest,
@@ -40,16 +41,44 @@ func (p *FeatBitProvider) Schema(
 ) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Terraform provider for managing FeatBit through its documented public REST API.",
+		Attributes: map[string]schema.Attribute{
+			"api_url": schema.StringAttribute{
+				Optional: true,
+				MarkdownDescription: "FeatBit API base URL. May also be set with `FEATBIT_API_URL`. " +
+					"Defaults to `https://app-api.featbit.co`. The path may be empty or `/api/v1`.",
+				Validators: []validator.String{
+					apiURLValidator{},
+				},
+			},
+		},
 	}
 }
 
-// Configure is intentionally minimal until the API client is wired in P1-023.
+// Configure resolves and validates provider settings. The API client is wired
+// from the validated settings in P1-023.
 func (p *FeatBitProvider) Configure(
 	ctx context.Context,
-	_ provider.ConfigureRequest,
-	_ *provider.ConfigureResponse,
+	req provider.ConfigureRequest,
+	resp *provider.ConfigureResponse,
 ) {
 	tflog.Debug(ctx, "Configuring FeatBit provider")
+
+	var model providerModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &model)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	config, diagnostics := newProviderConfig(model, os.LookupEnv)
+	resp.Diagnostics.Append(diagnostics...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// There are no Phase 1 resources or data sources yet. Keeping the resolved
+	// configuration in both slots makes the P1-023 client handoff explicit.
+	resp.DataSourceData = config
+	resp.ResourceData = config
 }
 
 // Resources returns no managed resources during Phase 1.
