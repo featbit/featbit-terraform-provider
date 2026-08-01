@@ -93,8 +93,8 @@ func (p *FeatBitProvider) Schema(
 	}
 }
 
-// Configure resolves and validates provider settings. The API client is wired
-// from the validated settings in P1-023.
+// Configure resolves and validates provider settings and constructs the
+// handwritten API client shared by resources and data sources.
 func (p *FeatBitProvider) Configure(
 	ctx context.Context,
 	req provider.ConfigureRequest,
@@ -128,9 +128,10 @@ func (p *FeatBitProvider) Configure(
 		config.apiURL,
 		config.accessToken,
 		client.Options{
-			HTTPTimeout:    config.httpTimeout,
-			MaxConcurrency: config.maxConcurrency,
-			MaxRetries:     config.maxRetries,
+			HTTPTimeout:     config.httpTimeout,
+			MaxConcurrency:  config.maxConcurrency,
+			MaxRetries:      config.maxRetries,
+			ProviderVersion: p.version,
 		},
 	)
 	if err != nil {

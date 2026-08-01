@@ -1,174 +1,131 @@
-# Phase 1 TODO — Repository and Provider Scaffold
+# Phase 1 TODO — Provider foundation
 
-Status: **In progress — provider configuration complete through P1-025**
+Status: **In progress**
+Next: **P1-040**
 
-Check an item only when its stated result exists. Record concise verification
-under the item instead of creating a new context file by default.
+Work one item at a time. Before checking an item, add a concise `Result` under
+it containing:
 
-## A. Baseline and decisions
+- the important files changed;
+- the runtime call relationship introduced or verified; and
+- the exact verification that passed.
 
-- [x] **P1-001** Read the Phase 0 handoff and all five Accepted ADRs; confirm the exit gate still passes.
-  Verification (2026-08-01): reviewed the handoff and ADR-001 through
-  ADR-005 with no contradiction or unresolved Phase 1 assumption. Re-ran the
-  Phase 0 local gate: `gofmt`, `go test ./...`, `go vet ./...`, the 20-run
-  normalization/probe suite, deterministic OpenAPI check, context/evidence
-  check, repository secret scan, and `git diff --check` all passed. The
-  context check reported 76/76 TODOs, five Accepted ADRs, and zero findings;
-  the secret scan reported 70 files and zero findings. No live API request or
-  credential read was used. The Phase 0 exit gate remains passed.
-- [x] **P1-002** Inspect `git status` and preserve every pre-existing change.
-  Verification (2026-08-01): baseline HEAD was
-  `f685852fc50bbae94cf563acbbd1ed98d7dc6070` on `main`, aligned with
-  `origin/main`; tracked changes, staged changes, and untracked files were all
-  empty. No stash, reset, clean, checkout, or unrelated edit was performed.
-- [x] **P1-003** Record installed Go/Terraform/tool versions and gaps against ADR-005.
-  Verification (2026-08-01, Windows/amd64): Go is `1.19.4` with CGO enabled,
-  below the `1.25.8` module baseline and both CI lines. Terraform is `1.5.6`,
-  which meets the `1.0.0` minimum but is below the `1.15.8` current test line.
-  Git is `2.36.0.windows.1`. GNU Make, GCC, Clang, `golangci-lint`,
-  `govulncheck`, `oapi-codegen`, `tfplugindocs`, GoReleaser, and GPG are not
-  installed. Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing
-  `v1.16.0`, Plugin Log `v0.10.0`, Plugin Docs `v0.25.0`, and
-  `oapi-codegen v2.8.0` remain module/tool pins rather than global installs.
-  Upgrade Go before P1-010, provide a C compiler for the race gate, and use
-  the future pinned tools module/CI for missing executables.
-  Update (2026-08-01): the official Windows/amd64 Go `1.26.5` archive was
-  installed at user scope after SHA-256 verification. All P1-010 through
-  P1-014 commands used that binary with `GOTOOLCHAIN=local`. The machine-wide
-  `go` command remains `1.19.4` because the non-elevated MSI upgrade could not
-  complete; the missing C compiler/race-suite gap remains assigned to P1-045
-  and CI.
-- [x] **P1-004** Resolve MPL-2.0 versus MIT before adding scaffold-derived files.
-  Decision (2026-08-01): license this provider under MPL-2.0. The
-  [pinned HashiCorp scaffold](https://github.com/hashicorp/terraform-provider-scaffolding-framework/blob/f781750309d9d63c50f9d6992a788fa7245ec7fc/LICENSE)
-  is MPL-2.0. The separate [FeatBit server repository](https://github.com/featbit/featbit/blob/main/LICENSE)
-  is MIT, but no accepted requirement mandates the same license here. Using
-  MPL-2.0 avoids a mixed-license scaffold baseline. P1-011 will add the full
-  license and appropriate notices; copied or modified upstream files retain
-  their applicable copyright notices. A future MIT mandate requires a
-  separate provenance/license review before relicensing.
-- [x] **P1-005** Confirm the final Phase 1 package/module layout before generating code.
-  Verification (2026-08-01): the root runtime module, separate `tools/`
-  module, retained Phase 0 probe module, provider package, handwritten client,
-  generated client, and pinned OpenAPI input boundaries are fixed in
-  [plan.md](plan.md#confirmed-phase-1-module-and-package-layout). No generated
-  code or scaffold source was added during this decision task.
+Do not create a separate ADR, evidence file, session log, or handoff.
 
-## B. Repository and provider scaffold
+## Shared client tests
 
-- [x] **P1-010** Normalize the root Go module and pin direct dependencies.
-  Verification (2026-08-01): root module
-  `github.com/featbit/terraform-provider-featbit` uses `go 1.25.8` and pins
-  Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Log `v0.10.0`, and Plugin
-  Testing `v1.16.0`. Go `1.26.5` produced `go.sum`; `go mod tidy` and
-  `go mod verify` passed.
-- [x] **P1-011** Add license, editor settings, and provider-safe `.gitignore` rules.
-  Verification (2026-08-01): added the full MPL-2.0 `LICENSE`, source SPDX and
-  retained scaffold copyright notices, `.editorconfig`, and ignore rules for
-  credentials, Go artifacts, Terraform state/plans, local CLI configuration,
-  editor files, and the existing Phase 0 cleanup inventory.
-- [x] **P1-012** Add version injection and a Protocol v6 provider server entry point.
-  Verification (2026-08-01): `main.go` serves
-  `registry.terraform.io/featbit/featbit`, accepts the Framework debug flag,
-  and exposes linker-injected `main.version`. A temporary build with
-  `-X main.version=p1-014` contained the injected value; the Registry manifest
-  declares protocol `6.0`, and the provider factory test creates a Protocol v6
-  server.
-- [x] **P1-013** Add the minimal provider implementation and schema registration.
-  Verification (2026-08-01): the provider reports type `featbit` and its build
-  version, exposes an intentionally empty Phase 1 configuration schema, logs
-  only a constant Configure message, and registers no resources or data
-  sources. Metadata, schema, registration, and Protocol v6 tests pass.
-- [x] **P1-014** Prove the provider binary builds without importing the Phase 0 probe module.
-  Verification (2026-08-01): `go test ./...`, `go vet ./...`, and
-  `go build ./...` passed under Go `1.26.5`. `go list -deps ./...` contained no
-  `github.com/featbit/terraform-provider-featbit/tools/api-probe` dependency;
-  the retained probe remains an independent nested module.
+- [ ] **P1-040 — Complete request and error-contract tests.**
 
-## C. Provider configuration
+  Exercise the shared client through an `httptest` server. Cover the normalized
+  `/api/v1` path, direct `Authorization`, User-Agent, removal of unsupported
+  context headers, success envelopes, HTTP `2xx` with `success=false`,
+  validation `400/422`, `401`, `403`, unconfirmed `404`, `409`, `429`, `5xx`,
+  and malformed envelopes. Assertions must not print credentials or bodies.
 
-- [x] **P1-020** Implement `api_url` plus `FEATBIT_API_URL` fallback and validation.
-  Verification (2026-08-01): added the optional `api_url` provider schema
-  attribute, explicit-value/`FEATBIT_API_URL`/Cloud-default precedence, and a
-  shared validator/runtime parser. HTTP and HTTPS origins or `/api/v1` roots
-  are accepted and normalized to `/api/v1`; credentials, query parameters,
-  fragments, invalid ports, whitespace, relative URLs, and other paths are
-  rejected without echoing the configured URL. Focused precedence and URL
-  tests pass. Under the verified user-scoped Go `1.26.5`, the formatting check
-  returned no files and `go test ./...`, `go vet ./...`, and `go build ./...`
-  passed. Protocol-level aggregate configuration coverage remains assigned to
-  P1-024.
-- [x] **P1-021** Implement Sensitive `access_token` plus `FEATBIT_ACCESS_TOKEN` fallback.
-  Verification (2026-08-01): added the optional, protocol-visible Sensitive
-  `access_token` attribute with explicit-value precedence and
-  `FEATBIT_ACCESS_TOKEN` fallback. Missing, empty, Unknown, surrounding-
-  whitespace, and control-character values fail with fixed diagnostics that
-  never contain the configured value. The schema has no token-kind, login,
-  username/password, refresh, MFA, SSO, organization, or workspace setting.
-- [x] **P1-022** Implement bounded timeout, concurrency, and retry configuration.
-  Verification (2026-08-01): added optional `http_timeout_seconds`,
-  `max_concurrency`, and `max_retries` attributes plus their documented
-  `FEATBIT_*` environment fallbacks. Defaults are 30 seconds, 4 concurrent
-  requests, and 3 safe-read retries; accepted ranges are 1–300, 1–32, and
-  0–10. Schema validators and runtime/environment parsing enforce the same
-  bounds, explicit values win, and environment integers reject empty,
-  whitespace-padded, non-decimal, overflow, and out-of-range input.
-- [x] **P1-023** Configure the client with direct `Authorization` and no login/context-header flow.
-  Verification (2026-08-01): added the handwritten `internal/client` boundary
-  and changed provider Configure data to a validated `*client.Client`. Client
-  construction performs zero requests; its transport clones each request,
-  sends the token value directly in `Authorization` without a Bearer prefix,
-  adds no organization/workspace header, performs no login exchange, and
-  refuses to send credentials to an origin other than the configured API.
-  Retry execution, request limiting, User-Agent, and generated transport
-  orchestration remain assigned to P1-032/P1-035/P1-036.
-- [x] **P1-024** Test explicit values, environment fallbacks, Null/Unknown, defaults, and invalid configuration.
-  Verification (2026-08-01): focused resolution tests cover precedence and
-  every boundary for URL, token, timeout, concurrency, and retries. Aggregate
-  Protocol v6 tests exercise explicit values, all environment fallbacks, Null
-  defaults, missing credentials, Unknown token/timeout, invalid URL, invalid
-  token, and invalid numeric settings through schema validation and Configure;
-  invalid configurations never construct a client.
-- [x] **P1-025** Prove configuration diagnostics and logs cannot reveal credentials.
-  Verification (2026-08-01): Protocol v6 confirms `access_token` is Sensitive.
-  Tests inject credential markers through both HCL-equivalent configuration
-  and environment lookup, through an intentionally unsafe client-factory
-  error, and through TRACE-level provider configuration logging; no diagnostic
-  or captured log contains the marker. Client/config/authorization-transport
-  formatters also redact `%v`, `%+v`, `%#v`, and `%s`, and off-origin errors
-  contain no credential. Under user-scoped Go `1.26.5`, focused tests and
-  `go vet` pass. Final task verification: `gofmt -l .` returned no files;
-  `go test ./...`, five repeated client/provider test runs, `go vet ./...`,
-  and `go build ./...` passed; the repository secret scan checked 83 files
-  with zero findings; and `git diff --check` passed.
+  Done when the tests prove both runtime relationships: `provider.Configure ->
+  client.New` constructs the shared client without a request; a synthetic
+  endpoint request then calls `Client.Do -> authorizationTransport`, followed
+  by `Client.DecodeResponse` for envelope/error classification.
 
-## D. OpenAPI and client foundation
+- [ ] **P1-041 — Complete cancellation and response-boundary tests.**
 
-- [ ] **P1-030** Wire the pinned snapshot, overlay, generator lock, and deterministic generate command.
-- [ ] **P1-031** Generate isolated transport/model code without manual edits.
-- [ ] **P1-032** Implement base URL, `/api/v1`, User-Agent, timeout, and cancellation behavior.
-- [ ] **P1-033** Implement FeatBit envelope decoding and centralized error classification.
-- [ ] **P1-034** Implement all-page pagination and exact-identity result types.
-- [ ] **P1-035** Implement safe-read-only retry, backoff/jitter, and `Retry-After` handling.
-- [ ] **P1-036** Implement bounded concurrency and per-object write serialization interfaces.
-- [ ] **P1-037** Implement token, secret, tenant, email, path-identity, and response redaction.
+  Cover cancellation before concurrency admission, during HTTP execution, and
+  during retry wait; client timeout; nil requests/responses; body read failure;
+  exactly-16-MiB response acceptance; oversized response rejection; and body
+  closure on every success/failure path.
 
-## E. Tests and reproducibility
+  Done when no path can hang, leak a permit/body, or return unsafe transport
+  details.
 
-- [ ] **P1-040** Test headers, base paths, envelopes, 401/403, validation, and ambiguous errors.
-- [ ] **P1-041** Test exact zero/one/duplicate pagination, fuzzy-first rejection, and cancellation.
-- [ ] **P1-042** Test read retries and prove unsafe writes are never retried.
-- [ ] **P1-043** Test redaction against tokens, environment secrets, member emails, and runtime identities.
-- [ ] **P1-044** Run generation twice and prove the second run has no diff.
-- [ ] **P1-045** Run `gofmt`, `go vet`, unit tests, and `go test -race ./...`.
+- [ ] **P1-042 — Complete retry-policy tests.**
 
-## F. Developer workflow and exit gate
+  Prove that only bodyless `GET` requests retry `429`, transient `5xx`, timeout,
+  and network failure. Verify retry count, exponential backoff/jitter bounds,
+  valid/invalid `Retry-After`, cancellation, and that POST/PUT/PATCH/DELETE and
+  GET-with-body execute once.
 
-- [ ] **P1-050** Add `GNUmakefile` targets: `fmt`, `lint`, `generate`, `test`, `testacc`, and `build`.
-- [ ] **P1-051** Add pinned lint/vulnerability tooling and fork-safe CI.
-- [ ] **P1-052** Add a local provider override guide.
-- [ ] **P1-053** Load the provider through a local override.
-- [ ] **P1-054** Run `terraform providers schema -json` successfully.
-- [ ] **P1-055** Run the repository secret/redaction scan with zero findings.
-- [ ] **P1-056** Update this README/TODO with final verification and the exact Phase 2 action.
-- [ ] **P1-057** Declare Phase 1 complete only after every exit-gate condition passes.
+  Done when an unsafe mutation cannot be retried by any classifier result.
+
+- [ ] **P1-043 — Complete concurrency and redaction tests.**
+
+  Saturate the request limiter, verify the configured maximum, cancellation
+  while queued, permit release before retry wait, and progress after failures.
+  Inject markers shaped like tokens, secrets, emails, UUIDs, keys, paths,
+  query values, headers, envelope messages, and network errors through every
+  exported formatter/diagnostic path.
+
+  Done when concurrency remains bounded and no marker appears in returned
+  errors, formatted values, request metadata, or captured logs.
+
+## Reproducibility
+
+- [ ] **P1-044 — Prove the runtime dependency boundary.**
+
+  Run `go list -deps ./...` and inspect imports. The root module must contain no
+  generated API package, OpenAPI runtime, generator command, nested tool
+  module, or endpoint-specific model without a production caller.
+
+- [ ] **P1-045 — Run the complete local quality gate.**
+
+  Run `gofmt -l .`, `go vet ./...`, `go test ./...`, repeated focused client
+  tests, `go test -race ./...`, `go build ./...`, `go mod tidy` clean-diff,
+  `go mod verify`, and `git diff --check`. If the Windows race run still lacks
+  a C compiler, install/provide one or make the same gate mandatory in CI; do
+  not mark this item complete with neither result.
+
+## Developer workflow
+
+- [ ] **P1-050 — Add standard developer commands.**
+
+  Add `GNUmakefile` targets `fmt`, `lint`, `test`, `testacc`, and `build` that
+  call repository-pinned behavior and work from the repository root. Do not add
+  an API-client generation target.
+
+- [ ] **P1-051 — Add fork-safe CI and pinned quality tools.**
+
+  Add pull-request jobs for formatting, vet, race tests, build, lint, and
+  vulnerability checks. Pin tool versions in the consuming workflow. Fork jobs
+  must use no FeatBit credentials; live acceptance jobs must be separately
+  trusted and scoped.
+
+- [ ] **P1-052 — Document a local provider override.**
+
+  Add a short developer guide outside `.context-wiki` showing build,
+  `dev_overrides`, provider address, safe environment-variable setup, and the
+  commands needed to validate a minimal provider configuration. Do not include
+  real tokens or state.
+
+- [ ] **P1-053 — Load the provider through the local override.**
+
+  Build the binary with a visible development version, configure an isolated
+  CLI override, and prove Terraform starts the local Protocol v6 provider. Use
+  synthetic configuration where no API call is needed.
+
+- [ ] **P1-054 — Verify the Terraform-visible schema.**
+
+  Run `terraform providers schema -json` through the local override. Confirm
+  the five provider attribute types/optionality, the Sensitive access token,
+  and the intentional absence of resources and data sources. Defaults and
+  custom validation remain verified by Go tests because Terraform's schema
+  JSON does not expose their complete runtime behavior.
+
+- [ ] **P1-055 — Run the repository secret and redaction gate.**
+
+  Scan tracked and untracked repository content with the selected pinned CI
+  scanner plus focused marker tests. The result must contain zero real
+  credentials, secret values, tenant identifiers, or unsafe fixtures.
+
+## Phase exit
+
+- [ ] **P1-056 — Close Phase 1 and prepare Phase 2.**
+
+  Confirm every item above and the README exit gate. Update the master plan
+  with only the final current runtime state and make its next action the first
+  concrete Project/Environment task. Then delete this completed Phase 1
+  package and create only a Phase 2 `README.md` and detailed `todo.md`.
+
+- [ ] **P1-057 — Declare Phase 1 complete only after the exit gate passes.**
+
+  This is the final consistency check: no unchecked item, unresolved runtime
+  assumption, secret finding, failed local-provider load, or missing schema
+  verification may remain.

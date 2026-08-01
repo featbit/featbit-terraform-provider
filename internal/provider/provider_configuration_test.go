@@ -65,7 +65,8 @@ func TestProtocol6ProviderConfigurationExplicitValues(t *testing.T) {
 	}
 	if captured.options.HTTPTimeout != 45*time.Second ||
 		captured.options.MaxConcurrency != 7 ||
-		captured.options.MaxRetries != 0 {
+		captured.options.MaxRetries != 0 ||
+		captured.options.ProviderVersion != "test" {
 		t.Fatalf("configured client options = %#v, want explicit values", captured.options)
 	}
 }

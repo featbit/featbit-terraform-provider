@@ -1,52 +1,54 @@
-# Phase 1 — Repository and Provider Scaffold
+# Phase 1 — Provider foundation
 
-State: **In progress — provider configuration complete through P1-025**
-Prepared: **2026-08-01**
+- Status: **In progress**
+- Updated: **2026-08-02**
+- Next task: `P1-040`
 
-Phase 1 turns the accepted Phase 0 API contract into a loadable Terraform
-Plugin Framework provider and a tested API client foundation. It does not
-implement Project, Environment, Feature Flag, Segment, or IAM resources.
+Read [AGENTS.md](../../AGENTS.md), the
+[current project plan](../plan.md), then [todo.md](todo.md). No completed phase
+context is required.
 
-## Read first
+## Current implementation
 
-1. [../../AGENTS.md](../../AGENTS.md)
-2. [../plan.md](../plan.md)
-3. [Phase 0 status](../plan-execution-phase-0/status.md)
-4. [Phase 0 handoff](../plan-execution-phase-0/handoff.md)
-5. [Phase 0 accepted ADRs](../plan-execution-phase-0/adrs/README.md)
-6. [plan.md](plan.md)
-7. [todo.md](todo.md)
+The provider already has:
 
-Phase 0 findings and evidence are consulted only through links from the
-handoff or an ADR; they are not part of the normal Phase 1 reading path.
+- one Go module, MPL-2.0, Protocol v6 entry point, version injection, and
+  Registry manifest;
+- provider attributes for API URL, Sensitive access token, timeout,
+  concurrency, and safe-read retry count, including environment fallbacks;
+- `Configure` construction of one shared `*client.Client` for resources and
+  data sources;
+- direct `Authorization` transport restricted to the configured `/api/v1`
+  origin, plus provider User-Agent;
+- bounded responses, timeout/cancellation, error/envelope classification,
+  bodyless-GET retry, request concurrency, and redaction; and
+- provider configuration and existing client unit/protocol tests.
 
-## Files
+There are intentionally no resources, data sources, endpoint-specific API
+models, pagination helpers, existence resolvers, or per-object write locks yet.
+Those belong to the first production lifecycle that consumes them.
 
-| File | Purpose |
-|---|---|
-| [README.md](README.md) | Current phase state, scope, and reading order |
-| [plan.md](plan.md) | Accepted inputs, implementation workstreams, constraints, and exit gate |
-| [todo.md](todo.md) | Executable checklist and evidence required for completion |
+## Remaining scope
 
-This compact three-file package intentionally replaces the earlier proposal
-for separate status, findings, session-log, evidence, and handoff files. Update
-the state above and the relevant TODO notes as work progresses; add another
-file only when it has a clear reader and cannot fit here.
+Phase 1 now finishes only:
 
-## Definition of done
+1. focused shared-client runtime tests;
+2. dependency and race verification;
+3. developer commands and fork-safe CI;
+4. local provider override and schema loading; and
+5. the Phase 1 exit gate and Phase 2 handoff through the master plan.
 
-- A local developer override loads the Protocol v6 provider.
-- `terraform providers schema -json` succeeds.
-- Provider configuration and mock API client tests pass.
-- OpenAPI generation is deterministic.
-- Tokens and secret values cannot appear in logs or diagnostics.
-- [todo.md](todo.md) is complete and identifies the exact Phase 2 entry action.
+## Exit gate
 
-## Next action
+- All items in [todo.md](todo.md) are complete.
+- `gofmt`, vet, unit/race tests, build, and module verification pass.
+- The dependency graph has no generated API or generator dependency.
+- Tokens, secrets, and runtime identities do not appear in diagnostics, logs,
+  fixtures, or repository scans.
+- A local override loads the provider and
+  `terraform providers schema -json` succeeds.
+- The current plan identifies Phase 2's exact first task.
 
-Execute `P1-030`: wire the pinned OpenAPI snapshot, operation-ID overlay,
-generator lock, and deterministic generation command. Continue using the
-verified user-scoped Go `1.26.5` toolchain; the older machine-wide Go remains
-installed because this session cannot elevate the MSI installer. Preserve the
-handwritten `internal/client` boundary added by P1-023, and do not implement a
-production Terraform resource during this phase.
+After the gate passes, fold the final current state into
+[the master plan](../plan.md), delete this Phase 1 directory, and create only
+the Phase 2 README/TODO.

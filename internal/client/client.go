@@ -5,6 +5,7 @@
 package client
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -28,38 +29,47 @@ const (
 	MinConcurrency = 1
 	MaxConcurrency = 32
 
-	// DefaultMaxRetries applies only to safe reads once retry behavior is wired.
+	// DefaultMaxRetries applies only to safe GET requests.
 	DefaultMaxRetries = 3
 	// MinRetries and MaxRetries bound safe-read retry configuration.
 	MinRetries = 0
 	MaxRetries = 10
+
+	// MaxResponseBytes bounds every buffered FeatBit JSON response. Buffering
+	// lets the client retry safe reads whose response body fails mid-stream.
+	MaxResponseBytes int64 = 16 << 20
+
+	userAgentProduct = "terraform-provider-featbit"
 )
 
 // Options contains non-secret client settings resolved by the provider.
 type Options struct {
-	HTTPTimeout    time.Duration
-	MaxConcurrency int
-	MaxRetries     int
+	HTTPTimeout     time.Duration
+	MaxConcurrency  int
+	MaxRetries      int
+	ProviderVersion string
 }
 
 // Client is the handwritten API client boundary used by provider resources.
-// The access token is deliberately kept in an unexported transport field.
+// Credentials and transport details are deliberately unexported.
 type Client struct {
-	baseURL        url.URL
-	httpClient     http.Client
-	maxConcurrency int
-	maxRetries     int
+	baseURL    url.URL
+	httpClient http.Client
+	maxRetries int
+	limiter    *requestLimiter
+	retries    retryController
+	redactor   *Redactor
 }
 
 // Format prevents accidental structured formatting of the client from
-// traversing into the credential-bearing transport.
+// traversing into credential-bearing or runtime-identity fields.
 func (Client) Format(state fmt.State, _ rune) {
 	_, _ = io.WriteString(state, "client.Client{redacted}")
 }
 
 // New constructs a client without performing a login or any network request.
 // The access token is sent directly in Authorization for requests to the
-// configured FeatBit API origin.
+// configured FeatBit API origin and /api/v1 path.
 func New(baseURL *url.URL, accessToken string, options Options) (*Client, error) {
 	return newClient(baseURL, accessToken, options, http.DefaultTransport)
 }
@@ -90,57 +100,121 @@ func newClient(
 	}
 
 	baseURLCopy := *baseURL
-
-	return &Client{
+	redactor := NewRedactor(accessToken)
+	client := &Client{
 		baseURL: baseURLCopy,
 		httpClient: http.Client{
 			Transport: &authorizationTransport{
-				base:        transport,
-				apiScheme:   baseURLCopy.Scheme,
-				apiHost:     baseURLCopy.Host,
-				accessToken: accessToken,
+				base:      transport,
+				apiScheme: baseURLCopy.Scheme,
+				apiHost:   baseURLCopy.Host,
+				apiPath:   baseURLCopy.EscapedPath(),
+				token:     accessToken,
+				userAgent: makeUserAgent(options.ProviderVersion),
 			},
 			Timeout: options.HTTPTimeout,
 		},
-		maxConcurrency: options.MaxConcurrency,
-		maxRetries:     options.MaxRetries,
-	}, nil
+		maxRetries: options.MaxRetries,
+		limiter:    newRequestLimiter(options.MaxConcurrency),
+		retries:    newRetryController(),
+		redactor:   redactor,
+	}
+	return client, nil
 }
 
-// Do sends one request through the credential-injecting HTTP client. Retry,
-// concurrency, and generated-transport orchestration are added by later Phase
-// 1 tasks; this method currently performs exactly one HTTP client operation.
+// Do executes one request created by a handwritten endpoint adapter. It
+// buffers a bounded response, limits concurrent in-flight requests, and
+// retries only bodyless GET requests classified as rate limited, transient
+// server, timeout, or network failures. Mutations always have one attempt.
 func (c *Client) Do(request *http.Request) (*http.Response, error) {
-	return c.httpClient.Do(request)
-}
-
-type authorizationTransport struct {
-	base        http.RoundTripper
-	apiScheme   string
-	apiHost     string
-	accessToken string
-}
-
-// Format prevents accidental formatting of the transport from exposing the
-// Authorization credential. HTTP request/response redaction is added later.
-func (authorizationTransport) Format(state fmt.State, _ rune) {
-	_, _ = io.WriteString(state, "client.authorizationTransport{redacted}")
-}
-
-func (t *authorizationTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	if request == nil || request.URL == nil {
-		return nil, errors.New("FeatBit API request URL is missing")
+		return nil, newAPIError(ClassificationAmbiguous, 0, "request", nil, nil)
 	}
-	if !strings.EqualFold(request.URL.Scheme, t.apiScheme) ||
-		!strings.EqualFold(request.URL.Host, t.apiHost) {
-		return nil, errors.New("request URL does not match the configured FeatBit API origin")
+	if err := request.Context().Err(); err != nil {
+		return nil, newTransportError(err)
 	}
+
+	retryableRead := request.Method == http.MethodGet &&
+		(request.Body == nil || request.Body == http.NoBody)
+	maxAttempts := 1
+	if retryableRead {
+		maxAttempts += c.maxRetries
+	}
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		response, err := c.doAttempt(request)
+		classification := Classify(statusCode(response), nil, err)
+		if err == nil && !ShouldRetry(request.Method, classification) {
+			return response, nil
+		}
+		if !retryableRead || !ShouldRetry(request.Method, classification) || attempt+1 >= maxAttempts {
+			if err != nil {
+				return nil, newTransportError(err)
+			}
+			return response, nil
+		}
+
+		if response != nil && response.Body != nil {
+			_ = response.Body.Close()
+		}
+		delay := c.retries.delay(response, attempt)
+		if err := c.retries.wait(request.Context(), delay); err != nil {
+			return nil, newTransportError(err)
+		}
+	}
+
+	return nil, newAPIError(ClassificationAmbiguous, 0, "request", nil, nil)
+}
+
+func (c *Client) doAttempt(request *http.Request) (*http.Response, error) {
+	if err := c.limiter.acquire(request.Context()); err != nil {
+		return nil, err
+	}
+	defer c.limiter.release()
 
 	requestCopy := request.Clone(request.Context())
-	requestCopy.Header = request.Header.Clone()
-	requestCopy.Header.Set("Authorization", t.accessToken)
+	response, err := c.httpClient.Do(requestCopy)
+	if err != nil {
+		if response != nil && response.Body != nil {
+			_ = response.Body.Close()
+		}
+		return nil, err
+	}
+	if response == nil {
+		return nil, errors.New("FeatBit API transport returned no response")
+	}
 
-	return t.base.RoundTrip(requestCopy)
+	body, err := readBoundedResponse(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	response.Body = io.NopCloser(bytes.NewReader(body))
+	response.ContentLength = int64(len(body))
+	response.Request = c.redactor.Request(response.Request)
+	return response, nil
+}
+
+func readBoundedResponse(body io.ReadCloser) ([]byte, error) {
+	if body == nil {
+		return nil, nil
+	}
+	defer body.Close()
+
+	content, err := io.ReadAll(io.LimitReader(body, MaxResponseBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(content)) > MaxResponseBytes {
+		return nil, errResponseTooLarge
+	}
+	return content, nil
+}
+
+func statusCode(response *http.Response) int {
+	if response == nil {
+		return 0
+	}
+	return response.StatusCode
 }
 
 func validBaseURL(baseURL *url.URL) bool {
@@ -150,7 +224,8 @@ func validBaseURL(baseURL *url.URL) bool {
 	if !strings.EqualFold(baseURL.Scheme, "http") && !strings.EqualFold(baseURL.Scheme, "https") {
 		return false
 	}
-	return baseURL.User == nil && baseURL.Path == "/api/v1" && baseURL.RawQuery == "" && baseURL.Fragment == ""
+	return baseURL.User == nil && baseURL.Path == "/api/v1" && baseURL.RawPath == "" &&
+		baseURL.RawQuery == "" && baseURL.Fragment == ""
 }
 
 func validAccessToken(accessToken string) bool {

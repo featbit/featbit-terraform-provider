@@ -44,7 +44,7 @@ func TestNewClientDoesNotPerformLoginOrNetworkRequest(t *testing.T) {
 		t.Fatalf("newClient() performed %d requests, want 0", requestCount)
 	}
 	if clientUnderTest.httpClient.Timeout != DefaultHTTPTimeout ||
-		clientUnderTest.maxConcurrency != DefaultMaxConcurrency ||
+		cap(clientUnderTest.limiter.permits) != DefaultMaxConcurrency ||
 		clientUnderTest.maxRetries != DefaultMaxRetries {
 		t.Fatal("newClient() did not retain the resolved bounded settings")
 	}
@@ -65,6 +65,9 @@ func TestClientSendsTokenDirectlyInAuthorization(t *testing.T) {
 			}
 			if strings.HasPrefix(request.Header.Get("Authorization"), "Bearer ") {
 				t.Fatal("Authorization unexpectedly used a Bearer prefix")
+			}
+			if got := request.Header.Get("User-Agent"); got != "terraform-provider-featbit/test" {
+				t.Fatalf("User-Agent = %q, want provider product and version", got)
 			}
 			for _, header := range []string{
 				"Organization",
@@ -97,6 +100,10 @@ func TestClientSendsTokenDirectlyInAuthorization(t *testing.T) {
 	request, err := http.NewRequest(http.MethodGet, "https://featbit.example.test/api/v1/projects", nil)
 	if err != nil {
 		t.Fatalf("http.NewRequest() error = %v", err)
+	}
+	request.Header.Set("User-Agent", "caller-value")
+	for _, header := range contextHeaders {
+		request.Header.Set(header, "synthetic-tenant-value")
 	}
 	response, err := clientUnderTest.Do(request)
 	if err != nil {
@@ -226,9 +233,10 @@ func TestClientFormattingDoesNotDiscloseToken(t *testing.T) {
 
 func defaultTestOptions() Options {
 	return Options{
-		HTTPTimeout:    DefaultHTTPTimeout,
-		MaxConcurrency: DefaultMaxConcurrency,
-		MaxRetries:     DefaultMaxRetries,
+		HTTPTimeout:     DefaultHTTPTimeout,
+		MaxConcurrency:  DefaultMaxConcurrency,
+		MaxRetries:      DefaultMaxRetries,
+		ProviderVersion: "test",
 	}
 }
 

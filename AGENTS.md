@@ -8,18 +8,24 @@ FeatBit customer workflows and the current public FeatBit API define the provide
 
 ## Project context
 
-`.context-wiki/` is the traceable development history and source of project context.
+`.context-wiki/` contains only the current architecture, roadmap, and active
+execution context. It is not a development-history archive.
 
 Before working, read:
 
 1. `.context-wiki/plan.md`
-2. The active phase's `README.md`, `plan.md`, and `todo.md`
-3. Any completed-phase handoff, ADR, finding, or evidence linked from them
+2. The active phase's `README.md` and `todo.md`
 
-After material work, update the compact documents named by the active phase's
-README. Add a new context file only when it has a clear reader and cannot fit
-those documents. Preserve accepted ADRs and historical findings; supersede
-them with a dated correction instead of silently rewriting them.
+Work one active TODO item at a time. Keep its implementation scope, important
+files, runtime call relationship, and completion checks directly under that
+item. After material work, record the concise result there and synchronize any
+changed current-architecture fact in the master plan.
+
+When a phase passes its exit gate, merge only still-current architecture and
+roadmap facts into `.context-wiki/plan.md`, delete the completed phase package,
+and create the next phase's `README.md` and `todo.md`. Do not retain ADRs,
+evidence files, findings, handoffs, prompts, or session logs unless the user
+explicitly asks for a durable historical record.
 
 ## Guardrails
 
