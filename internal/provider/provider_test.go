@@ -42,8 +42,8 @@ func TestProviderSchema(t *testing.T) {
 	if response.Diagnostics.HasError() {
 		t.Fatalf("unexpected schema diagnostics: %v", response.Diagnostics)
 	}
-	if got := len(response.Schema.Attributes); got != 1 {
-		t.Fatalf("expected one configuration attribute after P1-020, got %d", got)
+	if got := len(response.Schema.Attributes); got != 5 {
+		t.Fatalf("expected five provider configuration attributes, got %d", got)
 	}
 
 	apiURLAttribute, ok := response.Schema.Attributes["api_url"].(providerschema.StringAttribute)
@@ -55,6 +55,30 @@ func TestProviderSchema(t *testing.T) {
 	}
 	if got := len(apiURLAttribute.Validators); got != 1 {
 		t.Fatalf("expected api_url to have one validator, got %d", got)
+	}
+
+	accessTokenAttribute, ok := response.Schema.Attributes["access_token"].(providerschema.StringAttribute)
+	if !ok {
+		t.Fatalf("expected access_token to be a string attribute, got %T", response.Schema.Attributes["access_token"])
+	}
+	if !accessTokenAttribute.Optional || accessTokenAttribute.Required || !accessTokenAttribute.Sensitive {
+		t.Fatal("expected access_token to be optional, not required, and Sensitive")
+	}
+	if got := len(accessTokenAttribute.Validators); got != 1 {
+		t.Fatalf("expected access_token to have one validator, got %d", got)
+	}
+
+	for _, name := range []string{"http_timeout_seconds", "max_concurrency", "max_retries"} {
+		attribute, ok := response.Schema.Attributes[name].(providerschema.Int64Attribute)
+		if !ok {
+			t.Fatalf("expected %s to be an int64 attribute, got %T", name, response.Schema.Attributes[name])
+		}
+		if !attribute.Optional || attribute.Required {
+			t.Fatalf("expected %s to be optional and not required", name)
+		}
+		if got := len(attribute.Validators); got != 1 {
+			t.Fatalf("expected %s to have one validator, got %d", name, got)
+		}
 	}
 }
 

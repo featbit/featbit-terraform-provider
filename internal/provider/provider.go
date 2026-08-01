@@ -6,8 +6,10 @@ package provider
 
 import (
 	"context"
+	"net/url"
 	"os"
 
+	"github.com/featbit/terraform-provider-featbit/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -20,8 +22,12 @@ var _ provider.Provider = (*FeatBitProvider)(nil)
 
 // FeatBitProvider is the Terraform provider implementation.
 type FeatBitProvider struct {
-	version string
+	version   string
+	lookupEnv func(string) (string, bool)
+	newClient clientFactory
 }
+
+type clientFactory func(*url.URL, string, client.Options) (*client.Client, error)
 
 // Metadata returns the provider type name and build version.
 func (p *FeatBitProvider) Metadata(
@@ -50,6 +56,39 @@ func (p *FeatBitProvider) Schema(
 					apiURLValidator{},
 				},
 			},
+			"access_token": schema.StringAttribute{
+				Optional:  true,
+				Sensitive: true,
+				MarkdownDescription: "FeatBit personal or service API access token. May also be set with " +
+					"`FEATBIT_ACCESS_TOKEN`; service tokens are recommended for CI/CD.",
+				Validators: []validator.String{
+					accessTokenValidator{},
+				},
+			},
+			"http_timeout_seconds": schema.Int64Attribute{
+				Optional: true,
+				MarkdownDescription: "Timeout in seconds for one FeatBit HTTP request. May also be set with " +
+					"`FEATBIT_HTTP_TIMEOUT_SECONDS`. Defaults to 30; valid range is 1 through 300.",
+				Validators: []validator.Int64{
+					boundedInt64Validator{setting: httpTimeoutSecondsSetting},
+				},
+			},
+			"max_concurrency": schema.Int64Attribute{
+				Optional: true,
+				MarkdownDescription: "Maximum number of concurrent FeatBit API requests. May also be set with " +
+					"`FEATBIT_MAX_CONCURRENCY`. Defaults to 4; valid range is 1 through 32.",
+				Validators: []validator.Int64{
+					boundedInt64Validator{setting: maxConcurrencySetting},
+				},
+			},
+			"max_retries": schema.Int64Attribute{
+				Optional: true,
+				MarkdownDescription: "Maximum retry count for safely retryable reads. Mutations are never retried " +
+					"automatically. May also be set with `FEATBIT_MAX_RETRIES`. Defaults to 3; valid range is 0 through 10.",
+				Validators: []validator.Int64{
+					boundedInt64Validator{setting: maxRetriesSetting},
+				},
+			},
 		},
 	}
 }
@@ -69,16 +108,45 @@ func (p *FeatBitProvider) Configure(
 		return
 	}
 
-	config, diagnostics := newProviderConfig(model, os.LookupEnv)
+	lookupEnv := p.lookupEnv
+	if lookupEnv == nil {
+		lookupEnv = os.LookupEnv
+	}
+
+	config, diagnostics := newProviderConfig(model, lookupEnv)
 	resp.Diagnostics.Append(diagnostics...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// There are no Phase 1 resources or data sources yet. Keeping the resolved
-	// configuration in both slots makes the P1-023 client handoff explicit.
-	resp.DataSourceData = config
-	resp.ResourceData = config
+	newClient := p.newClient
+	if newClient == nil {
+		newClient = client.New
+	}
+
+	apiClient, err := newClient(
+		config.apiURL,
+		config.accessToken,
+		client.Options{
+			HTTPTimeout:    config.httpTimeout,
+			MaxConcurrency: config.maxConcurrency,
+			MaxRetries:     config.maxRetries,
+		},
+	)
+	if err != nil {
+		// Do not include the client error: a future transport implementation
+		// could wrap request details. Configuration diagnostics stay credential
+		// safe even when a dependency returns an unsafe error string.
+		resp.Diagnostics.AddError(
+			"Unable to Configure FeatBit API Client",
+			"The provider could not create the FeatBit API client. Verify the provider settings and try again.",
+		)
+		return
+	}
+
+	resp.DataSourceData = apiClient
+	resp.ResourceData = apiClient
+	tflog.Debug(ctx, "Configured FeatBit provider")
 }
 
 // Resources returns no managed resources during Phase 1.
@@ -94,6 +162,10 @@ func (p *FeatBitProvider) DataSources(context.Context) []func() datasource.DataS
 // New creates a provider factory with the supplied build version.
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &FeatBitProvider{version: version}
+		return &FeatBitProvider{
+			version:   version,
+			lookupEnv: os.LookupEnv,
+			newClient: client.New,
+		}
 	}
 }

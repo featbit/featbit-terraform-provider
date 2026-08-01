@@ -1,6 +1,6 @@
 # Phase 1 TODO — Repository and Provider Scaffold
 
-Status: **In progress — provider configuration complete through P1-020**
+Status: **In progress — provider configuration complete through P1-025**
 
 Check an item only when its stated result exists. Record concise verification
 under the item instead of creating a new context file by default.
@@ -98,11 +98,49 @@ under the item instead of creating a new context file by default.
   returned no files and `go test ./...`, `go vet ./...`, and `go build ./...`
   passed. Protocol-level aggregate configuration coverage remains assigned to
   P1-024.
-- [ ] **P1-021** Implement Sensitive `access_token` plus `FEATBIT_ACCESS_TOKEN` fallback.
-- [ ] **P1-022** Implement bounded timeout, concurrency, and retry configuration.
-- [ ] **P1-023** Configure the client with direct `Authorization` and no login/context-header flow.
-- [ ] **P1-024** Test explicit values, environment fallbacks, Null/Unknown, defaults, and invalid configuration.
-- [ ] **P1-025** Prove configuration diagnostics and logs cannot reveal credentials.
+- [x] **P1-021** Implement Sensitive `access_token` plus `FEATBIT_ACCESS_TOKEN` fallback.
+  Verification (2026-08-01): added the optional, protocol-visible Sensitive
+  `access_token` attribute with explicit-value precedence and
+  `FEATBIT_ACCESS_TOKEN` fallback. Missing, empty, Unknown, surrounding-
+  whitespace, and control-character values fail with fixed diagnostics that
+  never contain the configured value. The schema has no token-kind, login,
+  username/password, refresh, MFA, SSO, organization, or workspace setting.
+- [x] **P1-022** Implement bounded timeout, concurrency, and retry configuration.
+  Verification (2026-08-01): added optional `http_timeout_seconds`,
+  `max_concurrency`, and `max_retries` attributes plus their documented
+  `FEATBIT_*` environment fallbacks. Defaults are 30 seconds, 4 concurrent
+  requests, and 3 safe-read retries; accepted ranges are 1–300, 1–32, and
+  0–10. Schema validators and runtime/environment parsing enforce the same
+  bounds, explicit values win, and environment integers reject empty,
+  whitespace-padded, non-decimal, overflow, and out-of-range input.
+- [x] **P1-023** Configure the client with direct `Authorization` and no login/context-header flow.
+  Verification (2026-08-01): added the handwritten `internal/client` boundary
+  and changed provider Configure data to a validated `*client.Client`. Client
+  construction performs zero requests; its transport clones each request,
+  sends the token value directly in `Authorization` without a Bearer prefix,
+  adds no organization/workspace header, performs no login exchange, and
+  refuses to send credentials to an origin other than the configured API.
+  Retry execution, request limiting, User-Agent, and generated transport
+  orchestration remain assigned to P1-032/P1-035/P1-036.
+- [x] **P1-024** Test explicit values, environment fallbacks, Null/Unknown, defaults, and invalid configuration.
+  Verification (2026-08-01): focused resolution tests cover precedence and
+  every boundary for URL, token, timeout, concurrency, and retries. Aggregate
+  Protocol v6 tests exercise explicit values, all environment fallbacks, Null
+  defaults, missing credentials, Unknown token/timeout, invalid URL, invalid
+  token, and invalid numeric settings through schema validation and Configure;
+  invalid configurations never construct a client.
+- [x] **P1-025** Prove configuration diagnostics and logs cannot reveal credentials.
+  Verification (2026-08-01): Protocol v6 confirms `access_token` is Sensitive.
+  Tests inject credential markers through both HCL-equivalent configuration
+  and environment lookup, through an intentionally unsafe client-factory
+  error, and through TRACE-level provider configuration logging; no diagnostic
+  or captured log contains the marker. Client/config/authorization-transport
+  formatters also redact `%v`, `%+v`, `%#v`, and `%s`, and off-origin errors
+  contain no credential. Under user-scoped Go `1.26.5`, focused tests and
+  `go vet` pass. Final task verification: `gofmt -l .` returned no files;
+  `go test ./...`, five repeated client/provider test runs, `go vet ./...`,
+  and `go build ./...` passed; the repository secret scan checked 83 files
+  with zero findings; and `git diff --check` passed.
 
 ## D. OpenAPI and client foundation
 

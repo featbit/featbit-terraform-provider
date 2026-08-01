@@ -1,6 +1,6 @@
 # Phase 1 — Repository and Provider Scaffold
 
-State: **In progress — provider configuration complete through P1-020**
+State: **In progress — provider configuration complete through P1-025**
 Prepared: **2026-08-01**
 
 Phase 1 turns the accepted Phase 0 API contract into a loadable Terraform
@@ -44,8 +44,9 @@ file only when it has a clear reader and cannot fit here.
 
 ## Next action
 
-Execute `P1-021`: implement Sensitive `access_token` and its
-`FEATBIT_ACCESS_TOKEN` fallback. Continue using the verified user-scoped Go
-`1.26.5` toolchain; the older machine-wide Go remains installed because this
-session cannot elevate the MSI installer. Do not implement a production
-Terraform resource during this phase.
+Execute `P1-030`: wire the pinned OpenAPI snapshot, operation-ID overlay,
+generator lock, and deterministic generation command. Continue using the
+verified user-scoped Go `1.26.5` toolchain; the older machine-wide Go remains
+installed because this session cannot elevate the MSI installer. Preserve the
+handwritten `internal/client` boundary added by P1-023, and do not implement a
+production Terraform resource during this phase.

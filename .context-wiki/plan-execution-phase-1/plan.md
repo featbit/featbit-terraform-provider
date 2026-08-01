@@ -44,6 +44,18 @@ undocumented endpoints.
 - No login, username/password, Bearer/JWT refresh, MFA, SSO, organization
   header, workspace header, or token-kind selector.
 
+P1-022 fixes the configuration defaults and accepted ranges:
+
+| Setting | Default | Accepted range |
+|---|---:|---:|
+| `http_timeout_seconds` | `30` | `1` through `300` |
+| `max_concurrency` | `4` | `1` through `32` |
+| `max_retries` | `3` | `0` through `10` |
+
+The retry value is configuration for the later safe-read-only retry executor;
+it never authorizes automatic mutation retries. The concurrency value is
+configuration for the later process-local request limiter.
+
 ### 3. OpenAPI transport and handwritten client
 
 - Generate typed transport/models from the pinned operation-ID overlay.
