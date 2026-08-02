@@ -1,7 +1,7 @@
 # Phase 1 TODO — Provider foundation
 
 Status: **In progress**
-Next: **P1-055**
+Next: **P1-056**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -225,12 +225,28 @@ Do not create a separate ADR, evidence file, session log, or handoff.
   binary and Protocol v6 RPC, and `go test ./internal/provider -count=1
   -timeout=120s` for the Framework types, defaults, and custom validation.
 
-- [ ] **P1-055 — Run the repository secret and redaction gate.**
+- [x] **P1-055 — Run the repository secret and redaction gate.**
 
   Scan tracked and untracked repository content and run the focused marker and
   redaction tests. The result must contain zero real credentials, secret
   values, tenant identifiers, or unsafe fixtures. Permanent CI integration
   belongs to Phase 6.
+
+  Result (2026-08-02): No production, fixture, or test file changed; updated
+  this active TODO and the Phase 1 next-task pointer. A fully redacted
+  Gitleaks v8.30.1 directory scan over an isolated mirror of all 29 tracked
+  and nonignored untracked files found zero secrets; the repository had no
+  ignored file artifacts to add to that set. A separate shape and fixture
+  audit found no private keys, JWTs, cloud/PAT credentials, risky secret
+  artifacts, real email/UUID/tenant identities, or unsafe credential
+  literals; every identity-shaped candidate was an explicit test-only marker
+  or reserved-domain fixture. Focused contracts verified
+  `FeatBitProvider.Configure -> client.New -> NewRedactor` keeps credentials
+  out of configuration diagnostics/logs and `Client.Do/DecodeResponse ->
+  Redactor.Text/Headers/Request -> APIError/tflog` removes every injected
+  marker from returned and logged values. Passed both focused client and
+  provider redaction suites with `-count=20`, the redacted repository scan,
+  the identity/fixture audit, and `git diff --check`.
 
 ## Phase exit
 
