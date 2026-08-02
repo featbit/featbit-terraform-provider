@@ -18,8 +18,14 @@ Before working, read:
 
 Work one active TODO item at a time. Keep its implementation scope, important
 files, runtime call relationship, and completion checks directly under that
-item. After material work, record the concise result there and synchronize any
-changed current-architecture fact in the master plan.
+item. After material work, record the concise result only under that item.
+
+The active phase README and TODO own execution status, completed-item results,
+and the next task. Do not update `.context-wiki/plan.md` merely because a TODO
+item completed, a verification passed, or the next-task pointer advanced.
+Update the master plan only when work changes a cross-phase, still-current
+architecture, product contract, or roadmap fact. Edit or replace the relevant
+fact; never append task-completion history.
 
 When a phase passes its exit gate, merge only still-current architecture and
 roadmap facts into `.context-wiki/plan.md`, delete the completed phase package,

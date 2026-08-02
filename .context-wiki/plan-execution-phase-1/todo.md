@@ -1,7 +1,7 @@
 # Phase 1 TODO — Provider foundation
 
 Status: **In progress**
-Next: **P1-050**
+Next: **P1-051**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -161,11 +161,21 @@ Do not create a separate ADR, evidence file, session log, or handoff.
 
 ## Developer workflow
 
-- [ ] **P1-050 — Add standard developer commands.**
+- [x] **P1-050 — Add standard developer commands.**
 
   Add `GNUmakefile` targets `fmt`, `lint`, `test`, `testacc`, and `build` that
   call repository-pinned behavior and work from the repository root. Do not add
   an API-client generation target.
+
+  Result (2026-08-02): Added the root `GNUmakefile`. GNU Make now dispatches
+  `fmt -> gofmt`, `lint -> go vet`, `test -> go test`, `testacc -> TF_ACC=1 go
+  test`, and `build -> go build` across `./...`, using the Go toolchain and
+  dependency versions already governed by `go.mod`; no generator or external
+  unpinned quality tool was introduced. Unit and acceptance-mode runs disable
+  the test cache and have explicit repository-wide timeouts. Passed a GNU Make
+  dry run, all five targets through GNU Make 4.2.1 from the repository root,
+  an isolated assertion that `testacc` exports `TF_ACC=1`, and `git diff
+  --check`.
 
 - [ ] **P1-051 — Add fork-safe CI and pinned quality tools.**
 

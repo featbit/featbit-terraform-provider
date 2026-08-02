@@ -1,37 +1,18 @@
 # FeatBit Terraform Provider Plan
 
 - Status: **Active**
-- Synced: **2026-08-02**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
 - Active work: [Phase 1 — provider foundation](plan-execution-phase-1/README.md)
 
-This file contains only the current architecture, product contract, and phase
-roadmap. The active phase TODO owns step-by-step implementation detail.
+This file contains the current architecture, product contract, and phase
+roadmap.
 
 ## 1. Current position
 
-Phase 1 is in progress. The repository currently has:
-
-- one Go module using Terraform Plugin Framework and Protocol v6;
-- the provider entry point, MPL-2.0 license, version injection, and Registry
-  protocol manifest;
-- a validated provider configuration schema;
-- a shared handwritten HTTP client runtime with authentication, cancellation,
-  bounded responses, error classification, safe-read retry, concurrency
-  limiting, and redaction; and
-- unit and protocol-level tests for the provider configuration plus complete
-  shared-client request, error, cancellation, timeout, response-boundary, and
-  body-lifecycle, safe-read retry, concurrency, and redaction contracts; and
-- a verified runtime dependency boundary with no generated API, OpenAPI,
-  generator, nested tool module, or premature endpoint model; and
-- a passing complete local quality gate, including Windows race-detector
-  coverage and clean module verification.
-
-No Terraform resource, data source, or FeatBit endpoint adapter exists yet.
-Phase 1 still needs developer commands, CI, local provider loading, schema
-verification, and the repository secret gate. The next task is `P1-050` in
-the [active TODO](plan-execution-phase-1/todo.md).
+Phase 1 is active. The repository exposes a Protocol v6 provider with its
+configuration schema and shared handwritten HTTP client runtime. No Terraform
+resource, data source, or FeatBit endpoint adapter exists yet.
 
 ## 2. Product boundary
 
@@ -156,30 +137,13 @@ Core Import IDs are stable public contracts:
 | Future IAM object | `<uuid>` |
 | Future IAM binding | `<left_uuid>/<right_uuid>` |
 
-## 5. Delivery method and context policy
-
-Human and Codex work one active TODO item at a time:
-
-1. Agree on the concrete outcome and ownership boundary.
-2. Identify the production caller and documented endpoint involved.
-3. Implement the smallest code path needed for that caller.
-4. Add proportional unit, contract, or acceptance verification.
-5. Record changed files, runtime call relationships, and verification directly
-   under that TODO item.
-6. Stop at the phase gate before starting the next phase.
-
-While a phase is active, its README contains current status and its TODO
-contains executable detail. When the phase completes, merge only still-current
-architecture and roadmap facts into this file, delete the completed phase
-package, and create the next phase's README/TODO. Do not retain ADRs, evidence,
-session logs, prompts, or other historical process documents by default.
-
-## 6. Roadmap
+## 5. Roadmap
 
 ### Phase 1 — Provider foundation (active)
 
-Finish the shared-client tests, developer workflow, CI, local override, and
-provider schema check. Do not add resource endpoint models in this phase.
+Establish the shared client, developer and CI workflow, local override, and
+provider schema verification. Do not add resource endpoint models in this
+phase.
 
 Gate: local override loads the provider; `terraform providers schema -json`
 succeeds; format, vet, unit/race, build, redaction, and dependency checks pass.
@@ -225,7 +189,7 @@ publication.
 Gate: a clean directory can initialize, plan, apply, destroy, and import using
 the Registry provider; release assets satisfy Registry requirements.
 
-## 7. Global verification
+## 6. Global verification
 
 Current runtime pins are authoritative in `go.mod`: Go `1.25.8`, Plugin
 Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
