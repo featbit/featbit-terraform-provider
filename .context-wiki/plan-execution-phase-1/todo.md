@@ -1,7 +1,7 @@
 # Phase 1 TODO — Provider foundation
 
 Status: **In progress**
-Next: **P1-053**
+Next: **P1-055**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -177,19 +177,53 @@ Do not create a separate ADR, evidence file, session log, or handoff.
   an isolated assertion that `testacc` exports `TF_ACC=1`, and `git diff
   --check`.
 
-- [ ] **P1-053 — Load the provider through the local override.**
+- [x] **P1-053 — Load the provider through the local override.**
 
   Build the binary with a visible development version, configure an isolated
   CLI override, and prove Terraform starts the local Protocol v6 provider. Use
   synthetic configuration where no API call is needed.
 
-- [ ] **P1-054 — Verify the Terraform-visible schema.**
+  Result (2026-08-02): No production file changed; updated this active TODO
+  and the Phase 1 next-task pointer after cleaning the ignored temporary
+  `bin/p1-053` verification workspace. Built the provider with
+  `-trimpath -ldflags "-X main.version=0.0.0-dev.p1-053"`, placed the resulting
+  versioned executable behind an isolated `TF_CLI_CONFIG_FILE` development
+  override for `registry.terraform.io/featbit/featbit`, and used a synthetic
+  provider-only root module whose unreachable loopback API origin would make
+  any unexpected request fail. The verified runtime relationship is
+  `terraform plan -> provider_installation.dev_overrides -> local
+  terraform-provider-featbit_v0.0.0-dev.p1-053.exe -> Protocol v6
+  GetProviderSchema -> Close`; no Configure, resource, or data-source RPC was
+  needed and no FeatBit HTTP request occurred. Passed `go build`, an embedded
+  development-version marker check, and Terraform v1.5.6 `terraform plan
+  -input=false -lock=false -refresh=false -no-color`; the plan named the local
+  override, returned `No changes`, and TRACE confirmed the exact executable
+  path, `using plugin: version=6`, the two expected RPCs, and absence of the
+  configured API origin, authorization data, and synthetic token.
+
+- [x] **P1-054 — Verify the Terraform-visible schema.**
 
   Run `terraform providers schema -json` through the local override. Confirm
   the five provider attribute types/optionality, the Sensitive access token,
   and the intentional absence of resources and data sources. Defaults and
   custom validation remain verified by Go tests because Terraform's schema
   JSON does not expose their complete runtime behavior.
+
+  Result (2026-08-02): No production or schema file changed; updated this
+  active TODO and the Phase 1 next-task pointer after cleaning the ignored
+  `bin/p1-054` verification workspace. Built the provider with the visible
+  version `0.0.0-dev.p1-054` and used an isolated CLI development override.
+  The verified runtime relationship is `terraform providers schema -json ->
+  provider_installation.dev_overrides -> local provider binary -> Protocol v6
+  GetProviderSchema -> Terraform schema JSON`. Machine assertions confirmed
+  exactly five optional, non-required, non-computed attributes: `api_url` and
+  `access_token` are Terraform `string`; `http_timeout_seconds`,
+  `max_concurrency`, and `max_retries` are Terraform `number`; only
+  `access_token` is Sensitive; and resource/data-source schema counts are
+  both zero. Passed the development-version build check, Terraform v1.5.6
+  `terraform providers schema -json` with TRACE proving the exact override
+  binary and Protocol v6 RPC, and `go test ./internal/provider -count=1
+  -timeout=120s` for the Framework types, defaults, and custom validation.
 
 - [ ] **P1-055 — Run the repository secret and redaction gate.**
 
