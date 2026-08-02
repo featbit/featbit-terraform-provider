@@ -1,7 +1,7 @@
 # Phase 2 TODO — Project and environment
 
 Status: **In progress**
-Next: **P2-010**
+Next: **P2-020**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -15,7 +15,7 @@ handoff.
 
 ## Project
 
-- [ ] **P2-010 — Add the Project read adapter and exact data source.**
+- [x] **P2-010 — Add the Project read adapter and exact data source.**
 
   Scope: add only the safe Project/environment wire fields needed by this
   caller; implement documented Project Get and complete-collection List;
@@ -39,7 +39,23 @@ handoff.
   ordering, and omission of environment secrets. Provider tests prove the
   client is type-checked at Configure and no request occurs before Read.
 
-- [ ] **P2-011 — Add the Project resource, CRUD, and Import.**
+  Result: Added the narrow Project/environment wire model and direct-Get plus
+  complete-List exact-ID fallback in `internal/client/projects.go`, backed by
+  reusable escaped-request and UUID helpers in `request.go` and
+  `identifiers.go`; the registered exact-UUID data source, shared flattening,
+  validator/schema, and reusable ProviderData checks live in
+  `internal/provider/project_data_source.go`, `project_models.go`, `uuid.go`,
+  and `client_configuration.go`. Runtime is `Provider.DataSources ->
+  projectDataSource.Configure -> *client.Client`, then
+  `projectDataSource.Read -> Client.GetProject -> Client.Do/DecodeResponse`,
+  with failed direct reads resolving exact zero/one/duplicate IDs through
+  `Client.ListProjects`. `gofmt -l internal/client internal/provider` was
+  empty; `go test ./internal/client ./internal/provider` and
+  `git diff --check` passed, including focused method/path/header,
+  envelope/cancellation, complete-collection, ordering, secret-omission, and
+  Configure-without-request contracts.
+
+- [x] **P2-011 — Add the Project resource, CRUD, and Import.**
 
   Scope: add and register `featbit_project` with Computed `id`, Required
   `name`/`key`, `RequiresReplace` on `key`, and the same fully Computed
@@ -64,7 +80,24 @@ handoff.
   already-absent Delete, cancellation, and state preservation for every
   unconfirmed outcome.
 
-- [ ] **P2-012 — Prove the Project Terraform protocol lifecycle.**
+  Result: Extended `internal/client/projects.go` with exact POST/PUT/DELETE
+  request and response contracts using the shared JSON request constructor,
+  and added the registered
+  `internal/provider/project_resource.go` lifecycle with exact-key preflight,
+  ambiguous-Create reconciliation, strict UUID Import, canonical
+  read-after-write, `key` replacement, and exact destroy proof; focused client
+  and lifecycle coverage lives in `projects_test.go` and
+  `project_resource_test.go`. Runtime is `projectResource.Create/Update/Delete
+  -> one Project mutation -> Client.Do/DecodeResponse -> GetProject`, while
+  failed direct Read/Delete confirmation falls back through the complete
+  collection and preserves state unless exact zero is proven. `go test
+  -count=5 ./internal/client ./internal/provider`, `go vet ./...`, `go test
+  ./...`, and `git diff --check` passed, covering exact/fuzzy/duplicate
+  preflight, one-shot mutations, safe ambiguous recovery, name-only update,
+  replacement, canonical environments, Import validation, cancellation,
+  already-absent deletion, and ambiguous-state preservation.
+
+- [x] **P2-012 — Prove the Project Terraform protocol lifecycle.**
 
   Scope: exercise the registered Project resource and data source through
   Protocol v6 against an isolated stateful mock API, rather than calling
@@ -82,6 +115,20 @@ handoff.
   empty plan, external name drift, key replacement, direct-Read fallback, and
   out-of-band deletion all pass; the request recorder proves expected call
   order and zero unsafe retries; teardown leaves exact project count zero.
+
+  Result: Added `internal/provider/project_protocol_test.go` and the narrow
+  stateful `project_protocol_fixture_test.go`, which drive the registered
+  resource and exact data source through Terraform CLI and the in-process
+  Protocol v6 server. Runtime is `terraform plan/apply/refresh/import/destroy
+  -> providerserver Protocol v6 -> Project resource/data source -> Project
+  adapter -> isolated public-API fixture`; its recorder validates request
+  shapes, exact mutation order, read-after-write, and no mutation retry.
+  `go test ./internal/provider -run '^TestProjectProtocolLifecycle$'
+  -count=3`, `go vet ./...`, `go test ./...`, `go build ./...`, `go mod tidy
+  -diff`, `go mod verify`, `gofmt -l .`, and `git diff --check` passed. The
+  protocol suite proved CRUD, exact data-source Read, Import, an empty second
+  plan, external name drift repair, key replacement, direct-Read fallback,
+  out-of-band deletion recovery, and exact-zero teardown.
 
 ## Environment
 

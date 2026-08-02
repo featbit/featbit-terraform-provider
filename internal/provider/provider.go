@@ -150,14 +150,18 @@ func (p *FeatBitProvider) Configure(
 	tflog.Debug(ctx, "Configured FeatBit provider")
 }
 
-// Resources returns no managed resources during Phase 1.
+// Resources registers the managed Project resource.
 func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		newProjectResource,
+	}
 }
 
-// DataSources returns no data sources during Phase 1.
+// DataSources registers the exact single-Project data source.
 func (p *FeatBitProvider) DataSources(context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource{
+		newProjectDataSource,
+	}
 }
 
 // New creates a provider factory with the supplied build version.

@@ -82,16 +82,16 @@ func TestProviderSchema(t *testing.T) {
 	}
 }
 
-func TestProviderRegistrationsAreEmpty(t *testing.T) {
+func TestProviderRegistrations(t *testing.T) {
 	t.Parallel()
 
 	providerUnderTest := New("test")()
 
-	if got := len(providerUnderTest.Resources(context.Background())); got != 0 {
-		t.Fatalf("expected no Phase 1 resources, got %d", got)
+	if got := len(providerUnderTest.Resources(context.Background())); got != 1 {
+		t.Fatalf("expected one Project resource, got %d", got)
 	}
-	if got := len(providerUnderTest.DataSources(context.Background())); got != 0 {
-		t.Fatalf("expected no Phase 1 data sources, got %d", got)
+	if got := len(providerUnderTest.DataSources(context.Background())); got != 1 {
+		t.Fatalf("expected one Project data source, got %d", got)
 	}
 }
 
