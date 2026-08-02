@@ -1,7 +1,7 @@
 # Phase 1 TODO — Provider foundation
 
 Status: **In progress**
-Next: **P1-051**
+Next: **P1-053**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -177,20 +177,6 @@ Do not create a separate ADR, evidence file, session log, or handoff.
   an isolated assertion that `testacc` exports `TF_ACC=1`, and `git diff
   --check`.
 
-- [ ] **P1-051 — Add fork-safe CI and pinned quality tools.**
-
-  Add pull-request jobs for formatting, vet, race tests, build, lint, and
-  vulnerability checks. Pin tool versions in the consuming workflow. Fork jobs
-  must use no FeatBit credentials; live acceptance jobs must be separately
-  trusted and scoped.
-
-- [ ] **P1-052 — Document a local provider override.**
-
-  Add a short developer guide outside `.context-wiki` showing build,
-  `dev_overrides`, provider address, safe environment-variable setup, and the
-  commands needed to validate a minimal provider configuration. Do not include
-  real tokens or state.
-
 - [ ] **P1-053 — Load the provider through the local override.**
 
   Build the binary with a visible development version, configure an isolated
@@ -207,9 +193,10 @@ Do not create a separate ADR, evidence file, session log, or handoff.
 
 - [ ] **P1-055 — Run the repository secret and redaction gate.**
 
-  Scan tracked and untracked repository content with the selected pinned CI
-  scanner plus focused marker tests. The result must contain zero real
-  credentials, secret values, tenant identifiers, or unsafe fixtures.
+  Scan tracked and untracked repository content and run the focused marker and
+  redaction tests. The result must contain zero real credentials, secret
+  values, tenant identifiers, or unsafe fixtures. Permanent CI integration
+  belongs to Phase 6.
 
 ## Phase exit
 

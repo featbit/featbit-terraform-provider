@@ -141,7 +141,7 @@ Core Import IDs are stable public contracts:
 
 ### Phase 1 — Provider foundation (active)
 
-Establish the shared client, developer and CI workflow, local override, and
+Establish the shared client, local developer workflow, local override, and
 provider schema verification. Do not add resource endpoint models in this
 phase.
 
@@ -181,10 +181,11 @@ Gate: bindings are idempotent and never claim an entire shared relationship set.
 
 ### Phase 6 — Release
 
-Add Registry documentation/examples, security and contribution guides,
-upgrade policy, cross-platform release packaging, checksums/signatures, Cloud
-and self-hosted compatibility runs, prerelease smoke tests, and Registry
-publication.
+Add fork-safe credential-free pull-request CI with pinned quality tools, while
+keeping live acceptance jobs separately trusted and scoped. Add Registry
+documentation/examples, security and contribution guides, upgrade policy,
+cross-platform release packaging, checksums/signatures, Cloud and self-hosted
+compatibility runs, prerelease smoke tests, and Registry publication.
 
 Gate: a clean directory can initialize, plan, apply, destroy, and import using
 the Registry provider; release assets satisfy Registry requirements.

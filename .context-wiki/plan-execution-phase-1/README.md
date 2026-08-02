@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-02**
-- Next task: `P1-051`
+- Next task: `P1-053`
 
 Read [AGENTS.md](../../AGENTS.md), the
 [current project plan](../plan.md), then [todo.md](todo.md). No completed phase
@@ -43,10 +43,9 @@ Those belong to the first production lifecycle that consumes them.
 
 Phase 1 now finishes only:
 
-1. fork-safe CI and pinned quality tooling;
-2. local provider override and schema loading;
-3. the repository secret and redaction gate; and
-4. the Phase 1 exit gate and Phase 2 handoff through the master plan.
+1. local provider override and schema loading;
+2. the repository secret and redaction gate; and
+3. the Phase 1 exit gate and Phase 2 handoff through the master plan.
 
 ## Exit gate
 
