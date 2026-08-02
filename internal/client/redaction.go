@@ -141,24 +141,40 @@ func (r *Redactor) Request(request *http.Request) *http.Request {
 		return nil
 	}
 	redacted := request.Clone(context.Background())
-	redacted.Header = r.Headers(request.Header)
-	redacted.Trailer = r.Headers(request.Trailer)
+	redacted.Header = redactRequestHeaders(request.Header)
+	redacted.Trailer = redactRequestHeaders(request.Trailer)
 	redacted.Body = nil
 	redacted.GetBody = nil
 	redacted.ContentLength = 0
+	redacted.TransferEncoding = nil
 	redacted.Form = nil
 	redacted.PostForm = nil
 	redacted.MultipartForm = nil
 	redacted.Host = "redacted.invalid"
+	redacted.RemoteAddr = ""
 	redacted.RequestURI = ""
 	redacted.Pattern = ""
 	redacted.Cancel = nil
+	redacted.TLS = nil
+	redacted.Response = nil
 	if request.URL != nil {
 		redacted.URL = &url.URL{
 			Scheme: request.URL.Scheme,
 			Host:   "redacted.invalid",
 			Path:   "/api/v1/" + redactedPathIdentity,
 		}
+	}
+	return redacted
+}
+
+func redactRequestHeaders(headers http.Header) http.Header {
+	redacted := make(http.Header, len(headers))
+	for name, values := range headers {
+		redactedValues := make([]string, len(values))
+		for index := range values {
+			redactedValues[index] = redactedValue
+		}
+		redacted[name] = redactedValues
 	}
 	return redacted
 }

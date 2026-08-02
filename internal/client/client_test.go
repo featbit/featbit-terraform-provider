@@ -13,14 +13,6 @@ import (
 	"testing"
 )
 
-const syntheticAccessToken = "test-only-not-a-credential"
-
-type roundTripFunc func(*http.Request) (*http.Response, error)
-
-func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
-	return f(request)
-}
-
 func TestNewClientDoesNotPerformLoginOrNetworkRequest(t *testing.T) {
 	t.Parallel()
 
@@ -97,10 +89,12 @@ func TestClientSendsTokenDirectlyInAuthorization(t *testing.T) {
 		t.Fatalf("newClient() error = %v", err)
 	}
 
-	request, err := http.NewRequest(http.MethodGet, "https://featbit.example.test/api/v1/projects", nil)
-	if err != nil {
-		t.Fatalf("http.NewRequest() error = %v", err)
-	}
+	request := mustNewRequest(
+		t,
+		http.MethodGet,
+		"https://featbit.example.test/api/v1/projects",
+		nil,
+	)
 	request.Header.Set("User-Agent", "caller-value")
 	for _, header := range contextHeaders {
 		request.Header.Set(header, "synthetic-tenant-value")
@@ -109,7 +103,7 @@ func TestClientSendsTokenDirectlyInAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Client.Do() error = %v", err)
 	}
-	response.Body.Close()
+	mustCloseResponse(t, response)
 
 	if requestCount != 1 {
 		t.Fatalf("Client.Do() performed %d requests, want exactly 1", requestCount)
@@ -136,10 +130,12 @@ func TestClientRefusesToSendTokenOffOrigin(t *testing.T) {
 		t.Fatalf("newClient() error = %v", err)
 	}
 
-	request, err := http.NewRequest(http.MethodGet, "https://other.example.test/api/v1/projects", nil)
-	if err != nil {
-		t.Fatalf("http.NewRequest() error = %v", err)
-	}
+	request := mustNewRequest(
+		t,
+		http.MethodGet,
+		"https://other.example.test/api/v1/projects",
+		nil,
+	)
 	_, err = clientUnderTest.Do(request)
 	if err == nil {
 		t.Fatal("Client.Do() sent a request to an unconfigured origin")
@@ -229,23 +225,4 @@ func TestClientFormattingDoesNotDiscloseToken(t *testing.T) {
 	if strings.Contains(formatted, syntheticAccessToken) {
 		t.Fatal("formatted client or transport disclosed the access token")
 	}
-}
-
-func defaultTestOptions() Options {
-	return Options{
-		HTTPTimeout:     DefaultHTTPTimeout,
-		MaxConcurrency:  DefaultMaxConcurrency,
-		MaxRetries:      DefaultMaxRetries,
-		ProviderVersion: "test",
-	}
-}
-
-func mustParseURL(t *testing.T, rawURL string) *url.URL {
-	t.Helper()
-
-	parsed, err := url.Parse(rawURL)
-	if err != nil {
-		t.Fatalf("url.Parse() error = %v", err)
-	}
-	return parsed
 }

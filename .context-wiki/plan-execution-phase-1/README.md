@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-02**
-- Next task: `P1-041`
+- Next task: `P1-044`
 
 Read [AGENTS.md](../../AGENTS.md), the
 [current project plan](../plan.md), then [todo.md](todo.md). No completed phase
@@ -22,8 +22,14 @@ The provider already has:
   origin, plus provider User-Agent;
 - bounded responses, timeout/cancellation, error/envelope classification,
   bodyless-GET retry, request concurrency, and redaction; and
-- provider configuration tests plus complete shared-client request and error
-  contracts through a synthetic HTTP server.
+- provider configuration tests plus complete shared-client request, error,
+  cancellation, timeout, response-boundary, body-lifecycle, and safe-read retry
+  contracts; and
+- saturated concurrency, queued cancellation, failure progress, request
+  metadata, formatter, error-detail, network-error, and captured-log redaction
+  contracts; and
+- one `internal/client/test_helpers_test.go` fixture boundary shared by the
+  client contract suites.
 
 There are intentionally no resources, data sources, endpoint-specific API
 models, pagination helpers, existence resolvers, or per-object write locks yet.
@@ -33,12 +39,10 @@ Those belong to the first production lifecycle that consumes them.
 
 Phase 1 now finishes only:
 
-1. the remaining shared-client boundary, retry, concurrency, and redaction
-   tests;
-2. dependency and race verification;
-3. developer commands and fork-safe CI;
-4. local provider override and schema loading; and
-5. the Phase 1 exit gate and Phase 2 handoff through the master plan.
+1. dependency and race verification;
+2. developer commands and fork-safe CI;
+3. local provider override and schema loading; and
+4. the Phase 1 exit gate and Phase 2 handoff through the master plan.
 
 ## Exit gate
 

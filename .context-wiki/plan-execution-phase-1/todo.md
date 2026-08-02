@@ -1,7 +1,7 @@
 # Phase 1 TODO — Provider foundation
 
 Status: **In progress**
-Next: **P1-041**
+Next: **P1-044**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -41,7 +41,7 @@ Do not create a separate ADR, evidence file, session log, or handoff.
   -count=20`, and `go test ./internal/provider -run
   '^TestProviderConfigureConstructsSharedClientWithoutRequest$' -count=20`.
 
-- [ ] **P1-041 — Complete cancellation and response-boundary tests.**
+- [x] **P1-041 — Complete cancellation and response-boundary tests.**
 
   Cover cancellation before concurrency admission, during HTTP execution, and
   during retry wait; client timeout; nil requests/responses; body read failure;
@@ -51,7 +51,18 @@ Do not create a separate ADR, evidence file, session log, or handoff.
   Done when no path can hang, leak a permit/body, or return unsafe transport
   details.
 
-- [ ] **P1-042 — Complete retry-policy tests.**
+  Result (2026-08-02): Added `internal/client/boundary_contract_test.go`.
+  The contracts verify `Client.Do -> requestLimiter.acquire -> http.Client.Do
+  -> readBoundedResponse -> requestLimiter.release`, cancellation before
+  admission, during HTTP, and during retry wait, plus
+  `Client.DecodeResponse -> readBoundedResponse` closure on every result.
+  Nil inputs are safe, timeout sentinels survive, exactly 16 MiB is accepted,
+  one extra byte is rejected, and failures neither leak bodies/permits nor
+  expose transport details. Passed `go test ./internal/client -run
+  '^(TestClientCancellationBeforeConcurrencyAdmission|TestClientCancellationDuringHTTPExecution|TestClientCancellationDuringRetryWait|TestClientTimeoutDuringHTTPExecution|TestClientNilRequestAndResponseContracts|TestClientResponseSizeBoundaryAndClosure|TestClientBodyReadFailureIsClosedSafeAndRecoverable|TestDecodeResponseClosesBodyOnEveryPath)$'
+  -count=5`.
+
+- [x] **P1-042 — Complete retry-policy tests.**
 
   Prove that only bodyless `GET` requests retry `429`, transient `5xx`, timeout,
   and network failure. Verify retry count, exponential backoff/jitter bounds,
@@ -60,7 +71,18 @@ Do not create a separate ADR, evidence file, session log, or handoff.
 
   Done when an unsafe mutation cannot be retried by any classifier result.
 
-- [ ] **P1-043 — Complete concurrency and redaction tests.**
+  Result (2026-08-02): Added `internal/client/retry_contract_test.go`.
+  Integration contracts verify `Client.Do -> Classify -> ShouldRetry ->
+  retryController` retries only bodyless GET requests for `429`, transient
+  `5xx`, timeout, and network failures. Every mutation method and GET with a
+  body executes once for each retryable classifier; configured attempt counts,
+  cancellation, response closure, exponential bases, jitter limits, and valid
+  delta/date plus invalid `Retry-After` handling are proven. Passed `go test
+  ./internal/client -run
+  '^(TestClientRetriesBodylessGETForRetryableFailures|TestClientNeverRetriesMutationsOrGETWithBody|TestShouldRetryRejectsEveryClassificationForMutations|TestClientHonorsConfiguredRetryCount|TestRetryControllerExponentialBackoffAndJitterBounds|TestParseRetryAfterContract|TestRetryControllerUsesRetryAfterOrBackoff|TestClientCancellationStopsRetryAttempts)$'
+  -count=10`.
+
+- [x] **P1-043 — Complete concurrency and redaction tests.**
 
   Saturate the request limiter, verify the configured maximum, cancellation
   while queued, permit release before retry wait, and progress after failures.
@@ -70,6 +92,27 @@ Do not create a separate ADR, evidence file, session log, or handoff.
 
   Done when concurrency remains bounded and no marker appears in returned
   errors, formatted values, request metadata, or captured logs.
+
+  Result (2026-08-02): Added
+  `internal/client/concurrency_redaction_contract_test.go` and tightened
+  `internal/client/redaction.go`. Contracts verify `Client.Do ->
+  requestLimiter` never exceeds its configured maximum, queued cancellation
+  never reaches transport, permits are released before retry waits, and later
+  requests progress after every tested failure. `Client.Do ->
+  Redactor.Request`, `Redactor.Text/Headers/Request`, `DecodeResponse ->
+  APIError`, every formatter verb, returned request metadata, unsafe network
+  errors, and captured provider logs were exercised with synthetic markers.
+  Diagnostic request copies now redact every header/trailer value and clear
+  transfer, remote-address, TLS, response, body, form, URL identity, query, and
+  context metadata. Passed `go test ./internal/client -run
+  '^(TestClientEnforcesConfiguredMaximumConcurrency|TestClientCancelsRequestWhileQueuedForPermit|TestClientReleasesPermitBeforeRetryWait|TestClientLimiterProgressesAfterFailures|TestRedactorTextAndHeadersRemoveRuntimeMarkers|TestRedactorRequestRemovesAllUnsafeMetadata|TestClientErrorsAndResponseMetadataAreRedacted|TestClientRedactedValuesRemainSafeInCapturedLogs)$'
+  -count=10 -timeout=60s`. Final combined verification also passed `gofmt -l
+  .`, `go vet ./...`, `git diff --check`, `go test -count=1 ./...`, and `go
+  test ./internal/client -count=10 -timeout=120s`. A follow-up test-only
+  refactor centralized the client, request, response, tracked-body, APIError,
+  and bounded-wait fixtures used across P1-040 through P1-043 in
+  `internal/client/test_helpers_test.go`; the same combined verification passed
+  again with unchanged coverage and runtime behavior.
 
 ## Reproducibility
 

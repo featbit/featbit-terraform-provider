@@ -52,10 +52,7 @@ func TestClientRequestAndSuccessEnvelopeContract(t *testing.T) {
 		t.Fatal("New() could not construct the test client")
 	}
 
-	request, err := http.NewRequest(http.MethodGet, server.URL+"/api/v1/projects", nil)
-	if err != nil {
-		t.Fatal("http.NewRequest() could not construct the synthetic endpoint request")
-	}
+	request := mustNewRequest(t, http.MethodGet, server.URL+"/api/v1/projects", nil)
 	request.Header.Set("Authorization", "caller-value-that-must-be-replaced")
 	request.Header.Set("User-Agent", "caller-value-that-must-be-replaced")
 	for _, header := range contextHeaders {
@@ -207,10 +204,7 @@ func TestClientErrorEnvelopeContract(t *testing.T) {
 			if err != nil {
 				t.Fatal("New() could not construct the test client")
 			}
-			request, err := http.NewRequest(http.MethodGet, server.URL+"/api/v1/synthetic", nil)
-			if err != nil {
-				t.Fatal("http.NewRequest() could not construct the synthetic endpoint request")
-			}
+			request := mustNewRequest(t, http.MethodGet, server.URL+"/api/v1/synthetic", nil)
 
 			response, err := clientUnderTest.Do(request)
 			if err != nil {
