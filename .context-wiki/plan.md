@@ -3,16 +3,19 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Active work: [Phase 1 — provider foundation](plan-execution-phase-1/README.md)
+- Active work: [Phase 2 — project and environment](plan-execution-phase-2/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-Phase 1 is active. The repository exposes a Protocol v6 provider with its
-configuration schema and shared handwritten HTTP client runtime. No Terraform
-resource, data source, or FeatBit endpoint adapter exists yet.
+Phase 2 is active. The Phase 1 foundation gate passed: the repository exposes
+a locally loadable Protocol v6 provider with its configuration schema, shared
+handwritten HTTP client runtime, and verified local quality/redaction
+boundary. No Terraform resource, data source, or FeatBit endpoint adapter
+exists yet. The next action is Phase 2 `P2-010`: add the Project read adapter
+with its first production caller, the exact single-project data source.
 
 ## 2. Product boundary
 
@@ -139,7 +142,7 @@ Core Import IDs are stable public contracts:
 
 ## 5. Roadmap
 
-### Phase 1 — Provider foundation (active)
+### Phase 1 — Provider foundation (complete)
 
 Establish the shared client, local developer workflow, local override, and
 provider schema verification. Do not add resource endpoint models in this
@@ -148,7 +151,7 @@ phase.
 Gate: local override loads the provider; `terraform providers schema -json`
 succeeds; format, vet, unit/race, build, redaction, and dependency checks pass.
 
-### Phase 2 — Project and environment
+### Phase 2 — Project and environment (active)
 
 Add only the Project/Environment endpoint adapters needed by their resources
 and data sources. Implement exact lookup, CRUD, Import, replacement semantics,
