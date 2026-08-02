@@ -1,7 +1,7 @@
 # Phase 1 TODO — Provider foundation
 
 Status: **In progress**
-Next: **P1-044**
+Next: **P1-050**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -116,19 +116,48 @@ Do not create a separate ADR, evidence file, session log, or handoff.
 
 ## Reproducibility
 
-- [ ] **P1-044 — Prove the runtime dependency boundary.**
+- [x] **P1-044 — Prove the runtime dependency boundary.**
 
   Run `go list -deps ./...` and inspect imports. The root module must contain no
   generated API package, OpenAPI runtime, generator command, nested tool
   module, or endpoint-specific model without a production caller.
 
-- [ ] **P1-045 — Run the complete local quality gate.**
+  Result (2026-08-02): No production code or dependency file changed; updated
+  this active TODO plus the Phase 1 and master-plan next-task pointers. `go
+  list -deps ./...` resolved 428 packages and inspection of the root module
+  verified `main -> internal/provider -> internal/client` as the complete
+  local runtime call relationship. The only non-standard production imports
+  are Terraform Plugin Framework and Plugin Log packages plus their transitive
+  runtime dependencies. The repository contains only the root `go.mod`, no
+  `go.work` or `tools.go`, no generated/OpenAPI/generator markers or matching
+  dependency paths, and no endpoint/API/generated model-like file under
+  `internal/`.
+  Passed `go list -deps ./...`, main-module import inspection with `go list
+  -deps -f`, production/test import inspection with `go list -f`, and focused
+  repository scans for generated API, OpenAPI, generator, nested tool-module,
+  and endpoint-model artifacts.
+
+- [x] **P1-045 — Run the complete local quality gate.**
 
   Run `gofmt -l .`, `go vet ./...`, `go test ./...`, repeated focused client
   tests, `go test -race ./...`, `go build ./...`, `go mod tidy` clean-diff,
   `go mod verify`, and `git diff --check`. If the Windows race run still lacks
   a C compiler, install/provide one or make the same gate mandatory in CI; do
   not mark this item complete with neither result.
+
+  Result (2026-08-02): No production or module file changed; updated this
+  active TODO plus the Phase 1 and master-plan current-state/next-task
+  pointers. A checksum-verified portable MinGW-w64 16.1.0 toolchain in a
+  user-local tool directory provided GCC for the Windows race detector without
+  changing the repository or persistent system PATH. The gate verified the
+  complete `providerserver -> internal/provider -> internal/client` build and
+  test relationship, including provider protocol/configuration tests and all
+  shared-client request, retry, concurrency, cancellation, boundary, and
+  redaction contracts. Passed `gofmt -l .`, `go vet ./...`, `go test ./...`,
+  `go test ./internal/client -count=10 -timeout=120s`, a focused race
+  toolchain preflight, `go test -race ./...` with CGO enabled, `go build
+  ./...`, `go mod tidy` with a clean `go.mod`/`go.sum` diff, `go mod verify`,
+  and `git diff --check`.
 
 ## Developer workflow
 

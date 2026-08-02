@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-02**
-- Next task: `P1-044`
+- Next task: `P1-050`
 
 Read [AGENTS.md](../../AGENTS.md), the
 [current project plan](../plan.md), then [todo.md](todo.md). No completed phase
@@ -29,7 +29,9 @@ The provider already has:
   metadata, formatter, error-detail, network-error, and captured-log redaction
   contracts; and
 - one `internal/client/test_helpers_test.go` fixture boundary shared by the
-  client contract suites.
+  client contract suites; and
+- a verified dependency boundary plus a complete local quality gate, including
+  Windows race-detector coverage.
 
 There are intentionally no resources, data sources, endpoint-specific API
 models, pagination helpers, existence resolvers, or per-object write locks yet.
@@ -39,9 +41,9 @@ Those belong to the first production lifecycle that consumes them.
 
 Phase 1 now finishes only:
 
-1. dependency and race verification;
-2. developer commands and fork-safe CI;
-3. local provider override and schema loading; and
+1. developer commands and fork-safe CI;
+2. local provider override and schema loading;
+3. the repository secret and redaction gate; and
 4. the Phase 1 exit gate and Phase 2 handoff through the master plan.
 
 ## Exit gate

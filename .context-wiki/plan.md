@@ -22,11 +22,15 @@ Phase 1 is in progress. The repository currently has:
   limiting, and redaction; and
 - unit and protocol-level tests for the provider configuration plus complete
   shared-client request, error, cancellation, timeout, response-boundary, and
-  body-lifecycle, safe-read retry, concurrency, and redaction contracts.
+  body-lifecycle, safe-read retry, concurrency, and redaction contracts; and
+- a verified runtime dependency boundary with no generated API, OpenAPI,
+  generator, nested tool module, or premature endpoint model; and
+- a passing complete local quality gate, including Windows race-detector
+  coverage and clean module verification.
 
 No Terraform resource, data source, or FeatBit endpoint adapter exists yet.
-Phase 1 still needs dependency and race verification, developer commands, CI,
-local provider loading, and schema verification. The next task is `P1-044` in
+Phase 1 still needs developer commands, CI, local provider loading, schema
+verification, and the repository secret gate. The next task is `P1-050` in
 the [active TODO](plan-execution-phase-1/todo.md).
 
 ## 2. Product boundary
