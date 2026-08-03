@@ -72,6 +72,12 @@ differ, such as resource and data-source schemas. Do not introduce speculative
 generic frameworks just to remove superficial repetition; keep intentional
 duplication small, explicit, and independently testable.
 
+## Implementation practices
+
+- In test files, prefer table-driven tests when parameters can cover multiple scenarios with the same setup and assertions. Do not create a separate test function for every parameter value unless the scenario requires materially different behavior or structure.
+- Prefer mature, actively maintained open-source libraries over handwritten implementations when they fit the required contract. Check license, security, maintenance, API fit, and dependency cost before adding one; write custom code only when no suitable library exists or the behavior is
+  project-specific.
+
 ## Guardrails
 
 - Assume the current public API cannot change for provider v1.
