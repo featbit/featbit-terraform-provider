@@ -7,6 +7,8 @@ import (
 	"context"
 	"strings"
 	"sync"
+
+	"golang.org/x/sync/semaphore"
 )
 
 type environmentLockManager struct {
@@ -15,7 +17,7 @@ type environmentLockManager struct {
 }
 
 type environmentLockEntry struct {
-	permit chan struct{}
+	permit *semaphore.Weighted
 	users  int
 }
 
@@ -32,22 +34,20 @@ func (m *environmentLockManager) acquire(
 	m.mu.Lock()
 	entry := m.locks[key]
 	if entry == nil {
-		entry = &environmentLockEntry{permit: make(chan struct{}, 1)}
+		entry = &environmentLockEntry{permit: semaphore.NewWeighted(1)}
 		m.locks[key] = entry
 	}
 	entry.users++
 	m.mu.Unlock()
 
-	select {
-	case entry.permit <- struct{}{}:
-		return func() {
-			<-entry.permit
-			m.releaseUser(key, entry)
-		}, nil
-	case <-ctx.Done():
+	if err := entry.permit.Acquire(ctx, 1); err != nil {
 		m.releaseUser(key, entry)
-		return nil, ctx.Err()
+		return nil, err
 	}
+	return func() {
+		entry.permit.Release(1)
+		m.releaseUser(key, entry)
+	}, nil
 }
 
 func (m *environmentLockManager) releaseUser(key string, entry *environmentLockEntry) {

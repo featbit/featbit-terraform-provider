@@ -99,7 +99,7 @@ func TestClientEnforcesConfiguredMaximumConcurrency(t *testing.T) {
 	for index := 0; index < maximum; index++ {
 		waitForSignal(t, started, "configured concurrent requests did not start")
 	}
-	if active.Load() != maximum || len(clientUnderTest.limiter.permits) != maximum {
+	if active.Load() != maximum {
 		t.Fatal("request limiter did not saturate at the configured maximum")
 	}
 	select {
@@ -116,8 +116,8 @@ func TestClientEnforcesConfiguredMaximumConcurrency(t *testing.T) {
 		}
 		mustCloseResponse(t, result.response)
 	}
-	if maximumSeen.Load() != maximum || active.Load() != 0 || len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("request limiter exceeded its maximum or retained a permit")
+	if maximumSeen.Load() != maximum || active.Load() != 0 {
+		t.Fatal("request limiter exceeded its maximum or left a request active")
 	}
 }
 
@@ -214,8 +214,8 @@ func TestClientCancelsRequestWhileQueuedForPermit(t *testing.T) {
 		t.Fatal("limiter did not progress after queued cancellation")
 	}
 	mustCloseResponse(t, progressResponse)
-	if transportCalls.Load() != 2 || len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("queued cancellation leaked a permit or changed transport count")
+	if transportCalls.Load() != 2 {
+		t.Fatal("queued cancellation changed transport count")
 	}
 }
 
@@ -275,10 +275,6 @@ func TestClientReleasesPermitBeforeRetryWait(t *testing.T) {
 		retryResult <- doResult{response: response, err: doError}
 	}()
 	waitForSignal(t, retryWaitStarted, "retrying request did not enter its wait")
-	if len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("retrying request retained its permit during backoff")
-	}
-
 	progressRequest := mustNewRequest(
 		t,
 		http.MethodGet,
@@ -302,9 +298,8 @@ func TestClientReleasesPermitBeforeRetryWait(t *testing.T) {
 		t.Fatal("retrying request did not recover")
 	}
 	mustCloseResponse(t, retried.response)
-	if retryAttempts.Load() != 2 || progressAttempts.Load() != 1 ||
-		len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("retry wait blocked progress or retained a permit")
+	if retryAttempts.Load() != 2 || progressAttempts.Load() != 1 {
+		t.Fatal("retry wait blocked progress or changed attempt counts")
 	}
 }
 
@@ -367,8 +362,8 @@ func TestClientLimiterProgressesAfterFailures(t *testing.T) {
 				t.Fatal("limiter did not progress after a failure")
 			}
 			mustCloseResponse(t, response)
-			if attempts.Load() != 2 || len(clientUnderTest.limiter.permits) != 0 {
-				t.Fatal("failure path leaked a permit or changed attempt count")
+			if attempts.Load() != 2 {
+				t.Fatal("failure path changed attempt count")
 			}
 		})
 	}

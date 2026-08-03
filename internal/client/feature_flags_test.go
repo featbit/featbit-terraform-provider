@@ -15,6 +15,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -200,7 +202,10 @@ func TestListFeatureFlagsFailsClosedForMalformedOrIncompletePages(t *testing.T) 
 	second := featureFlagListItemTestJSON(featureFlagIDTwo, "second", "second")
 	oversizedItems := make([]string, 0, featureFlagPageSize+1)
 	for index := 0; index <= featureFlagPageSize; index++ {
-		id := fmt.Sprintf("%08x-0000-4000-8000-%012x", index+1, index+1)
+		id := uuid.NewSHA1(
+			uuid.NameSpaceURL,
+			[]byte(fmt.Sprintf("feature-flag-page-item/v1/%d", index)),
+		).String()
 		oversizedItems = append(
 			oversizedItems,
 			featureFlagListItemTestJSON(id, "oversized", fmt.Sprintf("key-%d", index)),

@@ -13,16 +13,93 @@ import (
 func TestUUIDHelpers(t *testing.T) {
 	t.Parallel()
 
-	const lower = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
-	const upper = "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE"
-	if !ValidUUID(lower) || !ValidUUID(upper) {
-		t.Fatal("ValidUUID() rejected valid hexadecimal UUID syntax")
+	const canonical = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	tests := map[string]struct {
+		value         string
+		wantCanonical string
+		valid         bool
+	}{
+		"canonical lowercase": {
+			value:         canonical,
+			wantCanonical: canonical,
+			valid:         true,
+		},
+		"canonical uppercase": {
+			value:         "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE",
+			wantCanonical: canonical,
+			valid:         true,
+		},
+		"nil UUID": {
+			value:         "00000000-0000-0000-0000-000000000000",
+			wantCanonical: "00000000-0000-0000-0000-000000000000",
+			valid:         true,
+		},
+		"non hexadecimal": {value: "not-a-uuid"},
+		"invalid canonical hex": {
+			value: "gaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		},
+		"path suffix": {value: canonical + "/extra"},
+		"raw hex rejected": {
+			value: "aaaaaaaabbbb4ccc8dddeeeeeeeeeeee",
+		},
+		"URN rejected": {
+			value: "urn:uuid:" + canonical,
+		},
+		"Microsoft braces rejected": {
+			value: "{" + canonical + "}",
+		},
+		"surrounding whitespace": {value: " " + canonical + " "},
 	}
-	if ValidUUID("not-a-uuid") || ValidUUID(lower+"/extra") {
-		t.Fatal("ValidUUID() accepted an invalid UUID")
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got, valid := CanonicalUUID(test.value)
+			if valid != test.valid || got != test.wantCanonical {
+				t.Fatalf("CanonicalUUID() = %q, %t; want %q, %t", got, valid, test.wantCanonical, test.valid)
+			}
+			if ValidUUID(test.value) != test.valid {
+				t.Fatalf("ValidUUID() validity differed from CanonicalUUID()")
+			}
+		})
 	}
-	if !EqualUUID(lower, upper) || EqualUUID(lower, "ffffffff-ffff-4fff-8fff-ffffffffffff") {
-		t.Fatal("EqualUUID() returned an incorrect identity comparison")
+
+	equalityTests := map[string]struct {
+		left  string
+		right string
+		equal bool
+	}{
+		"case insensitive canonical identity": {
+			left:  canonical,
+			right: "AAAAAAAA-BBBB-4CCC-8DDD-EEEEEEEEEEEE",
+			equal: true,
+		},
+		"different canonical identity": {
+			left:  canonical,
+			right: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+		},
+		"identical invalid values are not identities": {
+			left:  "not-a-uuid",
+			right: "not-a-uuid",
+		},
+		"alternate encoding is not an identity": {
+			left:  canonical,
+			right: "urn:uuid:" + canonical,
+		},
+	}
+	for name, test := range equalityTests {
+		name := name
+		test := test
+		t.Run("equal/"+name, func(t *testing.T) {
+			t.Parallel()
+			got := EqualUUID(test.left, test.right)
+			if got != test.equal {
+				t.Fatalf("EqualUUID() = %t, want %t", got, test.equal)
+			}
+		})
 	}
 }
 

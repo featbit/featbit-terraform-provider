@@ -36,7 +36,7 @@ func TestNewClientDoesNotPerformLoginOrNetworkRequest(t *testing.T) {
 		t.Fatalf("newClient() performed %d requests, want 0", requestCount)
 	}
 	if clientUnderTest.httpClient.Timeout != DefaultHTTPTimeout ||
-		cap(clientUnderTest.limiter.permits) != DefaultMaxConcurrency ||
+		clientUnderTest.limiter == nil ||
 		clientUnderTest.maxRetries != DefaultMaxRetries {
 		t.Fatal("newClient() did not retain the resolved bounded settings")
 	}

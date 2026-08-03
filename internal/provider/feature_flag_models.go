@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"unicode/utf8"
+	"unicode/utf16"
 
 	"github.com/featbit/terraform-provider-featbit/internal/client"
 	"github.com/google/uuid"
@@ -161,7 +161,8 @@ func canonicalizeRemoteFeatureFlag(
 	flag client.FeatureFlag,
 	variationOrder []string,
 ) (canonicalFeatureFlag, error) {
-	if !client.ValidUUID(flag.ID) {
+	flagID, valid := client.CanonicalUUID(flag.ID)
+	if !valid {
 		return canonicalFeatureFlag{}, errInvalidFeatureFlagDefinition
 	}
 	canonicalType, err := validateFeatureFlagDefinitionFields(
@@ -176,7 +177,7 @@ func canonicalizeRemoteFeatureFlag(
 
 	canonical := canonicalFeatureFlag{
 		EnvironmentID: flag.EnvironmentID,
-		ID:            strings.ToLower(flag.ID),
+		ID:            flagID,
 		Name:          flag.Name,
 		Description:   flag.Description,
 		Key:           flag.Key,
@@ -185,11 +186,10 @@ func canonicalizeRemoteFeatureFlag(
 	}
 	byID := make(map[string]canonicalFeatureFlagVariation, len(flag.Variations))
 	for _, variation := range flag.Variations {
-		if !client.ValidUUID(variation.ID) ||
-			!validFeatureFlagVariationName(variation.Name) || variation.Value == "" {
+		id, valid := client.CanonicalUUID(variation.ID)
+		if !valid || !validFeatureFlagVariationName(variation.Name) || variation.Value == "" {
 			return canonicalFeatureFlag{}, errInvalidFeatureFlagDefinition
 		}
-		id := strings.ToLower(variation.ID)
 		if _, duplicate := byID[id]; duplicate {
 			return canonicalFeatureFlag{}, errInvalidFeatureFlagDefinition
 		}
@@ -219,10 +219,10 @@ func canonicalizeRemoteFeatureFlag(
 	}
 	seenOrder := make(map[string]struct{}, len(variationOrder))
 	for _, requestedID := range variationOrder {
-		if !client.ValidUUID(requestedID) {
+		normalizedID, valid := client.CanonicalUUID(requestedID)
+		if !valid {
 			return canonicalFeatureFlag{}, errInvalidFeatureFlagDefinition
 		}
-		normalizedID := strings.ToLower(requestedID)
 		if _, duplicate := seenOrder[normalizedID]; duplicate {
 			return canonicalFeatureFlag{}, errInvalidFeatureFlagDefinition
 		}
@@ -465,9 +465,13 @@ func decodeFeatureFlagJSONValue(decoder *json.Decoder) (any, error) {
 }
 
 func deterministicFeatureFlagVariationID(environmentID, key string, index int) string {
+	canonicalEnvironmentID, valid := client.CanonicalUUID(environmentID)
+	if !valid {
+		return ""
+	}
 	name := strings.Join([]string{
 		"terraform-provider-featbit/feature-flag-variation/v1",
-		strings.ToLower(environmentID),
+		canonicalEnvironmentID,
 		key,
 		strconv.Itoa(index),
 	}, "\x00")
@@ -477,7 +481,10 @@ func deterministicFeatureFlagVariationID(environmentID, key string, index int) s
 func initialFeatureFlagCreateSeed(
 	variations []canonicalFeatureFlagVariation,
 ) (featureFlagCreateSeed, error) {
-	if len(variations) == 0 || !client.ValidUUID(variations[0].ID) {
+	if len(variations) == 0 {
+		return featureFlagCreateSeed{}, errInvalidFeatureFlagDefinition
+	}
+	if _, valid := client.CanonicalUUID(variations[0].ID); !valid {
 		return featureFlagCreateSeed{}, errInvalidFeatureFlagDefinition
 	}
 	return featureFlagCreateSeed{
@@ -503,14 +510,8 @@ func validFeatureFlagVariationName(value string) bool {
 
 func utf16Length(value string) int {
 	length := 0
-	for len(value) > 0 {
-		r, size := utf8.DecodeRuneInString(value)
-		value = value[size:]
-		if r > 0xffff {
-			length += 2
-		} else {
-			length++
-		}
+	for _, r := range value {
+		length += utf16.RuneLen(r)
 	}
 	return length
 }

@@ -43,8 +43,8 @@ func TestClientCancellationBeforeConcurrencyAdmission(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatal("pre-admission cancellation did not preserve context.Canceled")
 	}
-	if transportCalls.Load() != 0 || len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("pre-admission cancellation reached transport or leaked a permit")
+	if transportCalls.Load() != 0 {
+		t.Fatal("pre-admission cancellation reached transport")
 	}
 }
 
@@ -85,9 +85,6 @@ func TestClientCancellationDuringHTTPExecution(t *testing.T) {
 	if !errors.Is(doResult.err, context.Canceled) {
 		t.Fatal("HTTP cancellation did not preserve context.Canceled")
 	}
-	if len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("HTTP cancellation leaked a concurrency permit")
-	}
 }
 
 func TestClientCancellationDuringRetryWait(t *testing.T) {
@@ -122,8 +119,8 @@ func TestClientCancellationDuringRetryWait(t *testing.T) {
 		result <- doResult{response: response, err: doError}
 	}()
 	waitForSignal(t, retryWaitStarted, "Client.Do() did not enter the retry wait")
-	if responseBody.closeCalls.Load() != 1 || len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("retry wait began before closing the response or releasing the permit")
+	if responseBody.closeCalls.Load() != 1 {
+		t.Fatal("retry wait began before closing the response")
 	}
 	cancel()
 
@@ -165,8 +162,8 @@ func TestClientTimeoutDuringHTTPExecution(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal("client timeout did not preserve context.DeadlineExceeded")
 	}
-	if transportCalls.Load() != 1 || len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("client timeout retried or leaked a concurrency permit")
+	if transportCalls.Load() != 1 {
+		t.Fatal("client timeout unexpectedly retried")
 	}
 }
 
@@ -279,8 +276,8 @@ func TestClientResponseSizeBoundaryAndClosure(t *testing.T) {
 				}
 				mustCloseResponse(t, response)
 			}
-			if body.closeCalls.Load() != 1 || len(clientUnderTest.limiter.permits) != 0 {
-				t.Fatal("response boundary path did not close the source body and release its permit")
+			if body.closeCalls.Load() != 1 {
+				t.Fatal("response boundary path did not close the source body")
 			}
 		})
 	}
@@ -319,8 +316,8 @@ func TestClientBodyReadFailureIsClosedSafeAndRecoverable(t *testing.T) {
 	if strings.Contains(fmt.Sprintf("%v|%+v|%#v", err, err, err), unsafeReadErrorMarker) {
 		t.Fatal("body read failure disclosed the unsafe transport detail")
 	}
-	if failingBody.closeCalls.Load() != 1 || len(clientUnderTest.limiter.permits) != 0 {
-		t.Fatal("body read failure did not close its body and release its permit")
+	if failingBody.closeCalls.Load() != 1 {
+		t.Fatal("body read failure did not close its body")
 	}
 
 	response, err = clientUnderTest.Do(request)

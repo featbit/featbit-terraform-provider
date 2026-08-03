@@ -53,6 +53,10 @@ handoff.
   resolution`. `gofmt -l internal/client` was empty; `go vet
   ./internal/client`, `go test ./internal/client -count=1`, and the focused
   Feature Flag suite repeated with `-count=10` passed.
+  A follow-up library audit replaced the shared channel-based request limiter
+  and keyed Environment permit with `golang.org/x/sync/semaphore`; observable
+  concurrency, queued-cancellation, retry-progress, failure-recovery, and lock
+  cleanup contracts remained green under repeated tests.
 
 - [x] **P3-011 — Freeze canonical values, stable variation identity, schemas, and the exact data source.**
 
@@ -99,6 +103,12 @@ handoff.
   seed. Focused model/data-source/schema/Protocol tests repeated with
   `-count=10`; `go test ./...`, `go vet ./...`, `go build ./...`, `go mod tidy
   -diff`, `go mod verify`, `gofmt -l .`, and `git diff --check` passed.
+  A follow-up library audit replaced regular-expression UUID validation and
+  manual UUID case normalization with a strict canonical adapter over
+  `github.com/google/uuid`, while retaining the required 8-4-4-4-12 contract;
+  UUID tests now reject the library's permissive alternate encodings and
+  independently verify frozen RFC UUID v5 variation IDs. UTF-16 name length
+  counting now uses `unicode/utf16`.
 
 ## Feature Flag resource
 

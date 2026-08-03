@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 type projectProtocolFixture struct {
@@ -688,14 +690,12 @@ func equalFixtureJSON(left json.RawMessage, right json.RawMessage) bool {
 }
 
 func projectFixtureUUID(projectSequence, childSequence int) string {
-	return fmt.Sprintf(
-		"%08x-%04x-4%03x-8%03x-%012x",
+	name := fmt.Sprintf(
+		"terraform-provider-featbit/project-protocol-fixture/v1/%d/%d",
 		projectSequence,
 		childSequence,
-		projectSequence,
-		childSequence,
-		projectSequence*16+childSequence,
 	)
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(name)).String()
 }
 
 func decodeProjectFixtureBody(body io.ReadCloser, destination any) error {

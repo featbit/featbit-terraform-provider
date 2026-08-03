@@ -3,25 +3,24 @@
 
 package client
 
-import "context"
+import (
+	"context"
+
+	"golang.org/x/sync/semaphore"
+)
 
 type requestLimiter struct {
-	permits chan struct{}
+	permits *semaphore.Weighted
 }
 
 func newRequestLimiter(maxConcurrency int) *requestLimiter {
-	return &requestLimiter{permits: make(chan struct{}, maxConcurrency)}
+	return &requestLimiter{permits: semaphore.NewWeighted(int64(maxConcurrency))}
 }
 
 func (l *requestLimiter) acquire(ctx context.Context) error {
-	select {
-	case l.permits <- struct{}{}:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return l.permits.Acquire(ctx, 1)
 }
 
 func (l *requestLimiter) release() {
-	<-l.permits
+	l.permits.Release(1)
 }

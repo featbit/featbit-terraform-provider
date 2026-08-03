@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -216,7 +215,7 @@ func (c *Client) listFeatureFlags(
 					redactor,
 				)
 			}
-			normalizedID := strings.ToLower(flag.ID)
+			normalizedID, _ := CanonicalUUID(flag.ID)
 			if _, duplicate := seenIDs[normalizedID]; duplicate {
 				return nil, newAPIError(
 					ClassificationAmbiguous,

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/featbit/terraform-provider-featbit/internal/client"
+	"github.com/google/uuid"
 )
 
 const (
@@ -298,10 +299,15 @@ func TestCanonicalizePlannedFeatureFlagFreezesStableIDsAndCreateSeed(t *testing.
 			}
 			if canonical.Variations[0].ID != repeated.Variations[0].ID ||
 				canonical.Variations[1].ID != repeated.Variations[1].ID ||
-				canonical.Variations[0].ID == canonical.Variations[1].ID ||
-				!client.ValidUUID(canonical.Variations[0].ID) ||
-				!client.ValidUUID(canonical.Variations[1].ID) {
+				canonical.Variations[0].ID == canonical.Variations[1].ID {
 				t.Fatal("planned variation UUIDs were not deterministic, valid, and unique")
+			}
+			for _, variation := range canonical.Variations {
+				parsed, parseErr := uuid.Parse(variation.ID)
+				if parseErr != nil || parsed.String() != variation.ID ||
+					parsed.Version() != uuid.Version(5) || parsed.Variant() != uuid.RFC4122 {
+					t.Fatal("planned variation identity is not a canonical RFC UUID v5")
+				}
 			}
 			if canonical.Variations[0].ID != frozenFirstID ||
 				canonical.Variations[1].ID != frozenSecondID {
