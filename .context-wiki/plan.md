@@ -3,21 +3,22 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Active work: [Phase 2 — project and environment](plan-execution-phase-2/README.md)
+- Active work: [Phase 3 — feature flags](plan-execution-phase-3/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-Phase 2 is active. The repository exposes a locally loadable Protocol v6
-provider with its configuration schema, shared handwritten HTTP client
-runtime, and registered `featbit_project` and `featbit_environment` resources
-plus their exact single-object data sources. Their lifecycle-owned endpoint
-adapters implement exact reads, CRUD, Import, canonical state, absence
-confirmation, and settings-preserving Environment Update. The next action is
-Phase 2 `P2-030`: prove their shared ownership, state-safety, and redaction
-boundaries.
+Phase 3 is active. The repository exposes a locally loadable Protocol v6
+provider with five configuration attributes, a shared handwritten HTTP client,
+and registered `featbit_project` and `featbit_environment` resources plus their
+exact single-object data sources. Their lifecycle-owned adapters implement
+exact reads, CRUD, Import, canonical state, authoritative absence composition,
+replacement-aware stable ID planning, and settings-preserving Environment
+Update. The Phase 2 local and trusted current-Cloud gates passed with exact
+zero cleanup. The next action is Phase 3 `P3-010`: add the public Feature Flag
+read/list adapter, complete pagination, and exact active/archived resolution.
 
 ## 2. Product boundary
 
@@ -38,9 +39,12 @@ copy LaunchDarkly's resource model, or expose a generic raw-REST resource. It
 uses documented public FeatBit endpoints only and does not depend on backend
 or public API changes.
 
-FeatBit Cloud behavior for the core scope was verified on 2026-07-31.
-Self-hosted is an intended target through a configurable API origin, but no
-exact self-hosted release is currently certified.
+FeatBit Cloud behavior for the planned core scope was verified on 2026-07-31;
+the implemented Project/Environment contracts and exact-zero cleanup were
+reverified against the current Cloud API on 2026-08-03. Each later resource
+must pass its own current-Cloud gate. Self-hosted is an intended target through
+a configurable API origin, but no exact self-hosted release is currently
+certified.
 
 ## 3. Current architecture
 
@@ -71,6 +75,12 @@ Architecture rules:
 - Add pagination, exact-existence composition, normalization, reconciliation,
   and per-object write serialization with the concrete lifecycle that needs
   them.
+- Reuse the existing escaped request construction, UUID validation, exact
+  zero/one/duplicate resolution, ProviderData checks, error classification,
+  cancellation, retry, and redaction contracts whenever their ownership and
+  safety boundaries match.
+- Computed resource IDs remain known during in-place plans only when every
+  identity-defining input is unchanged; replacement plans leave them unknown.
 - Terraform schemas remain handwritten because ownership, Null/Unknown,
   Sensitive, ordering, replacement, Import, and state behavior are product
   decisions rather than transport shapes.
@@ -109,15 +119,15 @@ path.
 - Never expose tokens, secret values, tenant/member identities, request paths,
   raw response bodies, or unsafe network errors in logs or diagnostics.
 
-## 4. Current resource contracts
+## 4. Current and planned resource contracts
 
-| Object | Terraform ownership and lifecycle |
-|---|---|
-| Project | UUID identity. Manage verified safe fields; key replaces. Server-created `Dev/dev` and `Prod/prod` environments are Computed. Confirm absence through the complete project collection when direct Read is ambiguous. |
-| Environment | Project-scoped UUID identity. Name/description update; project and key replace. Discard secret values from ordinary state. Confirm absence through the parent project's environment collection. |
-| Feature flag | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in active and archived views. |
-| Environment-specific segment | Environment plus UUID identity. Verified metadata, targeting, and tags update through specialized endpoints; key, type, and scopes replace. Destroy first checks flag references, then archives, hard-deletes, and proves exact active/archived absence. |
-| Shared segment | Read/bind only; Terraform does not create, update, or delete it. |
+| Object | Status | Terraform ownership and lifecycle |
+|---|---|---|
+| Project | Implemented | UUID identity. Manage verified safe fields; key replaces. Server-created `Dev/dev` and `Prod/prod` environments are Computed. Confirm absence through the complete project collection when direct Read is ambiguous. |
+| Environment | Implemented | Project-scoped UUID identity. Name/description update; project and key replace. Discard secret values from ordinary state. Confirm absence through the parent project's environment collection and preserve UI-owned settings across Update. |
+| Feature flag | Phase 3 active | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
+| Environment-specific segment | Planned | Environment plus UUID identity. Verified metadata, targeting, and tags update through specialized endpoints; key, type, and scopes replace. Destroy first checks flag references, then archives, hard-deletes, and proves exact active/archived absence. |
+| Shared segment | Planned | Read/bind only; Terraform does not create, update, or delete it. |
 
 Common lifecycle rules:
 
@@ -126,6 +136,8 @@ Common lifecycle rules:
 - Before Create, require exact zero. After an ambiguous mutation, reconcile by
   exact identity instead of retrying blindly or adopting an unrelated object.
 - Read after each logical write and persist the canonical server form.
+- Keep a computed ID known only for an in-place plan; an identity-changing
+  replacement must plan a new unknown ID.
 - Serialize writes only when a real multi-call lifecycle requires it.
 - Archive is an internal deletion prerequisite, never final Terraform destroy
   state or a user-facing destroy option.
@@ -153,7 +165,7 @@ phase.
 Gate: local override loads the provider; `terraform providers schema -json`
 succeeds; format, vet, unit/race, build, redaction, and dependency checks pass.
 
-### Phase 2 — Project and environment (active)
+### Phase 2 — Project and environment (complete)
 
 Add only the Project/Environment endpoint adapters needed by their resources
 and data sources. Implement exact lookup, CRUD, Import, replacement semantics,
@@ -161,7 +173,7 @@ canonical state, drift, and out-of-band deletion tests.
 
 Gate: Create/Read/Update/Delete and Import converge to an empty plan.
 
-### Phase 3 — Feature flags
+### Phase 3 — Feature flags (active)
 
 Implement the constrained four-type feature-flag resource/data source with
 stable variation identity, precise normalization, UI-field preservation,
