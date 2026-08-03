@@ -625,6 +625,494 @@ func TestListFeatureFlagsUsesBodylessGETRetryBoundary(t *testing.T) {
 	}
 }
 
+func TestResolveFeatureFlagAlwaysConsumesCompleteActiveAndArchivedViews(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			call := calls.Add(1)
+			if request.Method != http.MethodGet ||
+				request.URL.EscapedPath() != "/api/v1/envs/"+environmentOne+"/feature-flags" {
+				t.Fatalf("unexpected resolver request %s %s", request.Method, request.URL.EscapedPath())
+			}
+			wantArchived := "false"
+			if call == 2 {
+				wantArchived = "true"
+			}
+			if call > 2 || request.URL.Query().Get("IsArchived") != wantArchived {
+				t.Fatalf("resolver view %d query = %q", call, request.URL.RawQuery)
+			}
+			return featureFlagTestResponse(
+				request,
+				http.StatusOK,
+				featureFlagPageTestJSON(0, []string{}),
+			), nil
+		},
+	))
+
+	_, status, err := clientUnderTest.ResolveFeatureFlag(
+		context.Background(),
+		environmentOne,
+		"exact-key",
+	)
+	if err != nil || status != FeatureFlagStatusAbsent {
+		t.Fatalf("ResolveFeatureFlag() = %q, %v", status, err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("resolver request count = %d, want two complete views", calls.Load())
+	}
+}
+
+func TestCreateFeatureFlagUsesDocumentedOneShotPayload(t *testing.T) {
+	t.Parallel()
+
+	input := CreateFeatureFlagRequest{
+		Name:          "Create Flag",
+		Key:           "create-key",
+		IsEnabled:     false,
+		Description:   "Create definition",
+		VariationType: "number",
+		Variations: []FeatureFlagVariation{
+			{ID: featureFlagVariationOne, Name: "First", Value: "1"},
+			{ID: featureFlagVariationTwo, Name: "Second", Value: "2"},
+		},
+		EnabledVariationID:  featureFlagVariationOne,
+		DisabledVariationID: featureFlagVariationOne,
+		Tags:                []string{},
+	}
+
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			if request.Method != http.MethodPost ||
+				request.URL.EscapedPath() != "/api/v1/envs/"+environmentOne+"/feature-flags" ||
+				request.URL.RawQuery != "" {
+				t.Fatalf("unexpected create request %s %s?%s", request.Method, request.URL.EscapedPath(), request.URL.RawQuery)
+			}
+			if request.Header.Get("Content-Type") != "application/json" ||
+				request.Header.Get("Authorization") != syntheticAccessToken {
+				t.Fatal("create request omitted required JSON or authorization header")
+			}
+			for _, header := range contextHeaders {
+				if request.Header.Get(header) != "" {
+					t.Fatalf("create request sent unsupported context header %q", header)
+				}
+			}
+			var payload CreateFeatureFlagRequest
+			if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+				t.Fatalf("decode create payload: %v", err)
+			}
+			if payload.Name != input.Name || payload.Key != input.Key || payload.IsEnabled ||
+				payload.Description != input.Description || payload.VariationType != input.VariationType ||
+				payload.EnabledVariationID != featureFlagVariationOne ||
+				payload.DisabledVariationID != featureFlagVariationOne ||
+				len(payload.Variations) != 2 || payload.Variations[1].Value != "2" ||
+				payload.Tags == nil || len(payload.Tags) != 0 {
+				t.Fatal("create payload did not preserve the complete deterministic seed")
+			}
+
+			data := `{"id":"` + featureFlagIDOne + `","envId":"` + environmentOne +
+				`","name":"Create Flag","description":"Create definition","key":"create-key",` +
+				`"variationType":"number","variations":[` +
+				`{"id":"` + featureFlagVariationTwo + `","name":"Second","value":"2"},` +
+				`{"id":"` + featureFlagVariationOne + `","name":"First","value":"1"}],` +
+				`"isArchived":false,"isEnabled":false,"tags":[]}`
+			return featureFlagTestResponse(request, http.StatusOK, data), nil
+		},
+	))
+
+	created, err := clientUnderTest.CreateFeatureFlag(
+		context.Background(),
+		environmentOne,
+		input,
+	)
+	if err != nil {
+		t.Fatalf("CreateFeatureFlag() error = %v", err)
+	}
+	if created.ID != featureFlagIDOne || created.Key != input.Key ||
+		created.EnvironmentID != environmentOne || created.IsArchived ||
+		len(created.Variations) != 2 {
+		t.Fatal("CreateFeatureFlag() did not return the safe exact response")
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("create request count = %d, want one", calls.Load())
+	}
+}
+
+func TestCreateFeatureFlagValidationCancellationAndFailureDoNotRetry(t *testing.T) {
+	t.Parallel()
+
+	input := CreateFeatureFlagRequest{
+		Name:                "One Shot",
+		Key:                 "one-shot",
+		VariationType:       "string",
+		Variations:          []FeatureFlagVariation{{ID: featureFlagVariationOne, Name: "One", Value: "value"}},
+		EnabledVariationID:  featureFlagVariationOne,
+		DisabledVariationID: featureFlagVariationOne,
+		Tags:                []string{},
+	}
+	var calls atomic.Int32
+	options := defaultTestOptions()
+	options.MaxRetries = 3
+	clientUnderTest := newTestClientWithTransport(t, options, roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			return featureFlagTestResponse(request, http.StatusServiceUnavailable, "null"), nil
+		},
+	))
+
+	_, err := clientUnderTest.CreateFeatureFlag(context.Background(), "invalid", input)
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+	invalidKey := input
+	invalidKey.Key = ""
+	_, err = clientUnderTest.CreateFeatureFlag(context.Background(), environmentOne, invalidKey)
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err = clientUnderTest.CreateFeatureFlag(ctx, environmentOne, input)
+	apiError := requireAPIErrorClassification(t, err, ClassificationCanceled)
+	if !errors.Is(apiError, context.Canceled) {
+		t.Fatal("create cancellation sentinel was not preserved")
+	}
+	if calls.Load() != 0 {
+		t.Fatal("invalid or canceled create reached the transport")
+	}
+
+	_, err = clientUnderTest.CreateFeatureFlag(context.Background(), environmentOne, input)
+	requireAPIErrorClassification(t, err, ClassificationTransientServer)
+	if calls.Load() != 1 {
+		t.Fatalf("mutation attempts = %d, want exactly one", calls.Load())
+	}
+}
+
+func TestFeatureFlagSpecializedMutationContracts(t *testing.T) {
+	t.Parallel()
+
+	const (
+		key  = "mutation-key"
+		name = "Updated Name"
+	)
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			call := calls.Add(1)
+			for _, header := range contextHeaders {
+				if request.Header.Get(header) != "" {
+					t.Fatalf("specialized mutation sent unsupported context header %q", header)
+				}
+			}
+			switch call {
+			case 1:
+				if request.Method != http.MethodPut || request.URL.RawQuery != "" ||
+					request.URL.EscapedPath() != "/api/v1/envs/"+environmentOne+
+						"/feature-flags/"+key+"/name" ||
+					request.Header.Get("Content-Type") != "application/json" {
+					t.Fatalf("unexpected name mutation %s %s", request.Method, request.URL.EscapedPath())
+				}
+				var body map[string]json.RawMessage
+				if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+					t.Fatalf("decode name mutation: %v", err)
+				}
+				var actualName string
+				if len(body) != 1 || json.Unmarshal(body["name"], &actualName) != nil ||
+					actualName != name {
+					t.Fatal("name mutation body contained more than the owned name field")
+				}
+				return featureFlagTestResponse(
+					request,
+					http.StatusOK,
+					`"`+featureFlagIDOne+`"`,
+				), nil
+			case 2:
+				if request.Method != http.MethodPut || request.URL.RawQuery != "" ||
+					request.URL.EscapedPath() != "/api/v1/envs/"+environmentOne+
+						"/feature-flags/"+key+"/archive" {
+					t.Fatalf("unexpected archive mutation %s %s", request.Method, request.URL.EscapedPath())
+				}
+				if request.Body != nil && request.Body != http.NoBody ||
+					request.Header.Get("Content-Type") != "" {
+					t.Fatal("archive mutation unexpectedly sent the optional comment body")
+				}
+				return featureFlagTestResponse(request, http.StatusOK, "true"), nil
+			case 3:
+				if request.Method != http.MethodDelete || request.URL.RawQuery != "" ||
+					request.URL.EscapedPath() != "/api/v1/envs/"+environmentOne+
+						"/feature-flags/"+key {
+					t.Fatalf("unexpected permanent delete %s %s", request.Method, request.URL.EscapedPath())
+				}
+				if request.Body != nil && request.Body != http.NoBody ||
+					request.Header.Get("Content-Type") != "" {
+					t.Fatal("permanent delete unexpectedly sent the optional comment body")
+				}
+				return featureFlagTestResponse(request, http.StatusOK, "true"), nil
+			default:
+				t.Fatal("specialized mutation executed an unexpected request")
+				return nil, nil
+			}
+		},
+	))
+
+	if err := clientUnderTest.UpdateFeatureFlagName(
+		context.Background(),
+		environmentOne,
+		key,
+		featureFlagIDOne,
+		UpdateFeatureFlagNameRequest{Name: name},
+	); err != nil {
+		t.Fatalf("UpdateFeatureFlagName() error = %v", err)
+	}
+	if err := clientUnderTest.ArchiveFeatureFlag(
+		context.Background(),
+		environmentOne,
+		key,
+	); err != nil {
+		t.Fatalf("ArchiveFeatureFlag() error = %v", err)
+	}
+	if err := clientUnderTest.DeleteFeatureFlag(
+		context.Background(),
+		environmentOne,
+		key,
+	); err != nil {
+		t.Fatalf("DeleteFeatureFlag() error = %v", err)
+	}
+	if calls.Load() != 3 {
+		t.Fatalf("specialized mutation calls = %d, want three", calls.Load())
+	}
+}
+
+func TestFeatureFlagMutationsAreOneShotAndValidateResults(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		invoke func(*Client) error
+	}{
+		"name": {
+			invoke: func(apiClient *Client) error {
+				return apiClient.UpdateFeatureFlagName(
+					context.Background(),
+					environmentOne,
+					"one-shot",
+					featureFlagIDOne,
+					UpdateFeatureFlagNameRequest{Name: "One Shot"},
+				)
+			},
+		},
+		"archive": {
+			invoke: func(apiClient *Client) error {
+				return apiClient.ArchiveFeatureFlag(context.Background(), environmentOne, "one-shot")
+			},
+		},
+		"delete": {
+			invoke: func(apiClient *Client) error {
+				return apiClient.DeleteFeatureFlag(context.Background(), environmentOne, "one-shot")
+			},
+		},
+	}
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			var calls atomic.Int32
+			options := defaultTestOptions()
+			options.MaxRetries = 3
+			clientUnderTest := newTestClientWithTransport(t, options, roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					return featureFlagTestResponse(request, http.StatusServiceUnavailable, "null"), nil
+				},
+			))
+			err := test.invoke(clientUnderTest)
+			requireAPIErrorClassification(t, err, ClassificationTransientServer)
+			if calls.Load() != 1 {
+				t.Fatalf("%s mutation attempts = %d, want one", name, calls.Load())
+			}
+		})
+	}
+
+	t.Run("mismatched name identity", func(t *testing.T) {
+		t.Parallel()
+		clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+			func(request *http.Request) (*http.Response, error) {
+				return featureFlagTestResponse(
+					request,
+					http.StatusOK,
+					`"`+featureFlagIDTwo+`"`,
+				), nil
+			},
+		))
+		err := clientUnderTest.UpdateFeatureFlagName(
+			context.Background(),
+			environmentOne,
+			"mismatch",
+			featureFlagIDOne,
+			UpdateFeatureFlagNameRequest{Name: "Mismatch"},
+		)
+		requireAPIErrorClassification(t, err, ClassificationAmbiguous)
+	})
+
+	for _, operation := range []string{"archive", "delete"} {
+		operation := operation
+		t.Run(operation+" false result", func(t *testing.T) {
+			t.Parallel()
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					return featureFlagTestResponse(request, http.StatusOK, "false"), nil
+				},
+			))
+			var err error
+			if operation == "archive" {
+				err = clientUnderTest.ArchiveFeatureFlag(context.Background(), environmentOne, "false-result")
+			} else {
+				err = clientUnderTest.DeleteFeatureFlag(context.Background(), environmentOne, "false-result")
+			}
+			requireAPIErrorClassification(t, err, ClassificationAmbiguous)
+		})
+	}
+}
+
+func TestFeatureFlagMutationValidationAndCancellation(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(*http.Request) (*http.Response, error) {
+			calls.Add(1)
+			return nil, errors.New("invalid mutation reached transport")
+		},
+	))
+
+	err := clientUnderTest.UpdateFeatureFlagName(
+		context.Background(),
+		"invalid",
+		"key",
+		featureFlagIDOne,
+		UpdateFeatureFlagNameRequest{Name: "Name"},
+	)
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+	err = clientUnderTest.UpdateFeatureFlagName(
+		context.Background(),
+		environmentOne,
+		"",
+		featureFlagIDOne,
+		UpdateFeatureFlagNameRequest{Name: "Name"},
+	)
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+	err = clientUnderTest.UpdateFeatureFlagName(
+		context.Background(),
+		environmentOne,
+		"key",
+		"invalid",
+		UpdateFeatureFlagNameRequest{Name: "Name"},
+	)
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+	err = clientUnderTest.UpdateFeatureFlagName(
+		context.Background(),
+		environmentOne,
+		"key",
+		featureFlagIDOne,
+		UpdateFeatureFlagNameRequest{},
+	)
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+	err = clientUnderTest.ArchiveFeatureFlag(context.Background(), "invalid", "key")
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+	err = clientUnderTest.DeleteFeatureFlag(context.Background(), environmentOne, "")
+	requireAPIErrorClassification(t, err, ClassificationValidation)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err = clientUnderTest.ArchiveFeatureFlag(ctx, environmentOne, "canceled")
+	apiError := requireAPIErrorClassification(t, err, ClassificationCanceled)
+	if !errors.Is(apiError, context.Canceled) {
+		t.Fatal("mutation cancellation sentinel was not preserved")
+	}
+	if calls.Load() != 0 {
+		t.Fatalf("invalid or canceled mutations executed %d transport calls", calls.Load())
+	}
+}
+
+func TestFeatureFlagMutationFailuresRedactRuntimeValues(t *testing.T) {
+	t.Parallel()
+
+	const (
+		tokenMarker   = "api-feature-flag-mutation-token-marker"
+		keyMarker     = "feature-flag-mutation-key-marker"
+		nameMarker    = "feature-flag-mutation-name-marker"
+		valueMarker   = "feature-flag-mutation-value-marker"
+		rawBodyMarker = "feature-flag-mutation-raw-body-marker"
+	)
+	detail := strings.Join([]string{
+		tokenMarker,
+		environmentOne,
+		featureFlagIDOne,
+		keyMarker,
+		nameMarker,
+		valueMarker,
+		"/api/v1/envs/" + environmentOne + "/feature-flags/" + keyMarker + "/name",
+		rawBodyMarker,
+	}, " | ")
+	body, err := json.Marshal(map[string]any{
+		"success": false,
+		"data":    nil,
+		"errors":  []string{detail},
+	})
+	if err != nil {
+		t.Fatal("could not construct mutation redaction response")
+	}
+
+	options := defaultTestOptions()
+	options.MaxRetries = 0
+	clientUnderTest, err := newClient(
+		mustParseURL(t, "https://mutation-redaction.example.invalid/api/v1"),
+		tokenMarker,
+		options,
+		roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			return syntheticResponse(
+				request,
+				http.StatusBadRequest,
+				io.NopCloser(strings.NewReader(string(body))),
+			), nil
+		}),
+	)
+	if err != nil {
+		t.Fatal("could not construct mutation redaction client")
+	}
+
+	mutationErr := clientUnderTest.UpdateFeatureFlagName(
+		context.Background(),
+		environmentOne,
+		keyMarker,
+		featureFlagIDOne,
+		UpdateFeatureFlagNameRequest{Name: nameMarker},
+	)
+	apiError := requireAPIErrorClassification(t, mutationErr, ClassificationValidation)
+	formatted := fmt.Sprintf(
+		"%v|%+v|%#v|%v|%+v|%#v",
+		apiError,
+		apiError,
+		apiError,
+		UpdateFeatureFlagNameRequest{Name: nameMarker},
+		UpdateFeatureFlagNameRequest{Name: nameMarker},
+		UpdateFeatureFlagNameRequest{Name: nameMarker},
+	)
+	for _, unsafe := range []string{
+		tokenMarker,
+		environmentOne,
+		featureFlagIDOne,
+		keyMarker,
+		nameMarker,
+		valueMarker,
+		rawBodyMarker,
+	} {
+		if strings.Contains(formatted, unsafe) ||
+			strings.Contains(strings.Join(apiError.Details(), " | "), unsafe) {
+			t.Fatal("Feature Flag mutation error exposed a runtime identity or value")
+		}
+	}
+}
+
 func TestFeatureFlagReadFailuresRedactRuntimeValues(t *testing.T) {
 	t.Parallel()
 

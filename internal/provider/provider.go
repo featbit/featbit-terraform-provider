@@ -150,11 +150,13 @@ func (p *FeatBitProvider) Configure(
 	tflog.Debug(ctx, "Configured FeatBit provider")
 }
 
-// Resources registers the managed Project and Environment resources.
+// Resources registers the managed Project, Environment, and Feature Flag
+// resources.
 func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		newProjectResource,
 		newEnvironmentResource,
+		newFeatureFlagResource,
 	}
 }
 

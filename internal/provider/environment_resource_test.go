@@ -638,7 +638,10 @@ func TestEnvironmentResourceCancellationWhileWaitingForLockPreservesState(t *tes
 	)
 	resourceUnderTest := &environmentResource{client: apiClient}
 	manager := resourceUnderTest.environmentLocks()
-	release, err := manager.acquire(context.Background(), providerProjectID, providerEnvironmentA)
+	release, err := manager.acquire(
+		context.Background(),
+		strings.ToLower(providerProjectID+"/"+providerEnvironmentA),
+	)
 	if err != nil {
 		t.Fatalf("occupy Environment lock: %v", err)
 	}
@@ -682,12 +685,18 @@ func TestEnvironmentResourceCancellationWhileWaitingForLockPreservesState(t *tes
 func TestEnvironmentLockManagerScopesByExactEnvironmentAndCleansUp(t *testing.T) {
 	t.Parallel()
 
-	manager := newEnvironmentLockManager()
-	releaseA, err := manager.acquire(context.Background(), providerProjectID, providerEnvironmentA)
+	manager := newKeyedLockManager()
+	releaseA, err := manager.acquire(
+		context.Background(),
+		strings.ToLower(providerProjectID+"/"+providerEnvironmentA),
+	)
 	if err != nil {
 		t.Fatalf("acquire first Environment lock: %v", err)
 	}
-	releaseB, err := manager.acquire(context.Background(), providerProjectID, providerEnvironmentB)
+	releaseB, err := manager.acquire(
+		context.Background(),
+		strings.ToLower(providerProjectID+"/"+providerEnvironmentB),
+	)
 	if err != nil {
 		t.Fatalf("a different Environment was blocked by the first lock: %v", err)
 	}
@@ -989,7 +998,7 @@ func providerEnvironmentExactJSON(
 
 func waitForEnvironmentLockUsers(
 	t *testing.T,
-	manager *environmentLockManager,
+	manager *keyedLockManager,
 	projectID string,
 	environmentID string,
 	want int,

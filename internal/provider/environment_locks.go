@@ -5,36 +5,36 @@ package provider
 
 import (
 	"context"
-	"strings"
 	"sync"
 
 	"golang.org/x/sync/semaphore"
 )
 
-type environmentLockManager struct {
+// keyedLockManager provides cancellation-safe, reference-counted one-writer
+// serialization for the narrow multi-call lifecycles that supply their own
+// canonical identity key.
+type keyedLockManager struct {
 	mu    sync.Mutex
-	locks map[string]*environmentLockEntry
+	locks map[string]*keyedLockEntry
 }
 
-type environmentLockEntry struct {
+type keyedLockEntry struct {
 	permit *semaphore.Weighted
 	users  int
 }
 
-func newEnvironmentLockManager() *environmentLockManager {
-	return &environmentLockManager{locks: make(map[string]*environmentLockEntry)}
+func newKeyedLockManager() *keyedLockManager {
+	return &keyedLockManager{locks: make(map[string]*keyedLockEntry)}
 }
 
-func (m *environmentLockManager) acquire(
+func (m *keyedLockManager) acquire(
 	ctx context.Context,
-	projectID string,
-	environmentID string,
+	key string,
 ) (func(), error) {
-	key := strings.ToLower(projectID + "/" + environmentID)
 	m.mu.Lock()
 	entry := m.locks[key]
 	if entry == nil {
-		entry = &environmentLockEntry{permit: semaphore.NewWeighted(1)}
+		entry = &keyedLockEntry{permit: semaphore.NewWeighted(1)}
 		m.locks[key] = entry
 	}
 	entry.users++
@@ -50,7 +50,7 @@ func (m *environmentLockManager) acquire(
 	}, nil
 }
 
-func (m *environmentLockManager) releaseUser(key string, entry *environmentLockEntry) {
+func (m *keyedLockManager) releaseUser(key string, entry *keyedLockEntry) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	entry.users--

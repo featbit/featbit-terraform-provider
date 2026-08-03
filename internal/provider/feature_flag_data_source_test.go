@@ -13,9 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	frameworkprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -499,8 +497,8 @@ func TestFeatureFlagProtocolSchemasAndValidation(t *testing.T) {
 	if err != nil || protocolHasError(productionSchema.Diagnostics) {
 		t.Fatalf("production GetProviderSchema() failed: %v / %v", err, productionSchema.Diagnostics)
 	}
-	if len(productionSchema.ResourceSchemas) != 2 {
-		t.Fatalf("production resource schema count = %d, want 2 before P3-012", len(productionSchema.ResourceSchemas))
+	if len(productionSchema.ResourceSchemas) != 3 {
+		t.Fatalf("production resource schema count = %d, want 3", len(productionSchema.ResourceSchemas))
 	}
 	if len(productionSchema.DataSourceSchemas) != 3 {
 		t.Fatalf("production data source schema count = %d, want 3", len(productionSchema.DataSourceSchemas))
@@ -511,20 +509,10 @@ func TestFeatureFlagProtocolSchemasAndValidation(t *testing.T) {
 	}
 	assertProtocolFeatureFlagAttributes(t, dataSourceSchema.Block.Attributes, true)
 
-	schemaOnlyProvider := &featureFlagSchemaTestProvider{
-		FeatBitProvider: &FeatBitProvider{version: "test"},
-	}
-	schemaServer := providerserver.NewProtocol6(schemaOnlyProvider)()
-	schemaResponse, err := schemaServer.GetProviderSchema(
-		context.Background(),
-		&tfprotov6.GetProviderSchemaRequest{},
-	)
-	if err != nil || protocolHasError(schemaResponse.Diagnostics) {
-		t.Fatalf("schema-only GetProviderSchema() failed: %v / %v", err, schemaResponse.Diagnostics)
-	}
-	resourceSchema := schemaResponse.ResourceSchemas["featbit_feature_flag"]
+	schemaServer := productionServer
+	resourceSchema := productionSchema.ResourceSchemas["featbit_feature_flag"]
 	if resourceSchema == nil {
-		t.Fatal("schema-only Protocol provider omitted featbit_feature_flag")
+		t.Fatal("production Protocol provider omitted featbit_feature_flag resource")
 	}
 	assertProtocolFeatureFlagAttributes(t, resourceSchema.Block.Attributes, false)
 
@@ -597,50 +585,6 @@ func TestFeatureFlagProtocolSchemasAndValidation(t *testing.T) {
 			}
 		})
 	}
-}
-
-type featureFlagSchemaTestProvider struct {
-	*FeatBitProvider
-}
-
-func (p *featureFlagSchemaTestProvider) Resources(context.Context) []func() frameworkresource.Resource {
-	return []func() frameworkresource.Resource{
-		func() frameworkresource.Resource { return &featureFlagSchemaOnlyResource{} },
-	}
-}
-
-var _ frameworkprovider.Provider = (*featureFlagSchemaTestProvider)(nil)
-
-type featureFlagSchemaOnlyResource struct{}
-
-var _ frameworkresource.Resource = (*featureFlagSchemaOnlyResource)(nil)
-
-func (*featureFlagSchemaOnlyResource) Metadata(
-	_ context.Context,
-	req frameworkresource.MetadataRequest,
-	resp *frameworkresource.MetadataResponse,
-) {
-	resp.TypeName = req.ProviderTypeName + "_feature_flag"
-}
-
-func (*featureFlagSchemaOnlyResource) Schema(
-	_ context.Context,
-	_ frameworkresource.SchemaRequest,
-	resp *frameworkresource.SchemaResponse,
-) {
-	resp.Schema = featureFlagResourceSchema()
-}
-
-func (*featureFlagSchemaOnlyResource) Create(context.Context, frameworkresource.CreateRequest, *frameworkresource.CreateResponse) {
-}
-
-func (*featureFlagSchemaOnlyResource) Read(context.Context, frameworkresource.ReadRequest, *frameworkresource.ReadResponse) {
-}
-
-func (*featureFlagSchemaOnlyResource) Update(context.Context, frameworkresource.UpdateRequest, *frameworkresource.UpdateResponse) {
-}
-
-func (*featureFlagSchemaOnlyResource) Delete(context.Context, frameworkresource.DeleteRequest, *frameworkresource.DeleteResponse) {
 }
 
 func featureFlagDataSourceTestSchema(t *testing.T) datasourceschema.Schema {

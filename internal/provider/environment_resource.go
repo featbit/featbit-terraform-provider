@@ -29,7 +29,7 @@ var (
 type environmentResource struct {
 	client   *client.Client
 	lockOnce sync.Once
-	locks    *environmentLockManager
+	locks    *keyedLockManager
 }
 
 func newEnvironmentResource() resource.Resource {
@@ -242,7 +242,10 @@ func (r *environmentResource) Update(
 	projectID := state.ProjectID.ValueString()
 	environmentID := state.ID.ValueString()
 
-	release, err := r.environmentLocks().acquire(ctx, projectID, environmentID)
+	release, err := r.environmentLocks().acquire(
+		ctx,
+		strings.ToLower(projectID+"/"+environmentID),
+	)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Acquire FeatBit Environment Update Lock",
@@ -408,10 +411,10 @@ func (r *environmentResource) reconcileAmbiguousCreate(
 	}
 }
 
-func (r *environmentResource) environmentLocks() *environmentLockManager {
+func (r *environmentResource) environmentLocks() *keyedLockManager {
 	r.lockOnce.Do(func() {
 		if r.locks == nil {
-			r.locks = newEnvironmentLockManager()
+			r.locks = newKeyedLockManager()
 		}
 	})
 	return r.locks

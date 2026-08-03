@@ -1,7 +1,7 @@
 # Phase 3 TODO — Feature flags
 
 Status: **In progress**
-Next: **P3-012**
+Next: **P3-030**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -112,7 +112,7 @@ handoff.
 
 ## Feature Flag resource
 
-- [ ] **P3-012 — Add Feature Flag Create, replacement, Import, and recovery.**
+- [x] **P3-012 — Add Feature Flag Create, replacement, Import, and recovery.**
 
   Scope: add and register `featbit_feature_flag`; add the documented one-shot
   Create endpoint; require exact zero across complete active and archived
@@ -143,7 +143,20 @@ handoff.
   IDs; name-only stable ID planning; every replacement input; cancellation;
   and state preservation for each unconfirmed result.
 
-- [ ] **P3-013 — Add name-only Update and archive-plus-hard-delete.**
+  Result: Added the one-shot documented Feature Flag POST and complete
+  active/archived resolver in `internal/client/feature_flags.go`; registered
+  `featbit_feature_flag` and implemented exact-zero Create preflight,
+  deterministic disabled-safe expansion, provisional/canonical state,
+  exact-key Read, strict composite Import, and non-adopting ambiguous recovery
+  in `internal/provider/feature_flag_resource.go`. The runtime path is
+  `Create -> ResolveFeatureFlag(active+archived complete views) -> one
+  CreateFeatureFlag -> GetFeatureFlag -> UUID-correlated canonical state`,
+  with ambiguous Create returning recovery guidance after the same complete
+  resolver. Focused client/resource/schema contracts repeated with
+  `-count=10`; `go test ./...`, `go vet ./...`, `go build ./...`, `gofmt -l
+  .`, and `git diff --check` passed.
+
+- [x] **P3-013 — Add name-only Update and archive-plus-hard-delete.**
 
   Scope: add only the specialized name Update, archive, and permanent-delete
   endpoint methods. Update executes one narrow name mutation followed by exact
@@ -170,7 +183,22 @@ handoff.
   cancellation including any lock wait; one-shot call counts; and redaction-
   safe state preservation/recovery guidance.
 
-- [ ] **P3-014 — Prove the four-type Terraform Protocol v6 lifecycle.**
+  Result: Added the specialized name PUT, bodyless archive PUT, and permanent
+  DELETE adapters with UUID/Boolean response checks and one-shot/redaction
+  contracts in `internal/client/feature_flags.go`; completed name-only Update,
+  ambiguous status reconciliation, archive prerequisite, hard delete, and
+  complete final active/archived zero proof in
+  `internal/provider/feature_flag_resource.go`. Create/Update/Delete now share
+  a cancellation-safe keyed writer at exact Environment UUID plus
+  case-sensitive key, while Environment retains its prior serialization
+  semantics through the generalized helper. The runtime paths are `Update ->
+  one name PUT -> exact canonical Read` and `Delete -> complete status ->
+  optional one archive PUT -> one DELETE -> complete exact-zero proof`.
+  Focused client/provider/Environment-lock contracts repeated with
+  `-count=10`; `go test ./...`, `go vet ./...`, `go build ./...`, `gofmt -l
+  .`, and `git diff --check` passed.
+
+- [x] **P3-014 — Prove the four-type Terraform Protocol v6 lifecycle.**
 
   Scope: exercise the registered Feature Flag resource/data source through
   Protocol v6 against one narrow stateful public-API fixture. Cover Boolean,
@@ -192,6 +220,27 @@ handoff.
   archived fail-closed behavior, and archive-plus-delete. The recorder proves
   exact call order, no mutation retry, no forbidden endpoint, UI-owned fields
   unchanged, and exact-zero active/archived teardown.
+
+  Result: Added a narrow stateful public-API fixture and four-type 14-step
+  Protocol v6 lifecycle in `feature_flag_protocol_fixture_test.go` and
+  `feature_flag_protocol_test.go`. Each Boolean, String, Number, and JSON flag
+  now proves Create, exact data-source Read, Import plus empty plan, second
+  empty plan, external name repair, description/variations/type/key/environment
+  replacement, complete direct-read fallback, response reordering,
+  out-of-band deletion, archived fail-closed behavior, and final
+  archive-plus-delete. Resource `ModifyPlan` now supplies deterministic IDs on
+  Create/replacement, preserves imported server IDs for unchanged definitions,
+  and compares variation replacements by type-aware canonical values; resource
+  state preserves an equivalent configured spelling where Terraform's Required
+  value consistency demands it, while wire comparison and data-source state
+  remain canonical. The verified runtime is `Terraform plan/apply/refresh/
+  import/destroy -> Protocol v6 -> Feature Flag lifecycle -> public fixture`;
+  each recorder observed exactly 7/1/6/6 Create/name/archive/delete mutations,
+  no forbidden endpoint or UI-field rewrite, and a final archived last-page
+  zero proof. The four-type Protocol suite and `go test ./...` passed; focused
+  client/provider contracts repeated with `-count=10`; `go vet ./...`, `go
+  build ./...`, `go mod tidy -diff`, `go mod verify`, `gofmt -l .`, and `git
+  diff --check` passed.
 
 ## Integration and verification
 

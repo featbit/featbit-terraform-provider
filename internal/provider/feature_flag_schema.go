@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -92,7 +91,7 @@ func featureFlagResourceVariationsAttribute() resourceschema.ListNestedAttribute
 			featureFlagVariationsValidator{},
 		},
 		PlanModifiers: []planmodifier.List{
-			listplanmodifier.RequiresReplace(),
+			featureFlagVariationsRequiresReplace{},
 		},
 		NestedObject: resourceschema.NestedAttributeObject{
 			Attributes: map[string]resourceschema.Attribute{
@@ -116,6 +115,90 @@ func featureFlagResourceVariationsAttribute() resourceschema.ListNestedAttribute
 				},
 			},
 		},
+	}
+}
+
+// featureFlagVariationsRequiresReplace compares the user-owned semantic
+// variation definition. Computed UUIDs and equivalent type-aware spellings do
+// not cause replacement; ModifyPlan canonicalizes them afterwards.
+type featureFlagVariationsRequiresReplace struct{}
+
+var _ planmodifier.List = featureFlagVariationsRequiresReplace{}
+
+func (featureFlagVariationsRequiresReplace) Description(context.Context) string {
+	return "Requires replacement when the canonical variation names or values change."
+}
+
+func (m featureFlagVariationsRequiresReplace) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (featureFlagVariationsRequiresReplace) PlanModifyList(
+	ctx context.Context,
+	req planmodifier.ListRequest,
+	resp *planmodifier.ListResponse,
+) {
+	if req.State.Raw.IsNull() || req.PlanValue.IsNull() || req.PlanValue.IsUnknown() ||
+		req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+
+	var plannedType types.String
+	var priorType types.String
+	resp.Diagnostics.Append(
+		req.Plan.GetAttribute(ctx, path.Root("variation_type"), &plannedType)...,
+	)
+	resp.Diagnostics.Append(
+		req.State.GetAttribute(ctx, path.Root("variation_type"), &priorType)...,
+	)
+	if resp.Diagnostics.HasError() || plannedType.IsNull() || plannedType.IsUnknown() ||
+		priorType.IsNull() || priorType.IsUnknown() {
+		return
+	}
+	canonicalPlannedType, err := canonicalizeFeatureFlagVariationType(plannedType.ValueString())
+	if err != nil {
+		return
+	}
+	canonicalPriorType, err := canonicalizeFeatureFlagVariationType(priorType.ValueString())
+	if err != nil || canonicalPlannedType != canonicalPriorType {
+		// variation_type owns replacement when the type changes.
+		return
+	}
+
+	var planned []featureFlagVariationModel
+	var prior []featureFlagVariationModel
+	resp.Diagnostics.Append(req.PlanValue.ElementsAs(ctx, &planned, false)...)
+	resp.Diagnostics.Append(req.StateValue.ElementsAs(ctx, &prior, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if len(planned) != len(prior) {
+		resp.RequiresReplace = true
+		return
+	}
+	for index := range planned {
+		if planned[index].Name.IsNull() || planned[index].Name.IsUnknown() ||
+			planned[index].Value.IsNull() || planned[index].Value.IsUnknown() ||
+			prior[index].Name.IsNull() || prior[index].Name.IsUnknown() ||
+			prior[index].Value.IsNull() || prior[index].Value.IsUnknown() {
+			return
+		}
+		plannedValue, plannedErr := canonicalizeFeatureFlagValue(
+			canonicalPlannedType,
+			planned[index].Value.ValueString(),
+		)
+		priorValue, priorErr := canonicalizeFeatureFlagValue(
+			canonicalPriorType,
+			prior[index].Value.ValueString(),
+		)
+		if plannedErr != nil || priorErr != nil {
+			return
+		}
+		if planned[index].Name.ValueString() != prior[index].Name.ValueString() ||
+			plannedValue != priorValue {
+			resp.RequiresReplace = true
+			return
+		}
 	}
 }
 

@@ -14,6 +14,8 @@ import (
 
 const (
 	featureFlagsPath        = "feature-flags"
+	featureFlagNamePath     = "name"
+	featureFlagArchivePath  = "archive"
 	featureFlagPageSize     = 100
 	maxFeatureFlagPageIndex = int64(1<<31 - 1)
 )
@@ -52,6 +54,38 @@ type FeatureFlagVariation struct {
 // formatted independently of its parent.
 func (FeatureFlagVariation) Format(state fmt.State, _ rune) {
 	_, _ = io.WriteString(state, "client.FeatureFlagVariation{redacted}")
+}
+
+// CreateFeatureFlagRequest is the complete documented Feature Flag create
+// payload. The operational fields are required only to establish one
+// deterministic disabled-safe initial state; they are deliberately absent
+// from the read model so Terraform does not retain ownership of them.
+type CreateFeatureFlagRequest struct {
+	Name                string                 `json:"name"`
+	Key                 string                 `json:"key"`
+	IsEnabled           bool                   `json:"isEnabled"`
+	Description         string                 `json:"description"`
+	VariationType       string                 `json:"variationType"`
+	Variations          []FeatureFlagVariation `json:"variations"`
+	EnabledVariationID  string                 `json:"enabledVariationId"`
+	DisabledVariationID string                 `json:"disabledVariationId"`
+	Tags                []string               `json:"tags"`
+}
+
+// Format prevents a create payload from exposing runtime definition values.
+func (CreateFeatureFlagRequest) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.CreateFeatureFlagRequest{redacted}")
+}
+
+// UpdateFeatureFlagNameRequest contains the only Feature Flag field Terraform
+// updates in place. Path identity and optional audit comments are omitted.
+type UpdateFeatureFlagNameRequest struct {
+	Name string `json:"name"`
+}
+
+// Format prevents a Feature Flag name from entering formatted diagnostics.
+func (UpdateFeatureFlagNameRequest) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.UpdateFeatureFlagNameRequest{redacted}")
 }
 
 // FeatureFlagStatus is the authoritative exact-key state composed from a
@@ -109,6 +143,28 @@ func (c *Client) GetFeatureFlag(
 		return flag, status, nil
 	}
 
+	return c.ResolveFeatureFlag(ctx, environmentID, key)
+}
+
+// ResolveFeatureFlag always consumes the complete active and archived
+// collection views before resolving one case-sensitive exact key. Lifecycle
+// preflights and mutation reconciliation use this method when a direct exact
+// response alone cannot prove zero or detect cross-view inconsistency.
+func (c *Client) ResolveFeatureFlag(
+	ctx context.Context,
+	environmentID string,
+	key string,
+) (FeatureFlag, FeatureFlagStatus, error) {
+	if !ValidUUID(environmentID) || key == "" {
+		return FeatureFlag{}, FeatureFlagStatusUnknown, newAPIError(
+			ClassificationValidation,
+			0,
+			"resolve_feature_flag",
+			nil,
+			c.redactor,
+		)
+	}
+
 	active, err := c.listFeatureFlags(ctx, environmentID, false, key)
 	if err != nil {
 		return FeatureFlag{}, FeatureFlagStatusUnknown, err
@@ -124,6 +180,227 @@ func (c *Client) GetFeatureFlag(
 		key,
 		c.redactor.With(environmentID, key),
 	)
+}
+
+// CreateFeatureFlag executes the documented mutation exactly once. Exact-zero
+// preflight, canonical read-after-write, and ambiguous-outcome reconciliation
+// belong to the Terraform lifecycle caller.
+func (c *Client) CreateFeatureFlag(
+	ctx context.Context,
+	environmentID string,
+	input CreateFeatureFlagRequest,
+) (FeatureFlag, error) {
+	if !ValidUUID(environmentID) || input.Key == "" {
+		return FeatureFlag{}, newAPIError(
+			ClassificationValidation,
+			0,
+			"create_feature_flag",
+			nil,
+			c.redactor,
+		)
+	}
+
+	sensitiveValues := featureFlagCreateSensitiveValues(environmentID, input)
+	request, err := c.newFeatureFlagJSONRequest(
+		ctx,
+		http.MethodPost,
+		environmentID,
+		nil,
+		input,
+	)
+	if err != nil {
+		return FeatureFlag{}, newAPIError(
+			ClassificationAmbiguous,
+			0,
+			"create_feature_flag",
+			nil,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+
+	response, err := c.Do(request)
+	if err != nil {
+		return FeatureFlag{}, err
+	}
+	var wire featureFlagWire
+	if err := c.DecodeResponse(
+		"create_feature_flag",
+		response,
+		&wire,
+		sensitiveValues...,
+	); err != nil {
+		return FeatureFlag{}, featureFlagReadError(
+			"create_feature_flag",
+			err,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+
+	flag, valid := featureFlagFromWire(wire, environmentID, false, true)
+	if !valid || flag.Key != input.Key || flag.IsArchived {
+		return FeatureFlag{}, newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			"create_feature_flag",
+			nil,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+	return flag, nil
+}
+
+// UpdateFeatureFlagName executes the documented specialized name mutation
+// exactly once and confirms that its GuidApiResponse identifies the object
+// already tracked by Terraform.
+func (c *Client) UpdateFeatureFlagName(
+	ctx context.Context,
+	environmentID string,
+	key string,
+	featureFlagID string,
+	input UpdateFeatureFlagNameRequest,
+) error {
+	if !ValidUUID(environmentID) || key == "" || !ValidUUID(featureFlagID) || input.Name == "" {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			"update_feature_flag_name",
+			nil,
+			c.redactor,
+		)
+	}
+	sensitiveValues := []string{environmentID, key, featureFlagID, input.Name}
+	request, err := c.newFeatureFlagJSONRequest(
+		ctx,
+		http.MethodPut,
+		environmentID,
+		[]string{key, featureFlagNamePath},
+		input,
+	)
+	if err != nil {
+		return newAPIError(
+			ClassificationAmbiguous,
+			0,
+			"update_feature_flag_name",
+			nil,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+
+	response, err := c.Do(request)
+	if err != nil {
+		return err
+	}
+	var updatedID string
+	if err := c.DecodeResponse(
+		"update_feature_flag_name",
+		response,
+		&updatedID,
+		sensitiveValues...,
+	); err != nil {
+		return featureFlagReadError(
+			"update_feature_flag_name",
+			err,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+	if !EqualUUID(updatedID, featureFlagID) {
+		return newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			"update_feature_flag_name",
+			nil,
+			c.redactor.With(sensitiveValues...).With(updatedID),
+		)
+	}
+	return nil
+}
+
+// ArchiveFeatureFlag executes the documented archive prerequisite exactly
+// once. The optional ResourceChangeRequest comment body is deliberately
+// omitted. The lifecycle caller reconciles status before continuing.
+func (c *Client) ArchiveFeatureFlag(
+	ctx context.Context,
+	environmentID string,
+	key string,
+) error {
+	return c.mutateFeatureFlagBoolean(
+		ctx,
+		http.MethodPut,
+		environmentID,
+		key,
+		[]string{key, featureFlagArchivePath},
+		"archive_feature_flag",
+	)
+}
+
+// DeleteFeatureFlag executes the documented permanent deletion exactly once.
+// Exact absence is still proven through both complete collection views by the
+// lifecycle caller.
+func (c *Client) DeleteFeatureFlag(
+	ctx context.Context,
+	environmentID string,
+	key string,
+) error {
+	return c.mutateFeatureFlagBoolean(
+		ctx,
+		http.MethodDelete,
+		environmentID,
+		key,
+		[]string{key},
+		"delete_feature_flag",
+	)
+}
+
+func (c *Client) mutateFeatureFlagBoolean(
+	ctx context.Context,
+	method string,
+	environmentID string,
+	key string,
+	segments []string,
+	operation string,
+) error {
+	if !ValidUUID(environmentID) || key == "" {
+		return newAPIError(ClassificationValidation, 0, operation, nil, c.redactor)
+	}
+	request, err := c.newFeatureFlagRequest(ctx, method, environmentID, segments)
+	if err != nil {
+		return newAPIError(
+			ClassificationAmbiguous,
+			0,
+			operation,
+			nil,
+			c.redactor.With(environmentID, key),
+		)
+	}
+
+	response, err := c.Do(request)
+	if err != nil {
+		return err
+	}
+	var completed bool
+	if err := c.DecodeResponse(
+		operation,
+		response,
+		&completed,
+		environmentID,
+		key,
+	); err != nil {
+		return featureFlagReadError(
+			operation,
+			err,
+			c.redactor.With(environmentID, key),
+		)
+	}
+	if !completed {
+		return newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			operation,
+			nil,
+			c.redactor.With(environmentID, key),
+		)
+	}
+	return nil
 }
 
 // ListFeatureFlags returns one complete, structurally reconciled active or
@@ -358,9 +635,39 @@ func (c *Client) newFeatureFlagRequest(
 	return c.newRequest(ctx, method, featureFlagPath(environmentID, segments), nil)
 }
 
+func (c *Client) newFeatureFlagJSONRequest(
+	ctx context.Context,
+	method string,
+	environmentID string,
+	segments []string,
+	payload any,
+) (*http.Request, error) {
+	return c.newJSONRequest(ctx, method, featureFlagPath(environmentID, segments), payload)
+}
+
 func featureFlagPath(environmentID string, segments []string) []string {
 	path := []string{environmentsPath, environmentID, featureFlagsPath}
 	return append(path, segments...)
+}
+
+func featureFlagCreateSensitiveValues(
+	environmentID string,
+	input CreateFeatureFlagRequest,
+) []string {
+	values := []string{
+		environmentID,
+		input.Name,
+		input.Key,
+		input.Description,
+		input.VariationType,
+		input.EnabledVariationID,
+		input.DisabledVariationID,
+	}
+	for _, variation := range input.Variations {
+		values = append(values, variation.ID, variation.Name, variation.Value)
+	}
+	values = append(values, input.Tags...)
+	return values
 }
 
 func featureFlagFromWire(
