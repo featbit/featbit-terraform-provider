@@ -333,6 +333,9 @@ func (r *featureFlagResource) Read(
 		)
 		return
 	}
+	if variationOrder == nil {
+		variationOrder = deterministicRemoteFeatureFlagVariationOrder(flag)
+	}
 	state, err := flattenFeatureFlag(flag, variationOrder)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -831,6 +834,40 @@ func canonicalFeatureFlagVariationIDs(flag canonicalFeatureFlag) []string {
 		ids = append(ids, variation.ID)
 	}
 	return ids
+}
+
+// deterministicRemoteFeatureFlagVariationOrder recovers the configured order
+// on the first Read after importing a Feature Flag created by this provider.
+// Other imported flags retain the stable server-UUID ordering used when no
+// prior Terraform state is available.
+func deterministicRemoteFeatureFlagVariationOrder(flag client.FeatureFlag) []string {
+	if len(flag.Variations) == 0 || !validFeatureFlagKey(flag.Key) {
+		return nil
+	}
+	remoteIDs := make(map[string]struct{}, len(flag.Variations))
+	for _, variation := range flag.Variations {
+		id, valid := client.CanonicalUUID(variation.ID)
+		if !valid {
+			return nil
+		}
+		if _, duplicate := remoteIDs[id]; duplicate {
+			return nil
+		}
+		remoteIDs[id] = struct{}{}
+	}
+
+	order := make([]string, 0, len(flag.Variations))
+	for index := range flag.Variations {
+		expectedID := deterministicFeatureFlagVariationID(flag.EnvironmentID, flag.Key, index)
+		if expectedID == "" {
+			return nil
+		}
+		if _, exists := remoteIDs[expectedID]; !exists {
+			return nil
+		}
+		order = append(order, expectedID)
+	}
+	return order
 }
 
 func sameFeatureFlagDefinition(left canonicalFeatureFlag, right canonicalFeatureFlag) bool {

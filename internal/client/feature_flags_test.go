@@ -1037,11 +1037,16 @@ func TestFeatureFlagMutationFailuresRedactRuntimeValues(t *testing.T) {
 	t.Parallel()
 
 	const (
-		tokenMarker   = "api-feature-flag-mutation-token-marker"
-		keyMarker     = "feature-flag-mutation-key-marker"
-		nameMarker    = "feature-flag-mutation-name-marker"
-		valueMarker   = "feature-flag-mutation-value-marker"
-		rawBodyMarker = "feature-flag-mutation-raw-body-marker"
+		tokenMarker      = "api-feature-flag-mutation-token-marker"
+		keyMarker        = "feature-flag-mutation-key-marker"
+		nameMarker       = "feature-flag-mutation-name-marker"
+		valueMarker      = "feature-flag-mutation-value-marker"
+		tagMarker        = "feature-flag-mutation-tag-marker"
+		targetingMarker  = "feature-flag-mutation-targeting-marker"
+		ruleMarker       = "feature-flag-mutation-rule-marker"
+		tenantMarker     = "featbit:tenant:feature-flag-mutation-marker"
+		rawBodyMarker    = "feature-flag-mutation-raw-body-marker"
+		serverHostMarker = "feature-flag-mutation-server-marker.example.invalid"
 	)
 	detail := strings.Join([]string{
 		tokenMarker,
@@ -1050,6 +1055,10 @@ func TestFeatureFlagMutationFailuresRedactRuntimeValues(t *testing.T) {
 		keyMarker,
 		nameMarker,
 		valueMarker,
+		tagMarker,
+		targetingMarker,
+		ruleMarker,
+		tenantMarker,
 		"/api/v1/envs/" + environmentOne + "/feature-flags/" + keyMarker + "/name",
 		rawBodyMarker,
 	}, " | ")
@@ -1065,7 +1074,7 @@ func TestFeatureFlagMutationFailuresRedactRuntimeValues(t *testing.T) {
 	options := defaultTestOptions()
 	options.MaxRetries = 0
 	clientUnderTest, err := newClient(
-		mustParseURL(t, "https://mutation-redaction.example.invalid/api/v1"),
+		mustParseURL(t, "https://"+serverHostMarker+"/api/v1"),
 		tokenMarker,
 		options,
 		roundTripFunc(func(request *http.Request) (*http.Response, error) {
@@ -1080,35 +1089,64 @@ func TestFeatureFlagMutationFailuresRedactRuntimeValues(t *testing.T) {
 		t.Fatal("could not construct mutation redaction client")
 	}
 
-	mutationErr := clientUnderTest.UpdateFeatureFlagName(
+	updateErr := clientUnderTest.UpdateFeatureFlagName(
 		context.Background(),
 		environmentOne,
 		keyMarker,
 		featureFlagIDOne,
 		UpdateFeatureFlagNameRequest{Name: nameMarker},
 	)
-	apiError := requireAPIErrorClassification(t, mutationErr, ClassificationValidation)
-	formatted := fmt.Sprintf(
-		"%v|%+v|%#v|%v|%+v|%#v",
-		apiError,
-		apiError,
-		apiError,
-		UpdateFeatureFlagNameRequest{Name: nameMarker},
-		UpdateFeatureFlagNameRequest{Name: nameMarker},
-		UpdateFeatureFlagNameRequest{Name: nameMarker},
-	)
-	for _, unsafe := range []string{
-		tokenMarker,
+	createInput := CreateFeatureFlagRequest{
+		Name:          nameMarker,
+		Key:           keyMarker,
+		Description:   "feature-flag-mutation-description-marker",
+		VariationType: "string",
+		Variations: []FeatureFlagVariation{
+			{ID: featureFlagVariationOne, Name: "Runtime Variation", Value: valueMarker},
+		},
+		EnabledVariationID:  featureFlagVariationOne,
+		DisabledVariationID: featureFlagVariationOne,
+		Tags:                []string{tagMarker},
+	}
+	_, createErr := clientUnderTest.CreateFeatureFlag(
+		context.Background(),
 		environmentOne,
-		featureFlagIDOne,
-		keyMarker,
-		nameMarker,
-		valueMarker,
-		rawBodyMarker,
-	} {
-		if strings.Contains(formatted, unsafe) ||
-			strings.Contains(strings.Join(apiError.Details(), " | "), unsafe) {
-			t.Fatal("Feature Flag mutation error exposed a runtime identity or value")
+		createInput,
+	)
+
+	for _, mutationErr := range []error{updateErr, createErr} {
+		apiError := requireAPIErrorClassification(t, mutationErr, ClassificationValidation)
+		formatted := fmt.Sprintf(
+			"%v|%+v|%#v|%v|%+v|%#v|%v|%+v|%#v",
+			apiError,
+			apiError,
+			apiError,
+			UpdateFeatureFlagNameRequest{Name: nameMarker},
+			UpdateFeatureFlagNameRequest{Name: nameMarker},
+			UpdateFeatureFlagNameRequest{Name: nameMarker},
+			createInput,
+			createInput,
+			createInput,
+		)
+		for _, unsafe := range []string{
+			tokenMarker,
+			environmentOne,
+			featureFlagIDOne,
+			featureFlagVariationOne,
+			keyMarker,
+			nameMarker,
+			valueMarker,
+			tagMarker,
+			targetingMarker,
+			ruleMarker,
+			tenantMarker,
+			rawBodyMarker,
+			serverHostMarker,
+		} {
+			if strings.Contains(formatted, unsafe) ||
+				strings.Contains(strings.Join(apiError.Details(), " | "), unsafe) {
+				t.Fatal("Feature Flag mutation error exposed a runtime identity or value")
+			}
 		}
 	}
 }
@@ -1120,6 +1158,10 @@ func TestFeatureFlagReadFailuresRedactRuntimeValues(t *testing.T) {
 		tokenMarker      = "api-feature-flag-read-token-marker"
 		keyMarker        = "feature-flag-runtime-key-marker"
 		valueMarker      = "feature-flag-runtime-value-marker"
+		tagMarker        = "feature-flag-runtime-tag-marker"
+		targetingMarker  = "feature-flag-runtime-targeting-marker"
+		ruleMarker       = "feature-flag-runtime-rule-marker"
+		rolloutMarker    = "feature-flag-runtime-rollout-marker"
 		rawBodyMarker    = "feature-flag-raw-body-marker"
 		tenantMarker     = "featbit:tenant:feature-flag-marker"
 		serverHostMarker = "feature-flag-server-marker.example.invalid"
@@ -1132,6 +1174,10 @@ func TestFeatureFlagReadFailuresRedactRuntimeValues(t *testing.T) {
 		featureFlagVariationOne,
 		keyMarker,
 		valueMarker,
+		tagMarker,
+		targetingMarker,
+		ruleMarker,
+		rolloutMarker,
 		tenantMarker,
 		pathMarker,
 		rawBodyMarker,
@@ -1177,6 +1223,10 @@ func TestFeatureFlagReadFailuresRedactRuntimeValues(t *testing.T) {
 		featureFlagVariationOne,
 		keyMarker,
 		valueMarker,
+		tagMarker,
+		targetingMarker,
+		ruleMarker,
+		rolloutMarker,
 		tenantMarker,
 		pathMarker,
 		rawBodyMarker,
@@ -1195,6 +1245,10 @@ func TestFeatureFlagReadFailuresRedactRuntimeValues(t *testing.T) {
 		featureFlagVariationOne,
 		keyMarker,
 		valueMarker,
+		tagMarker,
+		targetingMarker,
+		ruleMarker,
+		rolloutMarker,
 		tenantMarker,
 		pathMarker,
 		rawBodyMarker,

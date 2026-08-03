@@ -32,6 +32,7 @@ type featureFlagProtocolFixture struct {
 	directReadFailure    bool
 	directFallbackCount  int
 	reverseVariations    bool
+	reverseCollections   bool
 	protectedUI          map[string]featureFlagFixtureUI
 	deletedProtectedUI   map[string]featureFlagFixtureUI
 	createCount          int
@@ -403,6 +404,11 @@ func (f *featureFlagProtocolFixture) collectionObjectsLocked(
 	for _, key := range keys {
 		objects = append(objects, source[featureFlagFixtureIdentity(environmentID, key)])
 	}
+	if f.reverseCollections {
+		for left, right := 0, len(objects)-1; left < right; left, right = left+1, right-1 {
+			objects[left], objects[right] = objects[right], objects[left]
+		}
+	}
 	return objects
 }
 
@@ -617,6 +623,12 @@ func (f *featureFlagProtocolFixture) setReverseVariations(enabled bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.reverseVariations = enabled
+}
+
+func (f *featureFlagProtocolFixture) setReverseCollections(enabled bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.reverseCollections = enabled
 }
 
 func (f *featureFlagProtocolFixture) removeActive(environmentID string, key string) error {

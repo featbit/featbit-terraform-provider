@@ -551,57 +551,122 @@ func TestFeatureFlagResourceCreateIdentityMismatchPreservesMutationIdentity(t *t
 func TestFeatureFlagResourceImportAndReadRetainServerVariationIDs(t *testing.T) {
 	t.Parallel()
 
-	featureFlagSchema := featureFlagResourceSchema()
-	importState := emptyFeatureFlagResourceState(t, featureFlagSchema)
-	importResponse := frameworkresource.ImportStateResponse{State: importState}
-	(&featureFlagResource{}).ImportState(
-		context.Background(),
-		frameworkresource.ImportStateRequest{ID: providerEnvironmentA + "/imported-key"},
-		&importResponse,
-	)
-	if importResponse.Diagnostics.HasError() {
-		t.Fatalf("ImportState() diagnostics = %v", importResponse.Diagnostics)
+	deterministicKey := ""
+	for index := 0; index < 100; index++ {
+		candidate := fmt.Sprintf("imported-deterministic-%d", index)
+		if deterministicFeatureFlagVariationID(providerEnvironmentA, candidate, 0) >
+			deterministicFeatureFlagVariationID(providerEnvironmentA, candidate, 1) {
+			deterministicKey = candidate
+			break
+		}
 	}
+	if deterministicKey == "" {
+		t.Fatal("could not construct a deterministic non-lexical variation order")
+	}
+	deterministicFirstID := deterministicFeatureFlagVariationID(
+		providerEnvironmentA,
+		deterministicKey,
+		0,
+	)
+	deterministicSecondID := deterministicFeatureFlagVariationID(
+		providerEnvironmentA,
+		deterministicKey,
+		1,
+	)
 
-	remote := canonicalFeatureFlag{
-		EnvironmentID: providerEnvironmentA,
-		Name:          "Imported",
-		Description:   "",
-		Key:           "imported-key",
-		VariationType: featureFlagVariationTypeNumber,
-		Variations: []canonicalFeatureFlagVariation{
-			{ID: providerFeatureVariationTwo, Name: "Two", Value: "2"},
-			{ID: providerFeatureVariationOne, Name: "One", Value: "1"},
+	tests := []struct {
+		name       string
+		key        string
+		variations []canonicalFeatureFlagVariation
+		wantIDs    []string
+		wantNames  []string
+	}{
+		{
+			name: "external IDs use canonical UUID order",
+			key:  "imported-key",
+			variations: []canonicalFeatureFlagVariation{
+				{ID: providerFeatureVariationTwo, Name: "Two", Value: "2"},
+				{ID: providerFeatureVariationOne, Name: "One", Value: "1"},
+			},
+			wantIDs:   []string{providerFeatureVariationOne, providerFeatureVariationTwo},
+			wantNames: []string{"One", "Two"},
+		},
+		{
+			name: "provider IDs recover configured index order",
+			key:  deterministicKey,
+			variations: []canonicalFeatureFlagVariation{
+				{ID: deterministicSecondID, Name: "Second", Value: "2"},
+				{ID: deterministicFirstID, Name: "First", Value: "1"},
+			},
+			wantIDs:   []string{deterministicFirstID, deterministicSecondID},
+			wantNames: []string{"First", "Second"},
 		},
 	}
-	apiClient, closeServer := newProjectResourceTestClient(t, http.HandlerFunc(
-		func(response http.ResponseWriter, request *http.Request) {
-			if request.Method != http.MethodGet || request.URL.RawQuery != "" {
-				t.Fatal("import refresh did not use the exact active read")
-			}
-			writeProjectResourceEnvelope(
-				t,
-				response,
-				http.StatusOK,
-				featureFlagResourceDefinitionJSON(t, remote, providerFeatureFlagID, false, false),
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			featureFlagSchema := featureFlagResourceSchema()
+			importState := emptyFeatureFlagResourceState(t, featureFlagSchema)
+			importResponse := frameworkresource.ImportStateResponse{State: importState}
+			(&featureFlagResource{}).ImportState(
+				context.Background(),
+				frameworkresource.ImportStateRequest{ID: providerEnvironmentA + "/" + test.key},
+				&importResponse,
 			)
-		},
-	))
-	defer closeServer()
-	readResponse := frameworkresource.ReadResponse{State: importResponse.State}
-	(&featureFlagResource{client: apiClient}).Read(
-		context.Background(),
-		frameworkresource.ReadRequest{State: importResponse.State},
-		&readResponse,
-	)
-	if readResponse.Diagnostics.HasError() {
-		t.Fatalf("import Read() diagnostics = %v", readResponse.Diagnostics)
-	}
-	state := featureFlagResourceStateModel(t, readResponse.State)
-	if state.ID.ValueString() != providerFeatureFlagID || len(state.Variations) != 2 ||
-		state.Variations[0].ID.ValueString() != providerFeatureVariationOne ||
-		state.Variations[1].ID.ValueString() != providerFeatureVariationTwo {
-		t.Fatal("import refresh did not retain and canonically order server variation UUIDs")
+			if importResponse.Diagnostics.HasError() {
+				t.Fatalf("ImportState() diagnostics = %v", importResponse.Diagnostics)
+			}
+
+			remote := canonicalFeatureFlag{
+				EnvironmentID: providerEnvironmentA,
+				Name:          "Imported",
+				Description:   "",
+				Key:           test.key,
+				VariationType: featureFlagVariationTypeNumber,
+				Variations:    test.variations,
+			}
+			apiClient, closeServer := newProjectResourceTestClient(t, http.HandlerFunc(
+				func(response http.ResponseWriter, request *http.Request) {
+					if request.Method != http.MethodGet || request.URL.RawQuery != "" {
+						t.Fatal("import refresh did not use the exact active read")
+					}
+					writeProjectResourceEnvelope(
+						t,
+						response,
+						http.StatusOK,
+						featureFlagResourceDefinitionJSON(
+							t,
+							remote,
+							providerFeatureFlagID,
+							false,
+							false,
+						),
+					)
+				},
+			))
+			defer closeServer()
+			readResponse := frameworkresource.ReadResponse{State: importResponse.State}
+			(&featureFlagResource{client: apiClient}).Read(
+				context.Background(),
+				frameworkresource.ReadRequest{State: importResponse.State},
+				&readResponse,
+			)
+			if readResponse.Diagnostics.HasError() {
+				t.Fatalf("import Read() diagnostics = %v", readResponse.Diagnostics)
+			}
+			state := featureFlagResourceStateModel(t, readResponse.State)
+			if state.ID.ValueString() != providerFeatureFlagID ||
+				len(state.Variations) != len(test.wantIDs) {
+				t.Fatal("import refresh did not retain the server Feature Flag definition")
+			}
+			for index := range test.wantIDs {
+				if state.Variations[index].ID.ValueString() != test.wantIDs[index] ||
+					state.Variations[index].Name.ValueString() != test.wantNames[index] {
+					t.Fatal("import refresh did not use the expected stable variation order")
+				}
+			}
+		})
 	}
 }
 

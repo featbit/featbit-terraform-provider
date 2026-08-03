@@ -1,7 +1,7 @@
 # Phase 3 TODO — Feature flags
 
 Status: **In progress**
-Next: **P3-030**
+Next: **P3-090**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -244,7 +244,7 @@ handoff.
 
 ## Integration and verification
 
-- [ ] **P3-030 — Prove cross-resource ownership, state safety, and redaction.**
+- [x] **P3-030 — Prove cross-resource ownership, state safety, and redaction.**
 
   Scope: test Feature Flags with their Project/Environment parents and at
   shared safety boundaries: replacement identity planning, canonical variation
@@ -269,7 +269,22 @@ handoff.
   raw bodies appear in neither state, diagnostics, logs, fixtures, nor
   assertion output.
 
-- [ ] **P3-031 — Run trusted current-Cloud acceptance and exact cleanup.**
+  Result: Added the combined Project/Environment/Feature Flag Protocol v6
+  ownership fixture in `project_environment_feature_flag_integration_test.go`,
+  arbitrary collection ordering in `feature_flag_protocol_fixture_test.go`,
+  and expanded Feature Flag endpoint redaction contracts in
+  `internal/client/feature_flags_test.go`. The verified runtime is `Project ->
+  Environment -> Feature Flag -> lifecycle-owned adapters`, with dependent
+  Unknown IDs resolving on Create, exact child-before-parent archive/delete on
+  Environment replacement and removal, canonical UUID-correlated variations,
+  default empty descriptions, UI-owned operation preservation, and
+  active/archived duplicate state preservation; failure details flow through
+  `DecodeResponse -> featureFlagReadError -> redacted diagnostics`. Both full
+  `internal/client` and `internal/provider` packages passed once, and the new
+  focused client/provider contracts passed with `-count=10`; `gofmt` and `git
+  diff --check` passed.
+
+- [x] **P3-031 — Run trusted current-Cloud acceptance and exact cleanup.**
 
   Scope: with credentials supplied only out of band, run uniquely prefixed
   Feature Flags of all four types against the documented current Cloud API.
@@ -294,7 +309,25 @@ handoff.
   verification return exact zero for every unique test key, with no pending
   cleanup owner/action and no persisted runtime identity or value.
 
-- [ ] **P3-032 — Run the complete Phase 3 local gate.**
+  Result: Added the credential-gated four-type Cloud lifecycle and its
+  child-first exact cleanup inventory in
+  `internal/provider/feature_flag_cloud_acceptance_test.go` and
+  `internal/provider/feature_flag_cloud_harness_test.go`. The verified runtime
+  is `terraform-plugin-testing -> local Protocol v6 provider -> shared client
+  -> documented Cloud API`, covering Create, exact data sources, four Imports
+  plus empty plans, second-plan idempotence, external name drift repair,
+  name-only UI-owned-field fingerprint preservation, description replacement,
+  out-of-band deletion/recreation, and destroy. Current Cloud response
+  reordering exposed and fixed first-Import correlation for provider-generated
+  deterministic variation UUIDs while externally created flags retain stable
+  UUID ordering; ambiguous successful name mutations remained one-shot and
+  converged through complete active/archived reconciliation. The focused
+  Import, cleanup, and UI-fingerprint contracts passed with `-count=10`; the
+  complete Cloud acceptance passed, and independent active/archived Flag plus
+  Project/Environment collection checks proved exact zero after child-first
+  cleanup without persisting runtime identities or values.
+
+- [x] **P3-032 — Run the complete Phase 3 local gate.**
 
   Scope: run formatting, vet, all unit/mock/protocol tests, repeated endpoint
   and normalization contracts, Windows race tests with the verified compiler
@@ -318,6 +351,24 @@ handoff.
   flag; focused Go tests assert all replacement/normalization contracts; and
   repository scans find no real secret, runtime Cloud identity, variation
   value, forbidden endpoint, or risky state artifact.
+
+  Result: Verified the complete `Terraform Core -> Protocol v6 provider ->
+  Project/Environment/Feature Flag lifecycle -> shared client -> documented
+  public API` path. `gofmt -l .`, `git diff --check`, `go vet ./...`, `go test
+  ./...`, endpoint and normalization/replacement contracts with `-count=10`,
+  Windows `go test -race ./...` using a checksum-verified temporary MinGW-w64
+  toolchain, `go build ./...`, `go mod tidy -diff`, and `go mod verify` all
+  passed. The dependency scan exposed reachable grpc, x/net, and x/text
+  advisories; `go.mod`/`go.sum` now select their compatible fixed dependency
+  graph, after which `govulncheck ./...` reported no vulnerabilities, all
+  selected modules verified, no selected version was retracted, and all seven
+  direct modules had an inspectable license or notice. A credential-free local
+  development override loaded the built provider and schema JSON proved five
+  provider attributes, exactly three resources, exactly three data sources,
+  and all 51 visible ownership/Sensitive flags. Final scans found no real
+  secret, runtime Cloud identity/value, forbidden production endpoint/context
+  write/database path, Terraform state, crash log, binary, or pending temporary
+  toolchain/config artifact.
 
 ## Phase exit
 
