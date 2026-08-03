@@ -1,7 +1,7 @@
 # Phase 3 TODO — Feature flags
 
 Status: **In progress**
-Next: **P3-010**
+Next: **P3-012**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -15,7 +15,7 @@ handoff.
 
 ## Feature Flag read contract
 
-- [ ] **P3-010 — Add complete Feature Flag reads and exact status resolution.**
+- [x] **P3-010 — Add complete Feature Flag reads and exact status resolution.**
 
   Scope: add only the safe Feature Flag/variation wire fields consumed by this
   phase; implement the documented exact Get and paginated collection Get;
@@ -43,7 +43,18 @@ handoff.
   behavior, bodyless-GET retry boundaries, cancellation, and redaction of
   runtime keys, IDs, variation values, tenant data, paths, and raw bodies.
 
-- [ ] **P3-011 — Freeze canonical values, stable variation identity, schemas, and the exact data source.**
+  Result: Added the safe Feature Flag/variation read shapes, exact GET,
+  explicit active/archived paginated GET, complete `totalCount` reconciliation,
+  and exact case-sensitive status resolver in `internal/client/feature_flags.go`,
+  with focused endpoint, pagination, retry, cancellation, ambiguity, and
+  redaction contracts in `feature_flags_test.go`. The verified runtime path is
+  `Client.GetFeatureFlag -> exact GET`, falling back to complete
+  `ListFeatureFlags(active) + ListFeatureFlags(archived) -> exact-key
+  resolution`. `gofmt -l internal/client` was empty; `go vet
+  ./internal/client`, `go test ./internal/client -count=1`, and the focused
+  Feature Flag suite repeated with `-count=10` passed.
+
+- [x] **P3-011 — Freeze canonical values, stable variation identity, schemas, and the exact data source.**
 
   Scope: implement one type-aware canonicalization layer for Boolean, String,
   Number, and JSON values without `float64`; validate Feature Flag keys, names,
@@ -74,6 +85,20 @@ handoff.
   checks; and schema ownership. Protocol schema tests must prove only `name`
   is mutable while environment/key/type/description/variations replace and no
   UI-owned operational field is configurable or exposed.
+
+  Result: Added the provider-owned four-type canonicalization and validation
+  layer, deterministic UUID v5 variation identity, disabled-safe Create seed,
+  UUID-correlated flattening, and frozen resource schema in
+  `feature_flag_models.go` / `feature_flag_schema.go`; added and registered the
+  exact active-only `featbit_feature_flag` data source in
+  `feature_flag_data_source.go`, and extended the shared stable-ID modifier to
+  compare nested lists without changing existing scalar behavior. The runtime
+  path is `featureFlagDataSource.Read -> Client.GetFeatureFlag -> active status
+  -> type-aware canonicalization + UUID ordering -> Terraform state`; future
+  resource planning uses the same planned-definition canonicalizer and fixed
+  seed. Focused model/data-source/schema/Protocol tests repeated with
+  `-count=10`; `go test ./...`, `go vet ./...`, `go build ./...`, `go mod tidy
+  -diff`, `go mod verify`, `gofmt -l .`, and `git diff --check` passed.
 
 ## Feature Flag resource
 
