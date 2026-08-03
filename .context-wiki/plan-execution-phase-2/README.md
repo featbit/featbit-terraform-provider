@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-02**
-- Next task: `P2-020`
+- Next task: `P2-030`
 
 Read [AGENTS.md](../../AGENTS.md), the
 [current project plan](../plan.md), then [todo.md](todo.md). No completed phase

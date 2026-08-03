@@ -5,7 +5,6 @@ package provider
 
 import (
 	"context"
-	"errors"
 
 	"github.com/featbit/terraform-provider-featbit/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -143,7 +142,7 @@ func (r *projectResource) Create(
 		Key:  key.ValueString(),
 	})
 	if err != nil {
-		if projectMutationOutcomeAmbiguous(err) {
+		if mutationOutcomeAmbiguous(err) {
 			r.reconcileAmbiguousCreate(ctx, key.ValueString(), err, &resp.Diagnostics)
 			return
 		}
@@ -360,22 +359,4 @@ func countProjectsByKey(projects []client.Project, key string) int {
 		}
 	}
 	return count
-}
-
-func projectMutationOutcomeAmbiguous(err error) bool {
-	var apiError *client.APIError
-	if !errors.As(err, &apiError) {
-		return true
-	}
-	switch apiError.Classification() {
-	case client.ClassificationRateLimited,
-		client.ClassificationTransientServer,
-		client.ClassificationTimeout,
-		client.ClassificationCanceled,
-		client.ClassificationNetwork,
-		client.ClassificationAmbiguous:
-		return true
-	default:
-		return false
-	}
 }

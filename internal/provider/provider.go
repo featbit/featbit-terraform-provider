@@ -150,17 +150,20 @@ func (p *FeatBitProvider) Configure(
 	tflog.Debug(ctx, "Configured FeatBit provider")
 }
 
-// Resources registers the managed Project resource.
+// Resources registers the managed Project and Environment resources.
 func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		newProjectResource,
+		newEnvironmentResource,
 	}
 }
 
-// DataSources registers the exact single-Project data source.
+// DataSources registers the exact single-object Project and Environment data
+// sources.
 func (p *FeatBitProvider) DataSources(context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		newProjectDataSource,
+		newEnvironmentDataSource,
 	}
 }
 

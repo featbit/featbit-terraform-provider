@@ -87,11 +87,11 @@ func TestProviderRegistrations(t *testing.T) {
 
 	providerUnderTest := New("test")()
 
-	if got := len(providerUnderTest.Resources(context.Background())); got != 1 {
-		t.Fatalf("expected one Project resource, got %d", got)
+	if got := len(providerUnderTest.Resources(context.Background())); got != 2 {
+		t.Fatalf("expected Project and Environment resources, got %d", got)
 	}
-	if got := len(providerUnderTest.DataSources(context.Background())); got != 1 {
-		t.Fatalf("expected one Project data source, got %d", got)
+	if got := len(providerUnderTest.DataSources(context.Background())); got != 2 {
+		t.Fatalf("expected Project and Environment data sources, got %d", got)
 	}
 }
 

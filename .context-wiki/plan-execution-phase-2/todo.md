@@ -1,7 +1,7 @@
 # Phase 2 TODO — Project and environment
 
 Status: **In progress**
-Next: **P2-020**
+Next: **P2-030**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -132,7 +132,7 @@ handoff.
 
 ## Environment
 
-- [ ] **P2-020 — Add the Environment read adapter and exact data source.**
+- [x] **P2-020 — Add the Environment read adapter and exact data source.**
 
   Scope: add only the safe Environment wire fields needed by Phase 2;
   implement documented exact Get and parent-Project exact-ID fallback; add and
@@ -155,7 +155,24 @@ handoff.
   values never enter data-source state, errors, formatted values, or captured
   logs.
 
-- [ ] **P2-021 — Add the Environment resource, CRUD, Import, and safe Update.**
+  Result: Added the narrow safe Environment read model and exact parent-scoped
+  adapter in `internal/client/environments.go`, plus the registered exact-UUID
+  data source, Terraform model, and flattening in
+  `internal/provider/environment_data_source.go` and
+  `environment_models.go`; focused contracts live in their matching test
+  files. Runtime is `Provider.DataSources -> environmentDataSource.Configure
+  -> *client.Client`, then `Read -> Client.GetEnvironment -> direct exact GET`,
+  with failed or current keyless direct responses resolving through
+  `Client.GetProject -> exact Environment UUID` and failing closed on duplicate
+  or inconsistent membership. `gofmt -l internal/client internal/provider`
+  was empty; `go test ./internal/client ./internal/provider`, repeated
+  Environment client/data-source tests with `-count=5`, `go vet ./...`, and
+  `git diff --check` passed, covering both UUID/path contracts, wrong-parent
+  zero, exact zero/one/duplicate outcomes, empty-description canonicalization,
+  Configure without requests, and secret/settings omission from models, state,
+  diagnostics, and formatted values.
+
+- [x] **P2-021 — Add the Environment resource, CRUD, Import, and safe Update.**
 
   Scope: add and register `featbit_environment` with Computed `id`, Required
   `project_id`/`name`/`key`, Optional canonical `description`, and
@@ -186,7 +203,27 @@ handoff.
   `403` after Delete with exact-parent zero, already-absent Delete,
   cancellation while waiting for the lock, and safe progress after failure.
 
-- [ ] **P2-022 — Prove the Environment Terraform protocol lifecycle.**
+  Result: Extended `internal/client/environments.go` with exact one-shot
+  Create/Update/Delete contracts and a private opaque settings snapshot, and
+  added the registered lifecycle, canonical model expansion/flattening,
+  composite Import, and narrow cancelable keyed lock in
+  `internal/provider/environment_resource.go`, `environment_models.go`, and
+  `environment_locks.go`; focused endpoint and lifecycle coverage lives in
+  `environments_test.go` and `environment_resource_test.go`. Runtime is
+  `environmentResource.Update -> exact per-environment lock ->
+  GetEnvironment(current settings) -> UpdateEnvironment(name, description,
+  unchanged settings) -> GetEnvironment(canonical state) -> unlock`, while
+  Create/Delete execute one mutation and use exact parent membership for
+  preflight, recovery, and absence proof. `gofmt -l internal/client
+  internal/provider` was empty; `go test ./internal/client
+  ./internal/provider`, repeated Environment endpoint/resource/lock tests with
+  `-count=5`, `go vet ./...`, and `git diff --check` passed, covering missing
+  parents, fuzzy/exact/duplicate scoped keys, ambiguous recovery, replacement,
+  strict two-UUID Import, unchanged unknown settings, secret omission,
+  direct-`403` and already-absent deletion, lock-wait cancellation, cleanup,
+  state preservation, and progress after failure.
+
+- [x] **P2-022 — Prove the Environment Terraform protocol lifecycle.**
 
   Scope: exercise the registered Environment resource/data source through
   Protocol v6 against an isolated stateful mock API, including coexistence
@@ -205,6 +242,24 @@ handoff.
   settings-preserving Update, direct-Read fallback, project-delete cascade,
   environment out-of-band deletion, and dependency-ordered cleanup pass.
   Teardown proves exact environment and project counts zero.
+
+  Result: Added `internal/provider/environment_protocol_test.go` and extended
+  only the required Project/Environment behavior in the existing narrow
+  `project_protocol_fixture_test.go`; the fixture models current keyless
+  Environment responses, opaque settings, generated-secret omission, exact
+  parent membership, Project cascade, request recording, and exact cleanup.
+  Runtime is `terraform plan/apply/refresh/import/destroy -> providerserver
+  Protocol v6 -> Project dependency -> Environment resource/data source ->
+  Environment direct and Project fallback adapters -> isolated public-API
+  fixture`. `go test ./internal/provider -run
+  '^TestEnvironmentProtocolLifecycle$' -count=3`, `go test ./...`, `go vet
+  ./...`, `go build ./...`, `go mod tidy -diff`, `go mod verify`, `gofmt -l
+  .`, and `git diff --check` passed. The protocol suite proved CRUD, exact data
+  source, strict two-component Import, an empty second plan, external
+  name/description drift repair with settings unchanged, key and parent
+  replacement, exact direct-read fallback, Environment out-of-band deletion,
+  Project-delete cascade recreation, one-shot mutation ordering, and
+  child-before-parent teardown with exact zero Environment and Project counts.
 
 ## Integration and verification
 

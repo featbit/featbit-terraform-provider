@@ -10,12 +10,14 @@ roadmap.
 
 ## 1. Current position
 
-Phase 2 is active. The Phase 1 foundation gate passed: the repository exposes
-a locally loadable Protocol v6 provider with its configuration schema, shared
-handwritten HTTP client runtime, and verified local quality/redaction
-boundary. No Terraform resource, data source, or FeatBit endpoint adapter
-exists yet. The next action is Phase 2 `P2-010`: add the Project read adapter
-with its first production caller, the exact single-project data source.
+Phase 2 is active. The repository exposes a locally loadable Protocol v6
+provider with its configuration schema, shared handwritten HTTP client
+runtime, and registered `featbit_project` and `featbit_environment` resources
+plus their exact single-object data sources. Their lifecycle-owned endpoint
+adapters implement exact reads, CRUD, Import, canonical state, absence
+confirmation, and settings-preserving Environment Update. The next action is
+Phase 2 `P2-030`: prove their shared ownership, state-safety, and redaction
+boundaries.
 
 ## 2. Product boundary
 
