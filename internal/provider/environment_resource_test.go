@@ -42,8 +42,72 @@ func TestEnvironmentResourceMetadataSchemaAndConfigure(t *testing.T) {
 		t.Fatalf("attribute count = %d, want 5", got)
 	}
 	idAttribute, ok := environmentSchema.Attributes["id"].(resourceschema.StringAttribute)
-	if !ok || !idAttribute.Computed || idAttribute.Required || idAttribute.Optional {
+	if !ok || !idAttribute.Computed || idAttribute.Required || idAttribute.Optional ||
+		len(idAttribute.PlanModifiers) != 1 {
 		t.Fatalf("id attribute = %#v", environmentSchema.Attributes["id"])
+	}
+	var stableIDResponse planmodifier.StringResponse
+	stableIDResponse.PlanValue = types.StringUnknown()
+	idAttribute.PlanModifiers[0].PlanModifyString(
+		context.Background(),
+		planmodifier.StringRequest{
+			ConfigValue: types.StringNull(),
+			PlanValue:   types.StringUnknown(),
+			StateValue:  types.StringValue(providerEnvironmentA),
+			Plan: environmentResourceTestPlan(
+				t,
+				environmentSchema,
+				providerProjectID,
+				"Staging Updated",
+				"staging",
+				"Updated",
+			),
+			State: environmentResourceTestState(
+				t,
+				environmentSchema,
+				providerProjectID,
+				providerEnvironmentA,
+				"Staging",
+				"staging",
+				"",
+			),
+		},
+		&stableIDResponse,
+	)
+	if stableIDResponse.Diagnostics.HasError() ||
+		!stableIDResponse.PlanValue.Equal(types.StringValue(providerEnvironmentA)) {
+		t.Fatalf("id in-place plan modifier response = %#v", stableIDResponse)
+	}
+	var replacementIDResponse planmodifier.StringResponse
+	replacementIDResponse.PlanValue = types.StringUnknown()
+	idAttribute.PlanModifiers[0].PlanModifyString(
+		context.Background(),
+		planmodifier.StringRequest{
+			ConfigValue: types.StringNull(),
+			PlanValue:   types.StringUnknown(),
+			StateValue:  types.StringValue(providerEnvironmentA),
+			Plan: environmentResourceTestPlan(
+				t,
+				environmentSchema,
+				providerProjectID,
+				"Staging",
+				"replacement-key",
+				"",
+			),
+			State: environmentResourceTestState(
+				t,
+				environmentSchema,
+				providerProjectID,
+				providerEnvironmentA,
+				"Staging",
+				"staging",
+				"",
+			),
+		},
+		&replacementIDResponse,
+	)
+	if replacementIDResponse.Diagnostics.HasError() || !replacementIDResponse.PlanValue.IsUnknown() {
+		t.Fatalf("id replacement plan modifier response = %#v", replacementIDResponse)
 	}
 	nameAttribute, ok := environmentSchema.Attributes["name"].(resourceschema.StringAttribute)
 	if !ok || !nameAttribute.Required || nameAttribute.Computed || nameAttribute.Optional {

@@ -65,6 +65,12 @@ func (r *environmentResource) Schema(
 			"id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Environment UUID.",
+				PlanModifiers: []planmodifier.String{
+					useStateForUnknownIfUnchanged(
+						path.Root("project_id"),
+						path.Root("key"),
+					),
+				},
 			},
 			"name": schema.StringAttribute{
 				Required:            true,

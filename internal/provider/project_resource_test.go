@@ -41,8 +41,42 @@ func TestProjectResourceMetadataSchemaAndConfigure(t *testing.T) {
 		t.Fatalf("attribute count = %d, want 4", got)
 	}
 	idAttribute, ok := projectSchema.Attributes["id"].(resourceschema.StringAttribute)
-	if !ok || !idAttribute.Computed || idAttribute.Required || idAttribute.Optional {
+	if !ok || !idAttribute.Computed || idAttribute.Required || idAttribute.Optional ||
+		len(idAttribute.PlanModifiers) != 1 {
 		t.Fatalf("id attribute = %#v", projectSchema.Attributes["id"])
+	}
+	var stableIDResponse planmodifier.StringResponse
+	stableIDResponse.PlanValue = types.StringUnknown()
+	idAttribute.PlanModifiers[0].PlanModifyString(
+		context.Background(),
+		planmodifier.StringRequest{
+			ConfigValue: types.StringNull(),
+			PlanValue:   types.StringUnknown(),
+			StateValue:  types.StringValue(providerProjectID),
+			Plan:        projectResourceTestPlan(t, projectSchema, "Project Updated", "stable-key"),
+			State:       projectResourceTestState(t, projectSchema, "Project", "stable-key"),
+		},
+		&stableIDResponse,
+	)
+	if stableIDResponse.Diagnostics.HasError() ||
+		!stableIDResponse.PlanValue.Equal(types.StringValue(providerProjectID)) {
+		t.Fatalf("id in-place plan modifier response = %#v", stableIDResponse)
+	}
+	var replacementIDResponse planmodifier.StringResponse
+	replacementIDResponse.PlanValue = types.StringUnknown()
+	idAttribute.PlanModifiers[0].PlanModifyString(
+		context.Background(),
+		planmodifier.StringRequest{
+			ConfigValue: types.StringNull(),
+			PlanValue:   types.StringUnknown(),
+			StateValue:  types.StringValue(providerProjectID),
+			Plan:        projectResourceTestPlan(t, projectSchema, "Project", "new-key"),
+			State:       projectResourceTestState(t, projectSchema, "Project", "old-key"),
+		},
+		&replacementIDResponse,
+	)
+	if replacementIDResponse.Diagnostics.HasError() || !replacementIDResponse.PlanValue.IsUnknown() {
+		t.Fatalf("id replacement plan modifier response = %#v", replacementIDResponse)
 	}
 	nameAttribute, ok := projectSchema.Attributes["name"].(resourceschema.StringAttribute)
 	if !ok || !nameAttribute.Required || nameAttribute.Computed || nameAttribute.Optional {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -81,6 +82,20 @@ func TestGetProjectDirectContractAndSafeWireShape(t *testing.T) {
 	}
 	if strings.Contains(string(encoded), secretMarker) || strings.Contains(string(encoded), "settings") {
 		t.Fatal("safe Project wire model retained a secret or settings field")
+	}
+	formatted := fmt.Sprintf(
+		"%v|%+v|%#v|%v|%+v|%#v",
+		project,
+		project,
+		project,
+		project.Environments[0],
+		project.Environments[0],
+		project.Environments[0],
+	)
+	for _, unsafe := range []string{projectIDOne, environmentOne, environmentTwo, "project", "prod"} {
+		if strings.Contains(formatted, unsafe) {
+			t.Fatal("formatted Project wire model exposed a runtime identity")
+		}
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("request count = %d, want 1", calls.Load())

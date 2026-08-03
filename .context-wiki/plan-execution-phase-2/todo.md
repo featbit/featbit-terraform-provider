@@ -1,7 +1,7 @@
 # Phase 2 TODO — Project and environment
 
 Status: **In progress**
-Next: **P2-030**
+Next: **P2-031**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -263,7 +263,7 @@ handoff.
 
 ## Integration and verification
 
-- [ ] **P2-030 — Prove canonical ownership, state safety, and redaction.**
+- [x] **P2-030 — Prove canonical ownership, state safety, and redaction.**
 
   Scope: test the two resource families together at every shared boundary:
   Project's Computed environment observation versus standalone Environment
@@ -285,7 +285,26 @@ handoff.
   environment secret values or runtime identities appear in neither state,
   diagnostics, logs, fixtures, nor assertion output.
 
-- [ ] **P2-031 — Run trusted current-Cloud acceptance and exact cleanup.**
+  Result: Added the shared Protocol v6 ownership/state-safety contracts in
+  `internal/provider/project_environment_integration_test.go`, endpoint-specific
+  redaction coverage in
+  `internal/client/project_environment_redaction_contract_test.go`, and safe
+  formatting for Project response models in `internal/client/projects.go`.
+  Runtime remains `Project/Environment response -> narrow wire model ->
+  canonical flatten -> Terraform state`, while failures pass through
+  `DecodeResponse -> redacted APIError -> lifecycle diagnostic`; a standalone
+  Environment is only a Computed Project observation and caused no competing
+  mutation. `go test ./internal/client -run
+  'Test(GetProjectDirectContractAndSafeWireShape|ProjectEnvironmentEndpointFailuresRedactRuntimeValues)$'
+  -count=10`, `go test ./internal/provider -run '^TestProjectEnvironment'
+  -count=5`, `go
+  test ./internal/client ./internal/provider`, `go vet ./...`, `go test ./...`,
+  `gofmt -l internal/client internal/provider`, and `git diff --check` passed,
+  covering noncanonical ordering, Null/Unknown/default convergence, exact
+  duplicate ambiguity with state preservation, Import safety, secret/settings
+  omission, and token/path/key/UUID/server-detail diagnostic redaction.
+
+- [x] **P2-031 — Run trusted current-Cloud acceptance and exact cleanup.**
 
   Scope: with credentials supplied only out of band, run uniquely prefixed
   Project/Environment resource and data-source tests against the documented
@@ -307,7 +326,28 @@ handoff.
   Independent final Project collection verification returns exact zero for
   every test key, with no pending cleanup owner/action.
 
-- [ ] **P2-032 — Run the complete Phase 2 local gate.**
+  Result: Added the credential-gated current-Cloud lifecycle and its
+  in-memory child-before-parent cleanup inventory in
+  `internal/provider/cloud_acceptance_test.go`. Runtime is
+  `terraform-plugin-testing -> Protocol v6 provider -> shared client ->
+  documented Cloud endpoints`; an in-memory forwarding observer proves that
+  opaque UI-owned settings are passed through unchanged without retaining
+  their value. Cloud acceptance exposed and fixed a cross-resource planning
+  issue: replacement-aware stable-ID modifiers now keep Project/Environment
+  IDs known for in-place updates but unknown for identity-changing
+  replacements. The focused local schema/protocol lifecycle passed, including
+  explicit Update plan actions and preserved replacement behavior. With the
+  token supplied only through the process environment, `go test
+  ./internal/provider -run '^TestAccProjectEnvironmentCloudLifecycle$'
+  -count=1 -v
+  -timeout 20m` passed against `https://app-api.featbit.co`, covering CRUD,
+  exact data sources, Import, empty plans, drift repair, settings preservation,
+  key/parent replacement, out-of-band deletion, project cascade, destroy, and
+  failure-safe cleanup. A separate complete-Project collection query then
+  returned exact zero matching acceptance Projects and Environments; no
+  runtime identity, key, body, setting, or token was persisted.
+
+- [x] **P2-032 — Run the complete Phase 2 local gate.**
 
   Scope: run formatting, vet, all unit/mock/protocol tests, repeated endpoint
   contracts, Windows race tests with the verified compiler toolchain, build,
@@ -330,6 +370,28 @@ handoff.
   two resources/two data sources and their visible types/optionality/Sensitive
   flags, focused Go schema tests assert `RequiresReplace`, and the repository
   scan finds no real secret or runtime identity.
+
+  Result: The complete `Terraform Core -> Protocol v6 provider ->
+  Project/Environment lifecycle -> shared client` gate passed. `gofmt -l .`
+  returned zero files; `git diff --check`, `go vet ./...`, `go test ./...
+  -count=1`, `go build ./...`, `go mod tidy -diff` with zero output, and `go
+  mod verify` passed. Endpoint contracts passed ten times, the focused Phase 2
+  protocol/schema/settings/cleanup suite passed three times, and client plus
+  provider redaction suites passed twenty times. The full Windows `go test
+  -race ./...` passed with CGO enabled through the previously verified
+  user-local MinGW-w64 GCC 16.1.0 toolchain. Dependency inspection resolved
+  430 packages, found only the three intended main-module packages, one
+  `go.mod`, no workspace/tools module, and no OpenAPI, generator, or Portal
+  runtime dependency. An isolated Terraform v1.5.6 development override loaded
+  the exact versioned local executable, negotiated Protocol v6, and produced an
+  empty provider-only plan without exposing its synthetic configuration; the
+  workspace was removed afterward. `terraform providers schema -json` asserted
+  all five provider attributes, exactly two resources and two data sources,
+  every visible scalar/nested type and required/optional/computed/Sensitive
+  flag, while focused Go schema tests retained safe in-place ID planning and
+  `RequiresReplace`. Repeated redaction contracts and a scan of all 57 tracked
+  or nonignored files found zero credential shapes, non-test UUIDs, persisted
+  Cloud acceptance keys, or risky secret/state artifacts.
 
 ## Phase exit
 

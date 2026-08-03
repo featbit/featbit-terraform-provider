@@ -5,6 +5,8 @@ package client
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -20,6 +22,12 @@ type Project struct {
 	Environments []ProjectEnvironment `json:"environments"`
 }
 
+// Format prevents a Project response from exposing runtime identities if it
+// is accidentally included in diagnostics, logs, or test assertion output.
+func (Project) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.Project{redacted}")
+}
+
 // ProjectEnvironment is the safe, non-owning environment observation exposed
 // with a Project.
 type ProjectEnvironment struct {
@@ -27,6 +35,12 @@ type ProjectEnvironment struct {
 	Name        string `json:"name"`
 	Key         string `json:"key"`
 	Description string `json:"description"`
+}
+
+// Format applies the same runtime-identity boundary when a nested
+// Environment observation is formatted independently of its parent Project.
+func (ProjectEnvironment) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.ProjectEnvironment{redacted}")
 }
 
 // CreateProjectRequest is the complete documented Project create payload.

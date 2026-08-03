@@ -49,6 +49,9 @@ func (r *projectResource) Schema(
 			"id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Project UUID.",
+				PlanModifiers: []planmodifier.String{
+					useStateForUnknownIfUnchanged(path.Root("key")),
+				},
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
