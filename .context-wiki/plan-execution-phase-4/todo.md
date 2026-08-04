@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-032**
+Next: **P4-090**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -406,7 +406,7 @@ handoff.
   `go test ./...`, `go vet ./...`, `go build ./...`, `go mod tidy -diff`, `go
   mod verify`, `gofmt -l .`, and `git diff --check` passed.
 
-- [ ] **P4-032 — Run the complete Phase 4 local gate.**
+- [x] **P4-032 — Run the complete Phase 4 local gate.**
 
   Scope: run formatting, vet, all unit/mock/Protocol tests, repeated Segment
   endpoint/canonicalization/reference contracts, Windows race tests with a
@@ -430,6 +430,26 @@ handoff.
   focused tests assert replacement, set/order, reference, shared-read-only, and
   normalization contracts; repository scans find no real secret, runtime Cloud
   identity/value, forbidden endpoint, or risky state artifact.
+
+  Result (2026-08-04): no production or test fix was required. The complete
+  runtime remains `Terraform Core -> Protocol v6 provider -> registered
+  Project/Environment/Feature Flag/Segment lifecycle -> shared handwritten
+  client -> documented public API`, with one executable package, HTTP ownership
+  confined to `internal/client`, and only Authorization, User-Agent, and
+  Content-Type request headers. `gofmt -l .`, `go vet ./...`, `go test ./...`,
+  ten repeated client and provider Segment contract runs, three repeated
+  Protocol ownership/lifecycle runs, twenty repeated client/provider redaction
+  runs, and full Windows `go test -race ./...` passed with the checksum-verified
+  MinGW-w64 16.1.0 toolchain. `go build ./...`, `go mod tidy -diff`, `go mod
+  verify`, `git diff --check`, the 128-module dependency graph inspection,
+  `govulncheck -test`, and the test-inclusive license check passed. An isolated
+  synthetic local override loaded the exact development binary without a Cloud
+  endpoint and schema JSON froze all 87 visible ownership/Sensitive flags,
+  exactly five provider attributes, four resources, and four data sources.
+  Current-tree Gitleaks, exact out-of-band token-value checks, UUID/runtime-value,
+  forbidden-endpoint/header, and risky-artifact scans found no real finding; the
+  sole history-level Gitleaks candidate was deleted Phase 2 Markdown contract
+  prose, not a credential. All temporary override artifacts were removed.
 
 ## Phase exit
 
