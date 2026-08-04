@@ -272,6 +272,14 @@ func (segmentEnvironmentScopesValidator) ValidateSet(
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
+	for _, element := range req.ConfigValue.Elements() {
+		if element.IsUnknown() {
+			// A scope commonly depends on a parent Environment identity. Its
+			// exact RN can only be validated after Terraform resolves that
+			// dependency during apply.
+			return
+		}
+	}
 	values, err := terraformStringSet(ctx, req.ConfigValue)
 	if err != nil || !validEnvironmentSpecificScopes(values) {
 		resp.Diagnostics.AddAttributeError(

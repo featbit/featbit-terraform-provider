@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -18,6 +19,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-log/tfsdklog"
 )
 
 const (
@@ -1612,6 +1615,123 @@ func TestSegmentMutationErrorsRedactEveryRuntimeValueClass(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSegmentEndpointFailureRemainsSafeInCapturedLogs(t *testing.T) {
+	t.Setenv("TF_LOG", "TRACE")
+	t.Setenv("TF_LOG_PATH", "")
+	t.Setenv("TF_ACC_LOG_PATH", "")
+	t.Setenv("TF_LOG_PATH_MASK", "")
+
+	const (
+		logMarker       = "segment-endpoint-redaction-log"
+		tokenMarker     = "api-segment-log-token-marker"
+		keyMarker       = "segment-log-key-marker"
+		userMarker      = "segment-log-user-marker"
+		flagMarker      = "segment-log-flag-marker"
+		conditionMarker = "segment-log-condition-marker"
+		valueMarker     = "segment-log-value-marker"
+		tagMarker       = "segment-log-tag-marker"
+		scopeMarker     = "organization/segment-log-scope-marker"
+		tenantMarker    = "featbit:segment-log-tenant-marker"
+		pathMarker      = "/api/v1/envs/segment-log-path-marker"
+		bodyMarker      = "segment-log-body-marker"
+		serverMarker    = "segment-log-server.example.test"
+	)
+	unsafe := []string{
+		tokenMarker, environmentOne, segmentIDOne, keyMarker, userMarker,
+		flagMarker, conditionMarker, valueMarker, tagMarker, scopeMarker,
+		tenantMarker, pathMarker, bodyMarker, serverMarker,
+	}
+	body, err := json.Marshal(map[string]any{
+		"success": false,
+		"data":    nil,
+		"errors":  []string{strings.Join(unsafe, " | ")},
+	})
+	if err != nil {
+		t.Fatal("could not construct Segment log redaction response")
+	}
+
+	options := defaultTestOptions()
+	options.MaxRetries = 0
+	clientUnderTest, err := newClient(
+		mustParseURL(t, "https://"+serverMarker+"/api/v1"),
+		tokenMarker,
+		options,
+		roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			return syntheticResponse(
+				request,
+				http.StatusBadRequest,
+				io.NopCloser(strings.NewReader(string(body))),
+			), nil
+		}),
+	)
+	if err != nil {
+		t.Fatal("could not construct Segment log redaction client")
+	}
+	_, readErr := clientUnderTest.GetSegment(
+		context.Background(),
+		environmentOne,
+		segmentIDOne,
+	)
+	apiError := requireAPIErrorClassification(t, readErr, ClassificationValidation)
+	formatted := fmt.Sprintf("%v|%+v|%#v|%v", apiError, apiError, apiError, Segment{
+		ID: segmentIDOne, EnvironmentID: environmentOne, Key: keyMarker,
+		Included: []string{userMarker}, Tags: []string{tagMarker},
+		Scopes: []string{scopeMarker},
+		Rules: []SegmentRule{{
+			Name: conditionMarker,
+			Conditions: []SegmentCondition{{
+				Property: conditionMarker,
+				Value:    valueMarker,
+			}},
+		}},
+	})
+	assertNoMarkers(t, formatted, unsafe)
+
+	logReader, logWriter, err := os.Pipe()
+	if err != nil {
+		t.Fatal("could not create Segment log capture")
+	}
+	originalStderr := os.Stderr
+	os.Stderr = logWriter
+	defer func() {
+		os.Stderr = originalStderr
+		_ = logWriter.Close()
+		_ = logReader.Close()
+	}()
+	ctx := tfsdklog.ContextWithTestLogging(context.Background(), t.Name())
+	ctx = tfsdklog.NewRootSDKLogger(ctx)
+	ctx = tfsdklog.NewRootProviderLogger(ctx)
+	os.Stderr = originalStderr
+
+	type logReadResult struct {
+		content []byte
+		err     error
+	}
+	logResult := make(chan logReadResult, 1)
+	go func() {
+		content, readError := io.ReadAll(logReader)
+		logResult <- logReadResult{content: content, err: readError}
+	}()
+	tflog.Trace(ctx, logMarker, map[string]interface{}{"failure": formatted})
+	if err := logWriter.Close(); err != nil {
+		t.Fatal("could not close Segment log capture")
+	}
+	var captured logReadResult
+	select {
+	case captured = <-logResult:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Segment log capture did not finish")
+	}
+	if captured.err != nil {
+		t.Fatal("could not read Segment log capture")
+	}
+	logOutput := string(captured.content)
+	if !strings.Contains(logOutput, logMarker) {
+		t.Fatal("Segment redaction test did not capture the expected log line")
+	}
+	assertNoMarkers(t, logOutput, unsafe)
 }
 
 func assertNoContextHeaders(t *testing.T, request *http.Request) {

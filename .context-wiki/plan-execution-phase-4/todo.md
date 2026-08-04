@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-030**
+Next: **P4-031**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -304,7 +304,7 @@ handoff.
 
 ## Integration and verification
 
-- [ ] **P4-030 — Prove cross-resource ownership, state safety, and redaction.**
+- [x] **P4-030 — Prove cross-resource ownership, state safety, and redaction.**
 
   Scope: test Segment with Project, Environment, and Feature Flag parents/
   consumers at shared safety boundaries: dependency ordering, exact reference
@@ -331,6 +331,30 @@ handoff.
   preserve state; and injected tokens, segment/user/flag identities, keys,
   conditions, tags, scopes, tenant/server details, paths, and bodies appear in
   neither diagnostics, logs, fixtures, nor assertion output.
+
+  Result (2026-08-04): the focused
+  `internal/provider/project_environment_feature_flag_segment_integration_test.go`
+  composes the existing Project/Environment/Feature Flag and Segment fixtures
+  behind one narrow Protocol v6 router. It proves child-first dependency and
+  Environment replacement planning, computed Segment identity/scope
+  propagation, deterministic rule/condition correlation, Null defaults,
+  arbitrary collection/set ordering, and empty second plans. An exact live
+  Feature Flag reference blocks Segment destroy without changing either
+  object; removing only that UI-owned reference externally permits exact
+  Segment archive/delete while the Feature Flag remains unchanged. The same
+  file proves cross-view duplicates preserve Segment state and all four core
+  Import diagnostics reject unsafe identifiers without echo. The integration
+  exposed and fixed one concrete production issue in `segment_schema.go`: a
+  scope containing an unknown parent Environment identity now defers RN
+  validation until known, while all known unsafe scopes remain rejected by the
+  expanded schema test. `internal/client/segments_test.go` additionally captures
+  a real Segment endpoint failure through tflog and proves every injected
+  runtime/server value remains redacted. Runtime verified is `Project ->
+  Environment -> Segment <- Feature Flag -> lifecycle adapters -> public API
+  fixtures`, with `Client.DecodeResponse -> redacted APIError -> diagnostics/
+  tflog` on failure. Three focused integration runs, three captured-log runs,
+  `gofmt -l .`, `go test ./...`, `go vet ./...`, `go build ./...`, `go mod
+  tidy -diff`, `go mod verify`, and `git diff --check` passed.
 
 - [ ] **P4-031 — Run trusted current-Cloud acceptance and exact cleanup.**
 

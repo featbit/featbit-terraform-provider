@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/featbit/terraform-provider-featbit/internal/client"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -259,6 +260,22 @@ func TestSegmentResourceSchemaRejectsUnsafeScopesUsersRulesAndSharedType(t *test
 				t.Fatalf("scope validation error = %t", response.hasError)
 			}
 		})
+	}
+
+	var unknownResponse validator.SetResponse
+	segmentEnvironmentScopesValidator{}.ValidateSet(
+		context.Background(),
+		validator.SetRequest{
+			ConfigValue: types.SetValueMust(
+				types.StringType,
+				[]attr.Value{types.StringUnknown()},
+			),
+			Path: path.Root("scopes"),
+		},
+		&unknownResponse,
+	)
+	if unknownResponse.Diagnostics.HasError() {
+		t.Fatal("scope validation rejected a parent-dependent unknown RN")
 	}
 
 	model := providerSegmentPlanModel()
