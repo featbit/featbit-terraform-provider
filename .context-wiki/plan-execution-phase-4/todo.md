@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-010**
+Next: **P4-011**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -15,7 +15,7 @@ handoff.
 
 ## Segment read contract
 
-- [ ] **P4-010 — Freeze Segment taxonomy and add complete exact reads.**
+- [x] **P4-010 — Freeze Segment taxonomy and add complete exact reads.**
 
   Scope: verify the current documented public shapes for exact Segment reads,
   paginated list items, `environment-specific` versus `shared` type/scope
@@ -49,6 +49,22 @@ handoff.
   incomplete direct/list shapes, retry and cancellation boundaries, no
   organization/workspace headers, and redaction of Segment/user/flag
   identities, keys, conditions, tags, scopes, paths, bodies, and tenant data.
+
+  Result (2026-08-04): `internal/client/segments.go` and
+  `internal/client/segments_test.go` freeze the two documented Segment types,
+  full organization/project/environment scope-RN classification, complete
+  exact targeting reads, metadata-only list matches, stable all-page active/
+  archived reconciliation, exact UUID/case-sensitive-key status resolution,
+  and the separate exact flag-reference boundary. The runtime is now
+  `future Segment lifecycle -> GetSegment` for one complete definition or
+  `ListSegments(active + archived) -> ResolveSegment` for authoritative
+  identity/status, while `GetSegmentFlagReferences` remains preflight-only.
+  Current Swagger/source review plus disposable current-Cloud checks confirmed
+  the complete-versus-list shape boundary, full env-scope RN requirement, and
+  empty-reference encoding; every temporary child and parent was removed.
+  `gofmt`, `go test ./internal/client -run Segment -count=10`, 20 repeated
+  exact/list/resolver/redaction contracts, `go test ./...`, `go vet ./...`,
+  `go build ./...`, and `git diff --check` passed.
 
 - [ ] **P4-011 — Freeze canonical targeting, schemas, and the exact data source.**
 
