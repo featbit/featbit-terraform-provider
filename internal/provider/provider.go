@@ -160,13 +160,14 @@ func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource 
 	}
 }
 
-// DataSources registers the exact single-object Project, Environment, and
-// Feature Flag data sources.
+// DataSources registers the exact single-object Project, Environment, Feature
+// Flag, and Segment data sources.
 func (p *FeatBitProvider) DataSources(context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		newProjectDataSource,
 		newEnvironmentDataSource,
 		newFeatureFlagDataSource,
+		newSegmentDataSource,
 	}
 }
 

@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-011**
+Next: **P4-012**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -66,7 +66,7 @@ handoff.
   exact/list/resolver/redaction contracts, `go test ./...`, `go vet ./...`,
   `go build ./...`, and `git diff --check` passed.
 
-- [ ] **P4-011 — Freeze canonical targeting, schemas, and the exact data source.**
+- [x] **P4-011 — Freeze canonical targeting, schemas, and the exact data source.**
 
   Scope: define one provider-owned Segment model and normalization layer for
   metadata, type/scopes, included and excluded users, tags, ordered rules, and
@@ -100,6 +100,21 @@ handoff.
   Configure type checks; and Protocol schema ownership. Schema tests must prove
   every in-place versus replacement field and that shared mutation cannot be
   configured.
+
+  Result (2026-08-04): `internal/provider/segment_models.go`,
+  `segment_schema.go`, and their focused tests freeze one redacting canonical
+  model with exact metadata limits, all 16 public operators, canonical
+  operator values, set-valued scopes/users/tags, ordered rules/conditions,
+  exact imported UUID correlation, and deterministic provider-created
+  targeting UUIDs. `segment_data_source.go` is registered for exact active
+  environment/Segment UUID reads of both documented types; the future resource
+  schema is environment-specific-only, requires an immutable Environment RN,
+  preserves IDs for in-place fields, and remains deliberately unregistered.
+  Runtime is `segmentDataSource.Read -> Client.GetSegment -> canonicalize ->
+  Terraform state`; malformed, archived, absent, or contradictory results
+  preserve prior state with redaction-safe diagnostics. `gofmt`, 10 repeated
+  Segment provider/client contracts, the complete provider suite, `go test ./...`,
+  `go vet ./...`, `go build ./...`, and `git diff --check` passed.
 
 ## Environment-specific Segment resource
 

@@ -500,8 +500,8 @@ func TestFeatureFlagProtocolSchemasAndValidation(t *testing.T) {
 	if len(productionSchema.ResourceSchemas) != 3 {
 		t.Fatalf("production resource schema count = %d, want 3", len(productionSchema.ResourceSchemas))
 	}
-	if len(productionSchema.DataSourceSchemas) != 3 {
-		t.Fatalf("production data source schema count = %d, want 3", len(productionSchema.DataSourceSchemas))
+	if len(productionSchema.DataSourceSchemas) != 4 {
+		t.Fatalf("production data source schema count = %d, want 4", len(productionSchema.DataSourceSchemas))
 	}
 	dataSourceSchema := productionSchema.DataSourceSchemas["featbit_feature_flag"]
 	if dataSourceSchema == nil {
