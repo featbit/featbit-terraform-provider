@@ -679,19 +679,180 @@ func (r *segmentResource) Update(
 	}
 }
 
-// P4-014 replaces this fail-closed boundary with reference-aware archive and
-// permanent deletion. No destructive request is reachable before that exact
-// lifecycle is implemented.
 func (r *segmentResource) Delete(
-	_ context.Context,
+	ctx context.Context,
 	req resource.DeleteRequest,
 	resp *resource.DeleteResponse,
 ) {
 	resp.State = req.State
-	resp.Diagnostics.AddError(
-		"FeatBit Segment Deletion Is Not Available",
-		"This provider build cannot yet prove references and permanently delete a Segment. Terraform state was preserved and no destructive mutation was sent.",
+	if !requireAPIClient(r.client, "managing a Segment", &resp.Diagnostics) {
+		return
+	}
+
+	var priorModel segmentModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorModel)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	prior, err := canonicalizeSegmentStateModel(ctx, priorModel)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid FeatBit Segment Delete State",
+			"The complete resource state is not a safe environment-specific Segment definition with exact Environment, Segment, key, type, and scope identity. Terraform state was preserved and no request was sent.",
+		)
+		return
+	}
+
+	release, err := r.segmentLocks().acquire(
+		ctx,
+		segmentWriteLockKey(prior.EnvironmentID, prior.ID),
 	)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Acquire FeatBit Segment Delete Lock",
+			"Deletion was canceled while waiting to serialize writes to the exact Environment and Segment. Terraform state was preserved and no request was sent.",
+		)
+		return
+	}
+	defer release()
+
+	status, err := r.resolveManagedSegmentStatus(ctx, prior)
+	if err != nil {
+		r.addSegmentDeleteResolutionDiagnostic(
+			"Unable to Resolve FeatBit Segment Before Deletion",
+			"The provider could not complete and validate both active and archived exact identity views before deletion. No reference or destructive request was sent; Terraform state was preserved.",
+			err,
+			&resp.Diagnostics,
+		)
+		return
+	}
+	switch status {
+	case client.SegmentStatusAbsent:
+		resp.State.RemoveResource(ctx)
+		return
+	case client.SegmentStatusActive, client.SegmentStatusArchived:
+		// Both exact present states were validated as the same managed
+		// environment-specific Segment before reference inspection.
+	default:
+		resp.Diagnostics.AddError(
+			"FeatBit Segment Delete Status Is Unconfirmed",
+			"The complete active and archived views did not return an authoritative starting status. No reference or destructive request was sent; Terraform state was preserved.",
+		)
+		return
+	}
+
+	references, err := r.client.GetSegmentFlagReferences(
+		ctx,
+		prior.EnvironmentID,
+		prior.ID,
+	)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Check FeatBit Segment References",
+			"The exact Feature Flag reference preflight was incomplete or failed. No archive or permanent delete request was sent; Terraform state was preserved. "+err.Error()+".",
+		)
+		return
+	}
+	if len(references) != 0 {
+		resp.Diagnostics.AddError(
+			"FeatBit Segment Is Referenced by Feature Flags",
+			"One or more exact Feature Flags still reference this Segment. Remove those references deliberately before retrying destroy. Terraform did not edit any Feature Flag, sent no archive or delete request, and preserved state.",
+		)
+		return
+	}
+
+	if status == client.SegmentStatusActive {
+		archiveErr := r.client.ArchiveSegment(ctx, prior.EnvironmentID, prior.ID)
+		if archiveErr != nil {
+			if !segmentMutationNeedsReconciliation(archiveErr) {
+				resp.Diagnostics.AddError(
+					"Unable to Archive FeatBit Segment",
+					"The required archive request failed. Permanent deletion was not attempted, Terraform state was preserved, and the mutation was not retried. "+archiveErr.Error()+".",
+				)
+				return
+			}
+
+			status, err = r.resolveManagedSegmentStatus(ctx, prior)
+			if err != nil {
+				r.addSegmentDeleteResolutionDiagnostic(
+					"FeatBit Segment Archive Outcome Is Unconfirmed",
+					"The archive result was ambiguous and complete active and archived views could not confirm a safe exact status. Permanent deletion was not attempted, the mutation was not retried, and Terraform state was preserved.",
+					err,
+					&resp.Diagnostics,
+				)
+				return
+			}
+			switch status {
+			case client.SegmentStatusAbsent:
+				resp.State.RemoveResource(ctx)
+				return
+			case client.SegmentStatusArchived:
+				// Exact archived status confirms the delete prerequisite.
+			case client.SegmentStatusActive:
+				resp.Diagnostics.AddError(
+					"FeatBit Segment Was Not Archived",
+					"The archive result was ambiguous and the complete views still contain the exact active Segment. Permanent deletion was not attempted, the archive was not retried, and Terraform state was preserved.",
+				)
+				return
+			default:
+				resp.Diagnostics.AddError(
+					"FeatBit Segment Archive Outcome Is Unconfirmed",
+					"The archive result was ambiguous and no authoritative exact status was returned. Permanent deletion was not attempted and Terraform state was preserved.",
+				)
+				return
+			}
+		}
+	}
+
+	deleteErr := r.client.DeleteSegment(ctx, prior.EnvironmentID, prior.ID)
+	if deleteErr != nil {
+		if !segmentMutationNeedsReconciliation(deleteErr) {
+			resp.Diagnostics.AddError(
+				"Unable to Permanently Delete FeatBit Segment",
+				"The permanent delete request failed. Terraform state was preserved and the mutation was not retried. "+deleteErr.Error()+".",
+			)
+			return
+		}
+
+		status, err = r.resolveManagedSegmentStatus(ctx, prior)
+		if err != nil {
+			r.addSegmentDeleteResolutionDiagnostic(
+				"FeatBit Segment Delete Outcome Is Unconfirmed",
+				"The permanent delete result was ambiguous and complete active and archived views could not prove safe exact absence. Terraform did not retry the mutation and preserved state.",
+				err,
+				&resp.Diagnostics,
+			)
+			return
+		}
+		if status == client.SegmentStatusAbsent {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError(
+			"FeatBit Segment Was Not Permanently Deleted",
+			"The permanent delete result was ambiguous and the exact Segment remains in a complete active or archived view. Terraform did not retry the mutation and preserved state.",
+		)
+		return
+	}
+
+	status, err = r.resolveManagedSegmentStatus(ctx, prior)
+	if err != nil {
+		r.addSegmentDeleteResolutionDiagnostic(
+			"Unable to Confirm FeatBit Segment Deletion",
+			"The permanent delete response succeeded, but complete active and archived views could not prove safe exact absence. Terraform state was preserved.",
+			err,
+			&resp.Diagnostics,
+		)
+		return
+	}
+	if status != client.SegmentStatusAbsent {
+		resp.Diagnostics.AddError(
+			"FeatBit Segment Was Not Permanently Deleted",
+			"The exact Segment remains in a complete active or archived view after permanent deletion. Terraform state was preserved.",
+		)
+		return
+	}
+	resp.State.RemoveResource(ctx)
 }
 
 func (r *segmentResource) ImportState(
@@ -719,6 +880,55 @@ type segmentUpdateStep struct {
 	mutate  func() error
 	matches func(canonicalSegment) bool
 	apply   func(*canonicalSegment)
+}
+
+func (r *segmentResource) resolveManagedSegmentStatus(
+	ctx context.Context,
+	prior canonicalSegment,
+) (client.SegmentStatus, error) {
+	match, status, err := r.client.ResolveSegment(
+		ctx,
+		prior.EnvironmentID,
+		client.SegmentIdentity{ID: prior.ID, Key: prior.Key},
+	)
+	if err != nil {
+		return client.SegmentStatusUnknown, err
+	}
+	if status == client.SegmentStatusActive || status == client.SegmentStatusArchived {
+		if !client.EqualUUID(match.EnvironmentID, prior.EnvironmentID) ||
+			!client.EqualUUID(match.ID, prior.ID) || match.Key != prior.Key {
+			return client.SegmentStatusUnknown, errManagedSegmentIdentity
+		}
+		if match.Type != client.SegmentTypeEnvironmentSpecific ||
+			!validEnvironmentSpecificScopes(match.Scopes) ||
+			!slices.Equal(canonicalStringSet(match.Scopes), prior.Scopes) {
+			return client.SegmentStatusUnknown, errManagedSegmentShared
+		}
+	}
+	return status, nil
+}
+
+func (r *segmentResource) addSegmentDeleteResolutionDiagnostic(
+	title string,
+	detail string,
+	err error,
+	diagnostics *diag.Diagnostics,
+) {
+	if errors.Is(err, errManagedSegmentShared) {
+		diagnostics.AddError(
+			"FeatBit Segment Delete Rejected Unsafe Type or Scope",
+			"The exact present object is shared or no longer has the managed environment-specific scope. Terraform sent no further destructive mutation and preserved state.",
+		)
+		return
+	}
+	if errors.Is(err, errManagedSegmentIdentity) {
+		diagnostics.AddError(
+			"FeatBit Segment Delete Rejected Identity Mismatch",
+			"The complete views did not correlate the exact Environment, Segment UUID, and case-sensitive key to one managed object. Terraform sent no further destructive mutation and preserved state.",
+		)
+		return
+	}
+	diagnostics.AddError(title, detail+" "+err.Error()+".")
 }
 
 func (r *segmentResource) readExactManagedSegment(

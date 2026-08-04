@@ -358,6 +358,16 @@ func TestSegmentMutationValidationStopsBeforeTransport(t *testing.T) {
 				UpdateSegmentDescriptionRequest{Description: "Synthetic"},
 			)
 		},
+		"invalid archive environment": func(apiClient *Client) error {
+			return apiClient.ArchiveSegment(
+				context.Background(), "invalid", segmentIDOne,
+			)
+		},
+		"invalid delete segment": func(apiClient *Client) error {
+			return apiClient.DeleteSegment(
+				context.Background(), environmentOne, "invalid",
+			)
+		},
 		"nil targeting users": func(apiClient *Client) error {
 			input := validTargeting()
 			input.Included = nil
@@ -498,6 +508,59 @@ func TestSegmentSpecializedMutationsUseExactOneShotContracts(t *testing.T) {
 	}
 }
 
+func TestSegmentDestructiveMutationsUseExactBodylessOneShotContracts(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		method string
+		path   string
+		invoke func(*Client) error
+	}{
+		"archive": {
+			method: http.MethodPut,
+			path:   "/api/v1/envs/" + environmentOne + "/segments/" + segmentIDOne + "/archive",
+			invoke: func(apiClient *Client) error {
+				return apiClient.ArchiveSegment(context.Background(), environmentOne, segmentIDOne)
+			},
+		},
+		"permanent delete": {
+			method: http.MethodDelete,
+			path:   "/api/v1/envs/" + environmentOne + "/segments/" + segmentIDOne,
+			invoke: func(apiClient *Client) error {
+				return apiClient.DeleteSegment(context.Background(), environmentOne, segmentIDOne)
+			},
+		},
+	}
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					if request.Method != test.method || request.URL.EscapedPath() != test.path ||
+						request.URL.RawQuery != "" || request.Header.Get("Content-Type") != "" ||
+						(request.Body != nil && request.Body != http.NoBody) {
+						t.Fatal("destructive Segment mutation did not use its exact bodyless endpoint")
+					}
+					assertNoContextHeaders(t, request)
+					return segmentTestResponse(request, http.StatusOK, "true"), nil
+				},
+			))
+
+			if err := test.invoke(clientUnderTest); err != nil {
+				t.Fatalf("destructive Segment mutation error = %v", err)
+			}
+			if calls.Load() != 1 {
+				t.Fatalf("destructive Segment mutation request count = %d, want 1", calls.Load())
+			}
+		})
+	}
+}
+
 func TestSegmentMutationsNeverRetryAmbiguousResponses(t *testing.T) {
 	t.Parallel()
 
@@ -522,6 +585,16 @@ func TestSegmentMutationsNeverRetryAmbiguousResponses(t *testing.T) {
 			return apiClient.UpdateSegmentDescription(
 				context.Background(), environmentOne, segmentIDOne,
 				UpdateSegmentDescriptionRequest{Description: "Synthetic description"},
+			)
+		},
+		"archive": func(apiClient *Client) error {
+			return apiClient.ArchiveSegment(
+				context.Background(), environmentOne, segmentIDOne,
+			)
+		},
+		"delete": func(apiClient *Client) error {
+			return apiClient.DeleteSegment(
+				context.Background(), environmentOne, segmentIDOne,
 			)
 		},
 		"targeting": func(apiClient *Client) error {
@@ -579,6 +652,16 @@ func TestSegmentSpecializedMutationsRejectFalseWithoutRetry(t *testing.T) {
 				UpdateSegmentDescriptionRequest{Description: "Synthetic description"},
 			)
 		},
+		"archive": func(apiClient *Client) error {
+			return apiClient.ArchiveSegment(
+				context.Background(), environmentOne, segmentIDOne,
+			)
+		},
+		"delete": func(apiClient *Client) error {
+			return apiClient.DeleteSegment(
+				context.Background(), environmentOne, segmentIDOne,
+			)
+		},
 		"targeting": func(apiClient *Client) error {
 			return apiClient.UpdateSegmentTargeting(
 				context.Background(), environmentOne, segmentIDOne, targeting,
@@ -615,27 +698,45 @@ func TestSegmentSpecializedMutationsRejectFalseWithoutRetry(t *testing.T) {
 	}
 }
 
-func TestSegmentSpecializedMutationCancellationStopsBeforeTransport(t *testing.T) {
+func TestSegmentMutationCancellationStopsBeforeTransport(t *testing.T) {
 	t.Parallel()
 
-	var calls atomic.Int32
-	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
-		func(*http.Request) (*http.Response, error) {
-			calls.Add(1)
-			return nil, errors.New("canceled Segment mutation reached transport")
+	tests := map[string]func(context.Context, *Client) error{
+		"name": func(ctx context.Context, apiClient *Client) error {
+			return apiClient.UpdateSegmentName(
+				ctx,
+				environmentOne,
+				segmentIDOne,
+				UpdateSegmentNameRequest{Name: "Synthetic canceled name"},
+			)
 		},
-	))
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	err := clientUnderTest.UpdateSegmentName(
-		ctx,
-		environmentOne,
-		segmentIDOne,
-		UpdateSegmentNameRequest{Name: "Synthetic canceled name"},
-	)
-	apiError := requireAPIErrorClassification(t, err, ClassificationCanceled)
-	if !errors.Is(apiError, context.Canceled) || calls.Load() != 0 {
-		t.Fatalf("canceled Segment mutation cause/requests = %v/%d", apiError, calls.Load())
+		"archive": func(ctx context.Context, apiClient *Client) error {
+			return apiClient.ArchiveSegment(ctx, environmentOne, segmentIDOne)
+		},
+		"delete": func(ctx context.Context, apiClient *Client) error {
+			return apiClient.DeleteSegment(ctx, environmentOne, segmentIDOne)
+		},
+	}
+	for name, invoke := range tests {
+		name := name
+		invoke := invoke
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(*http.Request) (*http.Response, error) {
+					calls.Add(1)
+					return nil, errors.New("canceled Segment mutation reached transport")
+				},
+			))
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			apiError := requireAPIErrorClassification(t, invoke(ctx, clientUnderTest), ClassificationCanceled)
+			if !errors.Is(apiError, context.Canceled) || calls.Load() != 0 {
+				t.Fatalf("canceled Segment mutation cause/requests = %v/%d", apiError, calls.Load())
+			}
+		})
 	}
 }
 
@@ -1129,6 +1230,11 @@ func TestSegmentReadValidationAndCancellationBoundaries(t *testing.T) {
 	if !errors.Is(apiError, context.Canceled) {
 		t.Fatal("Segment exact-read cancellation sentinel was not preserved")
 	}
+	_, err = clientUnderTest.GetSegmentFlagReferences(ctx, environmentOne, segmentIDOne)
+	apiError = requireAPIErrorClassification(t, err, ClassificationCanceled)
+	if !errors.Is(apiError, context.Canceled) {
+		t.Fatal("Segment reference-preflight cancellation sentinel was not preserved")
+	}
 	if calls.Load() != 0 {
 		t.Fatalf("invalid or canceled Segment reads executed %d transport calls", calls.Load())
 	}
@@ -1451,6 +1557,16 @@ func TestSegmentMutationErrorsRedactEveryRuntimeValueClass(t *testing.T) {
 			return apiClient.UpdateSegmentTags(
 				context.Background(), environmentOne, segmentIDOne,
 				UpdateSegmentTagsRequest{Tags: []string{tagMarker}},
+			)
+		},
+		"archive": func(apiClient *Client) error {
+			return apiClient.ArchiveSegment(
+				context.Background(), environmentOne, segmentIDOne,
+			)
+		},
+		"delete": func(apiClient *Client) error {
+			return apiClient.DeleteSegment(
+				context.Background(), environmentOne, segmentIDOne,
 			)
 		},
 	}

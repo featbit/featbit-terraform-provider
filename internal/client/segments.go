@@ -20,6 +20,7 @@ const (
 	segmentDescriptionPath    = "description"
 	segmentTargetingPath      = "targeting"
 	segmentTagsPath           = "tags"
+	segmentArchivePath        = "archive"
 	segmentPageSize           = 100
 	maxSegmentPageIndex       = int64(1<<31 - 1)
 )
@@ -598,6 +599,64 @@ func (c *Client) UpdateSegmentTags(
 	)
 }
 
+// ArchiveSegment executes the documented archive prerequisite exactly once.
+// The optional ResourceChangeRequest comment body is deliberately omitted.
+// The lifecycle caller owns reference preflight and status reconciliation.
+func (c *Client) ArchiveSegment(
+	ctx context.Context,
+	environmentID string,
+	segmentID string,
+) error {
+	if !ValidUUID(environmentID) || !ValidUUID(segmentID) {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			"archive_segment",
+			nil,
+			c.redactor,
+		)
+	}
+	return c.mutateSegmentBoolean(
+		ctx,
+		http.MethodPut,
+		environmentID,
+		segmentID,
+		[]string{segmentID, segmentArchivePath},
+		nil,
+		"archive_segment",
+		[]string{environmentID, segmentID},
+	)
+}
+
+// DeleteSegment executes the documented permanent deletion exactly once. The
+// optional comment body is omitted; exact absence remains a lifecycle-owned
+// complete active and archived collection proof.
+func (c *Client) DeleteSegment(
+	ctx context.Context,
+	environmentID string,
+	segmentID string,
+) error {
+	if !ValidUUID(environmentID) || !ValidUUID(segmentID) {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			"delete_segment",
+			nil,
+			c.redactor,
+		)
+	}
+	return c.mutateSegmentBoolean(
+		ctx,
+		http.MethodDelete,
+		environmentID,
+		segmentID,
+		[]string{segmentID},
+		nil,
+		"delete_segment",
+		[]string{environmentID, segmentID},
+	)
+}
+
 func (c *Client) mutateSegmentBoolean(
 	ctx context.Context,
 	method string,
@@ -608,13 +667,22 @@ func (c *Client) mutateSegmentBoolean(
 	operation string,
 	sensitiveValues []string,
 ) error {
-	request, err := c.newSegmentJSONRequest(
-		ctx,
-		method,
-		environmentID,
-		segments,
-		payload,
-	)
+	if !ValidUUID(environmentID) || !ValidUUID(segmentID) {
+		return newAPIError(ClassificationValidation, 0, operation, nil, c.redactor)
+	}
+	var request *http.Request
+	var err error
+	if payload == nil {
+		request, err = c.newSegmentRequest(ctx, method, environmentID, segments)
+	} else {
+		request, err = c.newSegmentJSONRequest(
+			ctx,
+			method,
+			environmentID,
+			segments,
+			payload,
+		)
+	}
 	if err != nil {
 		return newAPIError(
 			ClassificationAmbiguous,

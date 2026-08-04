@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-014**
+Next: **P4-015**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -212,7 +212,7 @@ handoff.
   this Windows host has `CGO_ENABLED=0`, and enabling it confirms that `gcc` is
   not installed.
 
-- [ ] **P4-014 — Add reference-aware archive-plus-hard-delete.**
+- [x] **P4-014 — Add reference-aware archive-plus-hard-delete.**
 
   Scope: implement exact Feature Flag reference preflight, archive, and
   permanent delete using only documented endpoints. Resolve current
@@ -238,6 +238,26 @@ handoff.
   delete failure; ambiguous mutation reconciliation; later-page exact-zero
   proof; UUID/key inconsistencies; cancellation; one-shot call counts; and
   redaction-safe state preservation/recovery guidance.
+
+  Result (2026-08-04): `internal/client/segments.go` and focused contracts add
+  exact bodyless one-shot archive and permanent-delete methods while retaining
+  the separately validated exact Feature Flag reference read. The resource
+  lifecycle in `internal/provider/segment_resource.go` and focused
+  `segment_delete_test.go` now resolves complete active/archived UUID+key
+  status, rejects shared or scope-drifted matches, requires an exact empty
+  reference result, archives only active Segments, permanently deletes, and
+  removes state only after complete exact-zero proof. Runtime is
+  `segmentResource.Delete -> ResolveSegment(active + archived) ->
+  GetSegmentFlagReferences -> optional ArchiveSegment -> DeleteSegment ->
+  ResolveSegment(exact absent)`; conflicts and ambiguous mutations reconcile
+  without replay, while any reference, malformed result, identity mismatch, or
+  incomplete proof preserves state. Current official OpenAPI/source confirmed
+  nullable comment bodies, server-side archive reference rechecking, and the
+  archived-only delete prerequisite. `gofmt -l .`, 10 repeated full Segment
+  client and resource Delete contracts, `go test ./...`, `go vet ./...`, `go
+  build ./...`, `go mod tidy -diff`, `go mod verify`, and `git diff --check`
+  passed. Race remains owned by P4-032 because this Windows host has no `gcc`
+  available for CGO.
 
 - [ ] **P4-015 — Prove the Segment Terraform Protocol v6 lifecycle.**
 
