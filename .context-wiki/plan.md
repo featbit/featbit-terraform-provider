@@ -3,22 +3,25 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Active work: [Phase 3 — feature flags](plan-execution-phase-3/README.md)
+- Active work: [Phase 4 — segments](plan-execution-phase-4/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-Phase 3 is active. The repository exposes a locally loadable Protocol v6
+Phase 4 is active. The repository exposes a locally loadable Protocol v6
 provider with five configuration attributes, a shared handwritten HTTP client,
-and registered `featbit_project` and `featbit_environment` resources plus their
-exact single-object data sources. Their lifecycle-owned adapters implement
-exact reads, CRUD, Import, canonical state, authoritative absence composition,
-replacement-aware stable ID planning, and settings-preserving Environment
-Update. The Phase 2 local and trusted current-Cloud gates passed with exact
-zero cleanup. The next action is Phase 3 `P3-010`: add the public Feature Flag
-read/list adapter, complete pagination, and exact active/archived resolution.
+and registered `featbit_project`, `featbit_environment`, and
+`featbit_feature_flag` resources plus their exact single-object data sources.
+Their lifecycle-owned adapters implement exact reads, CRUD, Import, canonical
+state, authoritative absence composition, replacement-aware stable ID
+planning, settings-preserving Environment Update, precise four-type Feature
+Flag normalization, UI-operation preservation, and exact active/archived
+Feature Flag deletion. The implemented local and trusted current-Cloud gates
+passed with exact zero cleanup. The next action is Phase 4 `P4-010`: freeze the
+public Segment taxonomy and safe wire boundary, then add complete active and
+archived pagination plus exact UUID/key status resolution.
 
 ## 2. Product boundary
 
@@ -39,12 +42,13 @@ copy LaunchDarkly's resource model, or expose a generic raw-REST resource. It
 uses documented public FeatBit endpoints only and does not depend on backend
 or public API changes.
 
-FeatBit Cloud behavior for the planned core scope was verified on 2026-07-31;
-the implemented Project/Environment contracts and exact-zero cleanup were
-reverified against the current Cloud API on 2026-08-03. Each later resource
-must pass its own current-Cloud gate. Self-hosted is an intended target through
-a configurable API origin, but no exact self-hosted release is currently
-certified.
+FeatBit Cloud behavior for the planned core scope was verified on 2026-07-31.
+The implemented Project/Environment contracts and exact-zero cleanup were
+reverified against the current Cloud API on 2026-08-03, and the four-type
+Feature Flag lifecycle passed its current-Cloud gate with exact active and
+archived cleanup on the same date. Each later resource must pass its own
+current-Cloud gate. Self-hosted is an intended target through a configurable
+API origin, but no exact self-hosted release is currently certified.
 
 ## 3. Current architecture
 
@@ -125,9 +129,9 @@ path.
 |---|---|---|
 | Project | Implemented | UUID identity. Manage verified safe fields; key replaces. Server-created `Dev/dev` and `Prod/prod` environments are Computed. Confirm absence through the complete project collection when direct Read is ambiguous. |
 | Environment | Implemented | Project-scoped UUID identity. Name/description update; project and key replace. Discard secret values from ordinary state. Confirm absence through the parent project's environment collection and preserve UI-owned settings across Update. |
-| Feature flag | Phase 3 active | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
-| Environment-specific segment | Planned | Environment plus UUID identity. Verified metadata, targeting, and tags update through specialized endpoints; key, type, and scopes replace. Destroy first checks flag references, then archives, hard-deletes, and proves exact active/archived absence. |
-| Shared segment | Planned | Read/bind only; Terraform does not create, update, or delete it. |
+| Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
+| Environment-specific segment | Phase 4 active | Environment plus UUID identity. Manage verified metadata, targeting, and tags through specialized endpoints. The first Phase 4 task freezes type/scope ownership before the Terraform schema. Destroy first checks exact flag references, then archives, hard-deletes, and proves exact active/archived absence. |
+| Shared segment | Phase 4 active, read-only | Exact data-source observation and binding only; Terraform does not create, update, archive, or delete it. |
 
 Common lifecycle rules:
 
@@ -173,7 +177,7 @@ canonical state, drift, and out-of-band deletion tests.
 
 Gate: Create/Read/Update/Delete and Import converge to an empty plan.
 
-### Phase 3 — Feature flags (active)
+### Phase 3 — Feature flags (complete)
 
 Implement the constrained four-type feature-flag resource/data source with
 stable variation identity, precise normalization, UI-field preservation,
@@ -181,7 +185,7 @@ replacement, Import, and archive-plus-hard-delete behavior.
 
 Gate: every supported type converges without rewriting UI-owned operations.
 
-### Phase 4 — Segments
+### Phase 4 — Segments (active)
 
 Implement environment-specific segment resource/data source behavior,
 ordered rules, set-valued users/tags, scope resolution, reference preflight,
