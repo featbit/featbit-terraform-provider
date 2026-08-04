@@ -1,357 +1,371 @@
-# Phase 5 TODO — IAM
+# Phase 5 TODO — Initial release
 
 Status: **In progress**
 Next: **P5-010**
 
-Work one item at a time. Before checking an item, add a concise `Result` under
-it containing:
+Complete one item at a time. Keep implementation scope, important files,
+runtime relationship, and completion evidence under the active item. Record
+only a concise result after material work. Do not begin IAM, publish externally,
+create a tag, alter repository settings, or use release/Cloud secrets unless
+the corresponding item and explicit maintainer authorization permit it.
 
-- the important files changed;
-- the runtime call relationship introduced or verified; and
-- the exact verification that passed.
+## Release contract and public documentation
 
-Do not create a separate ADR, evidence file, findings log, session log, or
-handoff.
+- [ ] **P5-010 — Freeze the core-only initial release contract and baseline.**
 
-## IAM tenant and member read contract
+  Scope: inventory the actual provider schema, resource/data-source
+  registrations, Import forms, build version path, manifest, repository
+  visibility/name prerequisites, current test gates, and absent release
+  surfaces. Freeze the initial SemVer strategy, minimum/tested Terraform CLI
+  versions, CI/release Go version, supported OS/architecture archive matrix,
+  Protocol version, Cloud compatibility statement, self-hosted non-claim, and
+  compatibility/upgrade policy. The released schema must contain exactly the
+  existing five provider attributes, four core resources, and four data
+  sources. IAM and organization/workspace context contracts remain absent.
+  When a version, platform, signing identity, or Registry ownership choice
+  requires maintainer authority, record the exact decision needed without
+  guessing or accessing secrets.
 
-- [ ] **P5-010 — Freeze IAM tenant scope and complete exact Member reads.**
+  Important files: `go.mod`, `main.go`,
+  `terraform-registry-manifest.json`, `internal/provider/provider.go`,
+  provider/schema/Import tests, `GNUmakefile`, `.gitignore`, the master
+  plan, and this Phase 5 package. Inspect the current official HashiCorp
+  provider publishing/documentation requirements and the current Terraform
+  Plugin Framework scaffold; do not copy a template without reconciling it
+  against this repository.
 
-  Scope: reconcile the current official REST/IAM documentation, public OpenAPI,
-  existing authorization transport, and narrowly scoped current-Cloud read
-  behavior before any IAM Terraform schema or mutation. Freeze whether an
-  access token alone selects the exact tenant, whether the OpenAPI's optional
-  Organization/Workspace headers are ever required, and how `organizationId`
-  in future create bodies is obtained without hardcoding or leaking tenant
-  identity. Add only the safe `MemberVm` fields needed for exact member lookup;
-  implement direct exact-ID read plus complete pagination and an exact resolver
-  for any verified email selector. Omit `initialPassword` and all invitation or
-  member-lifecycle fields structurally.
+  Runtime relationship: `Terraform CLI version/platform -> Registry address
+  and Protocol 6 discovery -> versioned provider binary -> frozen provider
+  configuration -> one of four resource/data-source lifecycles -> documented
+  public API`.
 
-  Important files: a narrow IAM Member endpoint file and focused tests under
-  `internal/client`; existing `transport.go`, request construction, pagination,
-  UUID, error, retry, and redaction helpers only where their contracts match.
-  Provider schema/configuration and the authorization transport may change only
-  if public evidence proves a tenant selector is necessary. Do not add a Member
-  resource, Group/Policy schema, relationship mutation, generated client, raw
-  OpenAPI snapshot, or persisted probe output.
+  Done when a checked-in focused release-contract/schema snapshot rejects any
+  unexpected provider attribute, resource, data source, Protocol change, IAM
+  registration, unstable Import form, or development version in a release
+  build; the supported version/platform matrix and compatibility policy are
+  explicit; the exact public-versus-maintainer prerequisites are recorded; and
+  no live endpoint, signing secret, tag, GitHub release, or Registry mutation
+  was used to obtain the baseline.
 
-  Runtime relationship: future `data.featbit_member` and binding callers use
-  `Client.GetMember` for one exact complete object or
-  `ListMembers(all pages) -> ResolveMember(exact ID/email)` when collection
-  composition is required. Requests remain
-  `lifecycle caller -> shared request builder -> authorizationTransport ->
-  documented /api/v1 member endpoint`.
+- [ ] **P5-011 — Add Registry documentation, examples, and drift verification.**
 
-  Done when focused contracts freeze direct/list response completeness, exact
-  query names and casing (`SearchText`, `PageIndex`, `PageSize`), zero-based
-  advancement, stable `totalCount` reconciliation, UUID and any exact-email
-  comparison semantics, zero/one/duplicate/contradictory results, fuzzy search
-  rejection, direct `404` behavior, malformed/incomplete/repeated pages,
-  cancellation, bodyless-GET retry, and redaction. Transport tests prove
-  whether Authorization-only scoping remains correct or a narrowly validated
-  tenant selector is required; caller-injected context headers remain
-  impossible. Formatting, errors, logs, fixtures, and assertions contain no
-  token, tenant identity, member ID/name/email, response body, path, or
-  `initialPassword`. Any current-Cloud read uses only an explicitly supplied
-  tenant/member target, performs no mutation, inspects no unrelated project,
-  and retains no runtime value.
+  Scope: add a public `README.md`, Registry provider index, one page for each
+  of the four resources and four data sources, and credential-free examples
+  for provider configuration, dependency ordering, exact lookup, every Import
+  form, and representative lifecycles. Explain Feature Flag UI-owned targeting,
+  environment-specific versus shared Segment behavior, canonical identifiers,
+  replacement, deletion, and safe environment-variable authentication. Use a
+  pinned `terraform-plugin-docs` workflow when schema generation is a semantic
+  fit, plus narrow templates for behavior the schema cannot express. Add a
+  generation/drift check that never rewrites the working tree silently in CI.
 
-## Group and Policy read/schema contract
+  Important files: new `README.md`, `docs/index.md`,
+  `docs/resources/*.md`, `docs/data-sources/*.md`,
+  `examples/provider/*.tf`, `examples/resources/**`,
+  `examples/data-sources/**`, generator/templates/tool pinning, and focused
+  docs/example checks. Reuse the existing schema descriptions rather than
+  maintaining a contradictory manual attribute catalog.
 
-- [ ] **P5-011 — Freeze Group/Policy taxonomy, canonicalization, schemas, and exact data sources.**
+  Runtime relationship: `provider/resource/data-source schema -> pinned docs
+  generator plus reviewed templates -> Registry markdown -> credential-free
+  HCL examples -> terraform fmt/validate and exact Import syntax checks`.
 
-  Scope: add complete exact/list reads for Groups and Policies using only the
-  tenant contract frozen in P5-010. Freeze Group name/description/UUID/RN
-  shapes, custom versus built-in Policy classification, Policy key/type,
-  settings, statements, effects, resource types, actions, resource RNs,
-  server-owned statement IDs, nullable fields, length/character limits, and
-  filter behavior. Define one canonical Policy model in which statement order
-  is irrelevant without weakening exact deny/allow, resource, or action
-  semantics. Add and register exact `data.featbit_member`,
-  `data.featbit_group`, and `data.featbit_policy`; freeze Group and custom
-  Policy resource schemas and Import/replacement contracts without registering
-  mutation lifecycles yet.
+  Done when generated files are reproducible; every registered object has one
+  correctly named Registry page; examples format and validate against the
+  frozen source address/schema without a token value or local override;
+  documentation states exactly what Terraform owns and leaves UI-owned fields
+  alone; all four Import forms are exact; regeneration produces an empty diff;
+  links resolve; and repository scans find no runtime Cloud value, state,
+  plan, log, or secret.
 
-  Important files: narrow Group/Policy endpoint files and focused tests under
-  `internal/client`; IAM provider models, canonicalization, validators, schemas,
-  exact data sources, and provider registration tests under
-  `internal/provider`. Reuse the UUID validator, ProviderData checks,
-  set/list/object framework types, stable-ID modifier, and complete-pagination
-  helpers only when exact ownership matches. Keep Group members and Policy
-  assignments out of parent resource ownership.
+- [ ] **P5-012 — Add public security, contribution, support, and upgrade policy.**
 
-  Runtime relationship: `data.featbit_member/group/policy.Read -> exact direct
-  read or complete filtered collection -> exact resolver -> IAM canonicalizer
-  -> Terraform state`. Future resources reuse the same canonical Group/Policy
-  state layer, while endpoint wire models remain serialization-only.
+  Scope: add the repository guidance required for maintainable public use:
+  security reporting and supported-version expectations, contribution and
+  development workflow, code of conduct if the FeatBit organization does not
+  already provide an inherited one, issue/support boundaries, changelog
+  policy, and compatibility/upgrade rules. Explain credential handling,
+  trusted acceptance safeguards, generated-doc updates, release ownership,
+  versioning, deprecation, state/schema compatibility, and the prohibition on
+  editing published release assets.
 
-  Done when tests freeze exact methods, escaped paths, `Name`/page query casing,
-  complete pagination, direct-versus-list shape boundaries, exact UUID and
-  verified key/name identity behavior, custom/built-in Policy classification,
-  built-in mutation rejection, statement set equality, nested action/resource
-  set ordering, server-ID correlation, Null/Unknown/default behavior, duplicate
-  or contradictory statements, invalid effects/resource types/RNs/actions,
-  and redaction. Schema tests freeze every Required/Optional/Computed/Sensitive
-  flag and replacement modifier, member read-only behavior, no
-  `initialPassword` field, no relationship-set ownership, strict provisional
-  Import grammar, and exact provider data-source registrations.
+  Important files: `SECURITY.md`, `CONTRIBUTING.md`,
+  `CODE_OF_CONDUCT.md` only if needed, `CHANGELOG.md`, upgrade/versioning
+  guidance, GitHub issue/PR templates only where they reduce unsafe reports,
+  and README links. Reuse organization-level policies when they are current
+  and linkable; do not duplicate or invent contact addresses.
 
-## Managed IAM objects
+  Runtime relationship: `user or contributor -> public support/security/
+  contribution entry point -> safe reproduction or private disclosure ->
+  tested change -> SemVer and state-compatible release process`.
 
-- [ ] **P5-012 — Add custom Group CRUD, Import, and recovery.**
+  Done when a user can identify supported scope, report a vulnerability
+  privately, request support, build/test/generate docs, and understand upgrade
+  guarantees without receiving credentials or maintainer-only instructions;
+  contributors are warned that acceptance tests create remote objects; release
+  responsibilities and immutable-version policy are explicit; every referenced
+  contact/process exists; and no speculative email, SLA, or organization policy
+  is claimed.
 
-  Scope: register `featbit_group` and add only the documented one-shot Group
-  Create, settings Update, and Delete operations. Use the uniqueness/collision
-  contract frozen in P5-011 rather than assuming name uniqueness. Establish
-  provisional UUID state as soon as a create response is authoritative, read
-  canonical state after each logical mutation, and reconcile ambiguous results
-  without replay, fuzzy adoption, or claiming member/policy collections.
-  Import accepts only the tenant/object identity form frozen by P5-010/P5-011.
+## Credential-free CI and release packaging
 
-  Important files: Group client endpoint methods and focused contracts;
-  `group_resource.go`, frozen Group models/schema, provider registration,
-  Import parsing, keyed serialization only if a concrete collision boundary
-  requires it, and focused lifecycle tests. Do not add binding or Policy
-  mutations.
+- [ ] **P5-013 — Add fork-safe credential-free pull-request CI.**
 
-  Runtime relationship: `groupResource.Create/Read/Update/Delete -> frozen
-  exact Group resolver -> one documented mutation when needed -> exact
-  canonical read/absence proof -> Terraform state`.
+  Scope: add read-only GitHub Actions for pull requests and ordinary branch
+  pushes. Pin every action to a verified full commit SHA and every invoked tool
+  to a reviewed version. Run formatting, vet, unit/mock/Protocol tests, race on
+  supported runners, build, `go mod tidy -diff`, `go mod verify`, generated
+  docs drift, dependency/license/vulnerability inspection, secret scanning,
+  and snapshot-package validation as the implementation becomes available.
+  Keep Cloud acceptance skipped and make fork execution independent of
+  repository secrets. Do not use `pull_request_target` or execute artifacts
+  from an untrusted workflow in a privileged context.
 
-  Done when tests cover Create, exact Read, name/description Update, no-op
-  Update, Import, in-place ID stability, every replacement input, second-plan
-  idempotence, arbitrary list ordering, drift, out-of-band deletion,
-  pre-existing collisions, duplicate/fuzzy matches, partial/direct-read
-  failures, ambiguous one-shot mutation reconciliation, cancellation including
-  lock wait, tenant mismatch, and exact absence. Delete never removes or
-  rewrites sibling Groups, members, policies, or any default team object; all
-  diagnostics and logs redact runtime Group/tenant values.
+  Important files: `.github/workflows/test.yml` and narrowly justified
+  supporting configuration; `GNUmakefile`; pinned tool installation or
+  verification scripts; dependency update configuration if added; and tests
+  that statically inspect workflow permissions, triggers, action SHAs, secret
+  references, and command boundaries. Prefer official/mature tools already
+  used by the ecosystem and record license/maintenance/security fit before
+  adding one.
 
-- [ ] **P5-013 — Add custom Policy CRUD, statements, Import, and recovery.**
+  Runtime relationship: `fork pull_request or branch push -> read-only
+  credential-free workflow -> pinned actions/tools -> repository quality,
+  Protocol, documentation, supply-chain, and snapshot checks -> status result`.
 
-  Scope: register `featbit_policy` and add only documented custom Policy Create,
-  settings Update, statement-list Update, and Delete. Reject built-in/system
-  policy mutation before transport. Diff canonical prior state from plan and
-  execute changed settings/statements once in a fixed order followed by one
-  exact canonical read. Preserve statement meaning while canonicalizing
-  order-insensitive collections and server-owned identities. Reconcile partial
-  or ambiguous multi-call results without replay or adoption.
+  Done when an untrusted fork can run every required non-live check with
+  `contents: read`, no write/id-token permission, no FeatBit/GPG secret
+  reference, no `TF_ACC=1`, and no privileged follow-up consuming its
+  checkout/artifacts; all actions are immutable SHA pins with auditable version
+  comments; cache keys cannot cross into privileged jobs; tests fail on unsafe
+  triggers/permissions; and the complete credential-free workflow passes.
 
-  Important files: Policy endpoint methods and focused contracts; Policy
-  models/canonicalizer/schema, `policy_resource.go`, provider registration,
-  strict Import parsing, concrete keyed coordination if required, and focused
-  lifecycle tests. Relationship endpoints remain reserved for P5-014/P5-015.
+- [ ] **P5-014 — Add reproducible cross-platform Registry packaging.**
 
-  Runtime relationship: `policyResource.Create -> one CreatePolicy ->
-  provisional UUID -> optional one statements PUT -> exact GetPolicy ->
-  canonical state`; Update is `canonical diff -> optional settings PUT ->
-  optional statements PUT -> exact GetPolicy`; Delete is one exact custom-policy
-  delete followed by authoritative absence proof.
+  Scope: add a pinned GoReleaser v2 configuration for the platform matrix
+  frozen in P5-010. Build with `CGO_ENABLED=0`, `-trimpath`, deterministic
+  source metadata, and `-X main.version=<SemVer>`. Produce one correctly named
+  zip per supported pair, the renamed Protocol 6 manifest, SHA-256 sums over
+  every archive and manifest, and the detached checksum-signature configuration
+  required by the Registry. Keep `go mod tidy` as a prior verification step,
+  not a release-time source mutation. Add an optional SBOM only if it is
+  deterministic, reviewed, and cannot disturb required artifact names.
 
-  Done when tests cover custom Create, exact Read, settings-only,
-  statements-only, and combined Update; no unchanged write; deterministic
-  order; Import; second-plan idempotence; API reordering; statement/action/
-  resource set changes; server-ID correlation; replacement inputs; drift;
-  out-of-band deletion; built-in policy read-only data-source behavior and
-  zero mutation from every resource path; ambiguous/partial reconciliation;
-  cancellation; one-shot counts; relation-set preservation; and exact absence.
-  Diagnostics/state/logs reveal no tenant, Policy key/ID, statement action,
-  resource RN, token, path, or body.
+  Important files: `.goreleaser.yml`,
+  `terraform-registry-manifest.json`, `main.go`, `GNUmakefile`, release
+  verification tests/scripts, and `.gitignore` for local `dist/` output.
+  Derive naming/signing behavior from current official HashiCorp scaffold and
+  GoReleaser documentation, then remove unused template fields and unsupported
+  platforms.
 
-## Independent relationship resources
+  Runtime relationship: `clean source commit plus SemVer snapshot/tag ->
+  pinned Go toolchain and GoReleaser -> versioned CGO-free binaries -> zip
+  archives plus manifest -> SHA256SUMS -> detached GPG signature`.
 
-- [ ] **P5-014 — Add the one-edge Group/Member binding resource.**
+  Done when two clean snapshot builds have the expected file set and stable
+  contents wherever the toolchain permits; each archive contains exactly one
+  correctly named executable; binaries start on representative native runners
+  and report the injected version; checksums cover all and only required files;
+  the manifest is valid Protocol `6.0`; signature configuration uses no
+  checked-in private material; snapshot mode creates no tag/release; and
+  archive scans find no source tree, local path, credential, state, plan, log,
+  or unexpected executable.
 
-  Scope: add complete authoritative Group-member relation reads plus documented
-  one-shot add/remove operations. Register `featbit_group_member` with two exact
-  immutable identities and the composite Import contract frozen by P5-010/
-  P5-011. Create proves the exact pair absent before adding it once; Read proves
-  exact presence without flattening unrelated members; Delete removes only that
-  pair once and then proves exact absence. Ambiguous add/remove results
-  reconcile through a complete relation read without replay.
+- [ ] **P5-015 — Add an isolated, protected tag-release workflow.**
 
-  Important files: Group-member client methods and focused pagination/
-  relationship contracts; a dedicated binding model, schema, resource,
-  registration, Import parser, and lifecycle tests. Do not add a members set to
-  `featbit_group`, mutate the Member, or manage the default team.
+  Scope: add the tag-triggered workflow that validates a clean `vX.Y.Z`
+  SemVer tag, checks that its version matches the packaging contract, imports
+  the protected GPG key, runs the already-proven release build, verifies assets,
+  and creates a GitHub release. Pin actions by full SHA, grant only job-scoped
+  `contents: write`, use an approval-protected environment where available,
+  and keep GPG/GitHub credentials out of all pull-request paths. Decide and
+  document whether the first release is created as a draft for maintainer
+  inspection before finalization.
 
-  Runtime relationship: `groupMemberResource -> complete exact group/member
-  relation read -> optional one add-member or remove-member PUT -> complete
-  exact relation read -> one-pair Terraform state`.
+  Important files: `.github/workflows/release.yml`, workflow contract tests,
+  `.goreleaser.yml`, maintainer release guidance, and protected secret/
+  environment prerequisite documentation. Never commit a key, passphrase,
+  fingerprint obtained from private material, or repository-specific secret
+  value.
 
-  Done when tests cover exact absent/present, case/canonical UUID handling,
-  duplicate/inconsistent relation items, fuzzy email/name results, later-page
-  matches, malformed/incomplete pagination, already-present Create,
-  out-of-band add/remove, Import then empty plan, one-shot ambiguous add/remove
-  reconciliation, cancellation, parent absence/tenant mismatch, composite-ID
-  ordering, and sibling-edge preservation. Destroy never removes the Member or
-  Group and never changes any other group membership or policy edge.
+  Runtime relationship: `explicit maintainer-approved protected SemVer tag ->
+  trusted exact commit checkout -> pinned Go/GPG/GoReleaser actions -> local
+  verification -> signed immutable GitHub release assets -> Registry webhook`.
 
-- [ ] **P5-015 — Add one-edge Group/Policy and direct Member/Policy bindings.**
+  Done when static tests reject non-SemVer tags, moving branch/tag ambiguity,
+  unpinned actions, broad default permissions, PR-accessible secrets,
+  `pull_request_target`, untrusted artifact reuse, and secret-bearing output;
+  a no-publish dry run exercises validation and packaging without credentials;
+  the protected workflow cannot finalize a release before all gates pass; and
+  actual tag creation/publication remains pending explicit maintainer
+  authorization.
 
-  Scope: add complete authoritative Group-policy and direct Member-policy reads
-  plus documented one-shot add/remove operations. Register
-  `featbit_group_policy` and `featbit_member_policy` as separate pair resources.
-  Direct member binding must distinguish explicitly assigned policies from
-  policies inherited through Groups; an inherited match alone is not an owned
-  edge and must not be removed. Permit a built-in Policy as a binding target
-  only if the public contract proves the edge is safe, while its Policy object
-  remains immutable.
+- [ ] **P5-016 — Verify packaged-provider integrity and clean installation.**
 
-  Important files: narrow Group/Policy and Member/direct-Policy relation
-  methods and tests; two dedicated resource schemas/models, registration,
-  composite Import parsing, exact lifecycle tests, and shared pair helpers only
-  if relationship direction, error, and redaction semantics are identical.
+  Scope: add release-asset verification independent of the packaging job.
+  Check the expected matrix, archive paths/modes, binary version, manifest,
+  checksums, signature with the public key, and optional provenance/SBOM. Start
+  representative native binaries and obtain the exact Protocol v6 provider
+  schema. Install a candidate from an isolated local filesystem/network mirror
+  into a brand-new Terraform working directory with no development override,
+  user plugin cache, prior lock file, or ambient provider binary.
 
-  Runtime relationship: each binding uses `complete exact relation read ->
-  optional one add-policy/remove-policy PUT -> complete exact relation read ->
-  one-pair Terraform state`; the Member variant reads direct policies only for
-  ownership and may observe inherited policies only as non-owned context.
+  Important files: portable release verification scripts/tests; isolated
+  Terraform smoke fixtures under `internal/provider/testdata` or a narrower
+  release-test directory; `GNUmakefile`; expected schema snapshot; and
+  credential-safe temporary-directory handling. Reuse existing Protocol
+  fixtures rather than introducing a second fake product model.
 
-  Done when both resources cover exact absent/present, later-page matches,
-  duplicate/inconsistent items, already-present Create, out-of-band add/remove,
-  Import and empty second plan, ambiguous one-shot reconciliation,
-  cancellation, composite-ID order, parent absence, tenant mismatch,
-  custom/built-in target rules, and sibling-edge preservation. Member-policy
-  tests prove an inherited-only policy is never adopted or removed; Group
-  tests prove no member edge is changed; Policy tests prove no statement or
-  settings mutation is sent.
+  Runtime relationship: `signed candidate assets -> independent checksum/
+  signature/content verification -> isolated provider mirror -> clean
+  terraform init -> Protocol v6 schema/validate/plan -> packaged binary`.
 
-## Protocol and cross-resource verification
+  Done when verification fails for a missing/extra/renamed archive, wrong
+  executable name/mode/version, malformed or wrong-protocol manifest, checksum
+  mismatch, invalid signature, unexpected file, stale schema, dev override, or
+  ambient cache hit; positive runs pass on every frozen representative
+  platform; all temporary files remain outside the repository and are removed;
+  and no live FeatBit credential or mutation is required.
 
-- [ ] **P5-016 — Prove the IAM Terraform Protocol v6 lifecycle.**
+## Compatibility, acceptance, and publication
 
-  Scope: exercise the registered Member/Group/Policy data sources, custom Group
-  and Policy resources, and all three bindings through Protocol v6 against one
-  narrow stateful public-API fixture. Model only exact IAM reads, complete
-  pagination, custom-object mutations, direct/inherited relation views, and
-  add/remove operations needed by production callers. Do not turn the fixture
-  into a general FeatBit IAM server.
+- [ ] **P5-030 — Prove the Terraform and native-platform compatibility matrix.**
 
-  Important files: IAM Protocol tests and one focused fixture under
-  `internal/provider`. Reuse the existing Terraform CLI/provider-server
-  harness, dependency helpers, recorders, and canonical response helpers only
-  where contracts match.
+  Scope: run the packaged provider against the minimum, representative
+  intermediate, and current supported Terraform CLI versions frozen in
+  P5-010. Exercise provider initialization, schema, configuration validation,
+  resource/data-source validation, Import parsing, and representative local
+  Protocol lifecycle behavior on the native OS/architecture runners promised
+  by the release. Verify documentation examples against the same source address
+  and minimum syntax. Do not convert an untested cross-compiled archive into a
+  stronger native-runtime support claim.
 
-  Runtime relationship: `terraform plan/apply/refresh/import/destroy ->
-  providerserver Protocol v6 -> IAM object/data-source/binding lifecycle ->
-  handwritten IAM adapter -> isolated public-API fixture`.
+  Important files: compatibility workflow/matrix, pinned Terraform installers
+  or checksums, packaged-provider smoke fixtures, schema snapshot, docs
+  examples, and focused result assertions. Keep this credential-free; live
+  current-Cloud coverage remains P5-031.
 
-  Done when Protocol tests cover exact member read, custom Group/Policy Create,
-  exact data-source Read, Import plus empty plan, second empty plan, settings/
-  statements drift repair, every frozen replacement, arbitrary collection
-  ordering, out-of-band object and edge deletion, direct versus inherited
-  Policy ownership, ambiguous response recovery, and child-first destroy. The
-  recorder proves exact call order, no mutation retry, no forbidden member/
-  built-in/bulk endpoint, no arbitrary context header, no sibling-edge rewrite,
-  and final exact object/edge cleanup.
+  Runtime relationship: `frozen Terraform CLI plus native runner -> clean
+  install of exact candidate archive -> Protocol v6 provider -> schema,
+  validation, Import parsing, and isolated lifecycle fixture`.
 
-- [ ] **P5-030 — Prove cross-resource ownership, state safety, and redaction.**
+  Done when every promised Terraform/platform pair either runs natively and
+  passes or is narrowed from the public support matrix; minimum-version
+  examples parse; the exact four-resource/four-data-source schema is identical
+  across binaries; version/User-Agent metadata is the candidate version; no
+  IAM/config-header surface appears; and CI records no credential, state,
+  absolute workstation path, or non-test object value.
 
-  Scope: compose Member, Group, Policy, all three bindings, and representative
-  core resource RNs at shared safety boundaries. Test dependency ordering,
-  immutable pair replacement, exact direct/inherited relationship distinction,
-  policy statement canonicalization, Null/Unknown/default behavior, ambiguous
-  state preservation, Import diagnostics, tenant isolation, and
-  secret/runtime-value redaction. Confirm IAM lifecycles never claim or mutate
-  Project/Environment/Feature Flag/Segment objects referenced by opaque Policy
-  RNs.
+- [ ] **P5-031 — Run the trusted core-only current-Cloud release-candidate gate.**
 
-  Important files: focused integration tests under `internal/provider`,
-  endpoint redaction/log-capture tests under `internal/client`, and existing
-  fixtures/helpers only where exact semantics match. Production fixes only
-  where a failing contract demonstrates a concrete issue.
+  Scope: run the exact candidate commit/binary against current FeatBit Cloud
+  using credentials supplied only out of band through a protected environment.
+  Create one uniquely prefixed, test-owned Project and only its child
+  Environments, Feature Flags, and environment-specific Segments. Exercise all
+  four Feature Flag types, exact data sources, Import followed by an empty
+  plan, second-plan idempotence, drift repair, replacement, Segment-reference
+  refusal/recovery, and child-first destroy. Maintain an in-memory inventory
+  before each mutation and independently prove exact cleanup. Do not enumerate,
+  inspect, bind, or modify any unrelated project, shared Segment, IAM object,
+  organization/workspace membership, or account setting.
 
-  Runtime relationship: `core resource RN <- custom Policy <- direct Member or
-  Group binding <- Group Member -> lifecycle-owned adapters -> canonical
-  state`, while failures flow through `Client.DecodeResponse -> redacted
-  APIError -> lifecycle diagnostics/tflog`.
+  Important files: existing core Cloud acceptance tests/harnesses, candidate
+  binary/version wiring, a protected manually invoked acceptance workflow if
+  justified, and in-memory cleanup verification. Reuse the proven Phase 2–4
+  fixtures and tighten them only where a release-candidate artifact reveals a
+  concrete gap.
 
-  Done when object and edge dependency/replacement plans converge; direct and
-  inherited policies remain distinct; removing one edge leaves all siblings
-  and core objects unchanged; arbitrary set/API ordering and Null/Unknown
-  values do not cause permanent diffs; duplicates preserve state; and injected
-  tokens, tenant/member/email, Group/Policy IDs/keys, actions, resource RNs,
-  relation pairs, server details, paths, bodies, and initial-password markers
-  appear in neither diagnostics, logs, fixtures, nor assertion output.
+  Runtime relationship: `protected manual approval plus out-of-band token ->
+  exact candidate Protocol v6 provider -> documented core public endpoints ->
+  uniquely test-owned Project tree -> independent exact child-first cleanup`.
 
-## Integration and verification
+  Done when the complete core lifecycle passes with the release candidate;
+  every created UUID/key is registered before the next mutation; cleanup proves
+  all test-owned active/archived children and parent absent; pre-existing
+  objects were never listed or changed; shared Segment behavior remains skipped
+  without an explicit owned fixture; no IAM endpoint/header is sent; and token,
+  runtime IDs/keys, paths, response bodies, state, logs, or cleanup inventory
+  are neither persisted nor exposed.
 
-- [ ] **P5-031 — Run trusted scoped current-Cloud IAM acceptance and exact cleanup.**
+- [ ] **P5-032 — Run the complete local and supply-chain release gate.**
 
-  Scope: with credentials and tenant/member identity supplied only out of band,
-  run uniquely prefixed custom Group/Policy and one-edge binding scenarios
-  against documented current-Cloud endpoints. Create only test-owned Groups
-  and custom Policies in the explicitly authorized tenant. Bind only the
-  explicitly supplied existing Member, use a no-access or otherwise harmless
-  test Policy contract frozen earlier, record every created object/edge before
-  mutation, and restore the member's exact baseline. Never create/remove a
-  Member, mutate a built-in Policy, inspect unrelated projects, or alter an
-  unrelated relationship.
+  Scope: run all Phase 1–4 quality gates plus release-specific documentation,
+  workflow, packaging, artifact, compatibility, dependency, license,
+  vulnerability, secret, and provenance checks from a clean tree. Re-run
+  focused tests repeatedly where ordering, concurrency, generated output, or
+  artifact enumeration could be nondeterministic. Inspect the complete diff and
+  final archives. Do not weaken or skip a core gate to make release automation
+  pass.
 
-  Important files: credential-gated IAM acceptance tests and in-memory
-  child-first cleanup inventory under `internal/provider`. Reuse the Cloud
-  transport/harness only where it preserves explicit tenant scope, exact edge
-  ownership, cleanup, and redaction. Permanent CI wiring remains Phase 6.
+  Important files: production/test/documentation/workflow/packaging fixes
+  demonstrated by the gate, `GNUmakefile`, pinned tool metadata, this active
+  TODO, and the Phase 5 README pointer. Do not add IAM code or modify the frozen
+  public schema.
 
-  Runtime relationship: `terraform-plugin-testing -> local Protocol v6
-  provider -> shared client -> documented FeatBit Cloud IAM endpoints -> exact
-  relation and custom object cleanup verification`.
+  Runtime relationship: `clean repository -> format/vet/test/race/build/
+  module/docs/security/workflow checks -> reproducible signed-candidate
+  packaging -> independent artifact/install/compatibility verification ->
+  release readiness decision`.
 
-  Done when custom Group/Policy lifecycle, exact data sources, Import followed
-  by empty plan, second-plan idempotence, drift repair, every binding,
-  direct/inherited distinction, out-of-band edge deletion, and destroy pass.
-  Cleanup removes direct member-policy, group-policy, and group-member edges
-  before Policy and Group, then independent complete reads prove every test
-  object/edge absent and every pre-existing Member edge unchanged. No pending
-  cleanup owner/action, persisted tenant/member/policy value, or unrelated
-  object read remains. If safe permissions or an explicit Member fixture are
-  unavailable, record the exact limitation under this item and retain
-  public-contract/Protocol coverage without broadening access.
+  Done when `gofmt -l .` is empty; `go vet ./...`, `go test ./...`,
+  repeated focused/Protocol tests, `go test -race ./...`, `go build ./...`,
+  `go mod tidy -diff`, and `go mod verify` pass; docs regenerate without
+  diff; workflows pass static trust-boundary tests; dependencies/licenses and
+  `govulncheck` have no unresolved release blocker; Gitleaks and exact
+  out-of-band secret scans find zero repository/archive hit; snapshot artifacts
+  pass integrity/install checks; `git diff --check` passes; only expected
+  release files changed; and the schema still contains exactly five provider
+  attributes, four resources, four data sources, and no IAM surface.
 
-- [ ] **P5-032 — Run the complete Phase 5 local gate.**
+- [ ] **P5-033 — Publish and verify the initial GitHub/Registry release.**
 
-  Scope: run formatting, vet, all unit/mock/Protocol tests, repeated IAM
-  endpoint/pagination/canonicalization/relation/redaction contracts, Windows
-  race with a verified compiler, build, module tidy/verify, dependency/license/
-  vulnerability inspection, diff checks, local provider override, schema JSON
-  assertions, and repository secret/runtime-value scans. Do not add Phase 6
-  CI, Registry/release work, generated clients, or generator dependencies.
+  Scope: only after every prior item passes and the maintainer explicitly
+  authorizes the exact version and external actions, confirm the compatible GPG
+  public key is registered for the intended Registry namespace, protected
+  secrets/settings are ready, create and push the exact SemVer tag, run the
+  protected release workflow, inspect every signed asset before finalization,
+  connect/resynchronize the Terraform Registry provider if required, and verify
+  the Registry-served version. Never overwrite an existing tag or release
+  asset; abort to a new version if any final artifact differs from the verified
+  candidate.
 
-  Important files: production/test fixes required by the gate, this active
-  TODO, and the Phase 5 README next-task pointer.
+  Important files: no source mutation is expected after the release commit;
+  use the protected tag workflow, GitHub release assets, public GPG key,
+  Registry provider entry, and a new external temporary Terraform smoke
+  directory. Keep all credentials and runtime test inventory out of files and
+  logs.
 
-  Runtime relationship: verify `Terraform Core -> Protocol v6 provider -> core
-  plus IAM object/binding lifecycles -> shared handwritten client -> documented
-  public API` and confirm no other local runtime path exists.
+  Runtime relationship: `explicit maintainer approval -> immutable exact
+  release commit/tag -> protected signed GitHub release -> Registry webhook/
+  provider version -> clean terraform init from registry -> exact core
+  plan/apply/import/empty-plan/destroy -> exact Cloud cleanup`.
 
-  Done when `gofmt -l .` is empty; `go vet ./...`, `go test ./...`, repeated
-  focused tests, `go test -race ./...`, `go build ./...`, `go mod tidy -diff`,
-  `go mod verify`, dependency scans, and `git diff --check` pass. The local
-  override loads; schema JSON asserts the frozen provider attributes, every
-  core registration, the exact IAM resource/data-source count, and every
-  visible ownership/Sensitive flag. Focused tests assert tenant isolation,
-  member read-only behavior, custom/built-in Policy separation, statement
-  normalization, replacement, direct/inherited distinction, one-edge
-  ownership, and sibling preservation. Repository scans find no real secret,
-  member/email/initial-password marker, runtime Cloud tenant/object/relation
-  value, forbidden endpoint/header, or risky state artifact.
+  Done when the final asset set byte-for-byte satisfies the frozen naming,
+  checksum, signature, manifest, schema, version, and platform contracts; the
+  Registry lists the exact version under
+  `registry.terraform.io/featbit/featbit`; a clean directory with no override
+  downloads that version and completes the core smoke lifecycle; exact cleanup
+  passes; documentation renders correctly; no IAM surface appears; no secret
+  or unrelated FeatBit object was accessed; and the release/tag/assets were not
+  mutated after publication.
 
 ## Phase exit
 
-- [ ] **P5-090 — Close Phase 5 and prepare Phase 6.**
+- [ ] **P5-090 — Close Phase 5 and prepare post-release Phase 6 IAM.**
 
   Confirm every item above and the README exit gate. Update the master plan
-  only with still-current runtime/roadmap facts and make its next action the
-  first concrete release-readiness task. Then delete this completed Phase 5
-  package and create only a Phase 6 `README.md` and detailed `todo.md`.
+  only with still-current released architecture, compatibility, support, and
+  roadmap facts. Make its next action the first concrete Phase 6 IAM
+  contract-verification task. Delete this completed Phase 5 package and create
+  only a Phase 6 IAM `README.md` and detailed `todo.md`.
 
 - [ ] **P5-091 — Declare Phase 5 complete only after the exit gate passes.**
 
-  This final consistency check must find no unchecked item, unresolved IAM
-  tenant/header/identity assumption, Member lifecycle path, built-in Policy
-  mutation path, statement canonicalization gap, whole-set relationship
-  ownership, direct/inherited confusion, secret/runtime-value finding, failed
-  lifecycle or Import convergence, changed pre-existing Cloud edge, pending
-  test object/edge, missing schema verification, or absent Phase 6 entry point.
+  This final consistency check must find no unchecked item, unpublished or
+  unverified release, mutable/missing asset, checksum/signature/manifest
+  mismatch, development-version binary, stale documentation, unsupported
+  compatibility claim, unpinned or over-privileged workflow, fork-accessible
+  secret, unresolved dependency/license/vulnerability issue, failed core
+  lifecycle/Import convergence, pending test object, changed unrelated Cloud
+  object, credential/runtime-value finding, IAM schema/header/endpoint surface,
+  or absent Phase 6 IAM entry point.

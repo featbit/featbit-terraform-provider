@@ -3,7 +3,7 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Active work: [Phase 5 — IAM](plan-execution-phase-5/README.md)
+- Active work: [Phase 5 — Initial release](plan-execution-phase-5/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
@@ -21,9 +21,11 @@ only environment-specific metadata, targeting, and tags through specialized
 public endpoints; exact shared Segment reads remain data-source-only, and
 reference-aware destroy proves complete active/archived absence. All four core
 resource phases passed their local, Protocol, and trusted current-Cloud gates
-with exact cleanup. The next action is Phase 5 `P5-010`: freeze IAM tenant
-scope and context-header behavior, then add complete exact member reads without
-exposing member creation or initial-password data.
+with exact cleanup. The initial public release contains only those four core
+resources and their data sources; IAM is deferred until after that release.
+The next action is Phase 5 `P5-010`: freeze the core-only release contract,
+version/compatibility policy, supported artifact matrix, and release
+prerequisites before adding documentation or automation.
 
 ## 2. Product boundary
 
@@ -35,9 +37,11 @@ Core v1 manages these environment-scoped customer workflows:
 - `featbit_segment`
 - one exact single-object data source and Import support for each resource
 
-IAM follows after the core resources: groups, policies, exact member lookup,
-and independent group/member/policy binding resources. Member invitation or
-creation remains external.
+IAM follows in a post-initial-release phase: groups, policies, exact member
+lookup, and independent group/member/policy binding resources. The initial
+release exposes no IAM object, relationship, tenant selector, or context-header
+contract. Member invitation or creation remains external in the later IAM
+scope.
 
 Core v1 does not evaluate flags, deploy FeatBit, manage analytics/audit streams,
 copy LaunchDarkly's resource model, or expose a generic raw-REST resource. It
@@ -52,9 +56,10 @@ archived cleanup on the same date. The environment-specific Segment lifecycle
 passed on 2026-08-04 with exact Segment and parent cleanup. No safely owned
 shared Segment fixture was available, so shared reads remain verified through
 public-contract and Protocol tests without inspecting or mutating unrelated
-objects. Each later resource must pass its own current-Cloud gate. Self-hosted
-is an intended target through a configurable API origin, but no exact
-self-hosted release is currently certified.
+objects. Each post-release resource must pass its own current-Cloud gate.
+Self-hosted is an intended target through a configurable API origin, but no
+exact self-hosted release is currently certified and the initial release must
+not claim otherwise.
 
 ## 3. Current architecture
 
@@ -108,10 +113,10 @@ Architecture rules:
 The token is sent directly in `Authorization`, without a Bearer prefix, login
 exchange, or token-kind selector. The implemented core transport strips
 organization/workspace context headers and never sends credentials outside the
-configured origin and `/api/v1` path. The public IAM OpenAPI advertises
-optional Organization/Workspace parameters while the general REST guide names
-Authorization as the required authentication header; P5-010 must resolve that
-scope contract before any provider configuration or transport change.
+configured origin and `/api/v1` path. The initial release preserves that
+five-attribute schema and transport boundary. Any future IAM tenant/context
+contract must be proven in its post-release phase before provider
+configuration or transport changes.
 
 ### Shared HTTP contract
 
@@ -141,9 +146,9 @@ scope contract before any provider configuration or transport change.
 | Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
 | Environment-specific segment | Implemented | Environment plus UUID identity. Manage name, description, included/excluded users, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence. |
 | Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
-| IAM member | Phase 5 verification first | Read-only exact lookup for relationship endpoints. Invitation, creation, profile mutation, team removal, and initial-password handling remain external. |
-| IAM group and custom policy | Phase 5 planned | Manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only. |
-| IAM relationship edge | Phase 5 planned | Each group-member, group-policy, or direct member-policy resource owns one exact pair, never an entire shared relationship set. |
+| IAM member | Deferred until after the initial release | Later read-only exact lookup for relationship endpoints. Invitation, creation, profile mutation, team removal, and initial-password handling remain external. |
+| IAM group and custom policy | Deferred until after the initial release | Later manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only. |
+| IAM relationship edge | Deferred until after the initial release | Each later group-member, group-policy, or direct member-policy resource owns one exact pair, never an entire shared relationship set. |
 
 Common lifecycle rules:
 
@@ -168,9 +173,9 @@ Implemented core Import IDs are stable public contracts:
 | Feature flag | `<environment_uuid>/<exact_key>` |
 | Segment | `<environment_uuid>/<segment_uuid>` |
 
-IAM object and binding Import forms remain provisional until P5-010/P5-011
-freeze tenant scope, exact identities, and relationship direction. They must
-not be published as stable contracts before then.
+IAM object and binding Import forms are not part of the initial release. The
+post-release IAM phase must freeze tenant scope, exact identities, and
+relationship direction before publishing any such contract.
 
 ## 5. Roadmap
 
@@ -207,7 +212,20 @@ Import, drift, and exact destroy. Keep shared segments read/bind only.
 
 Gate: lifecycle and Import converge; reference conflicts preserve valid state.
 
-### Phase 5 — IAM (active)
+### Phase 5 — Initial release (active)
+
+Add fork-safe credential-free pull-request CI with pinned quality tools, while
+keeping live acceptance jobs separately trusted and scoped. Add Registry
+documentation/examples, security and contribution guides, upgrade policy,
+cross-platform release packaging, checksums/signatures, Cloud and self-hosted
+compatibility claims backed by evidence, prerelease smoke tests, and Registry
+publication. The release schema contains exactly the four implemented core
+resources and four data sources; it contains no IAM surface.
+
+Gate: a clean directory can initialize, plan, apply, destroy, and import using
+the Registry provider; release assets satisfy Registry requirements.
+
+### Phase 6 — IAM (post-initial release)
 
 First verify access-token tenant scope, optional context-header behavior, and
 complete exact member lookup without exposing initial-password data. Then add
@@ -216,22 +234,12 @@ member-policy resources. Keep member creation and team removal external.
 
 Gate: bindings are idempotent and never claim an entire shared relationship set.
 
-### Phase 6 — Release
-
-Add fork-safe credential-free pull-request CI with pinned quality tools, while
-keeping live acceptance jobs separately trusted and scoped. Add Registry
-documentation/examples, security and contribution guides, upgrade policy,
-cross-platform release packaging, checksums/signatures, Cloud and self-hosted
-compatibility runs, prerelease smoke tests, and Registry publication.
-
-Gate: a clean directory can initialize, plan, apply, destroy, and import using
-the Registry provider; release assets satisfy Registry requirements.
-
 ## 6. Global verification
 
 Current runtime pins are authoritative in `go.mod`: Go `1.25.8`, Plugin
 Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
-Log `v0.10.0`. CI/release uses Go `1.26.5`; Protocol is `6.0`.
+Log `v0.10.0`. Protocol is `6.0`. The repository does not yet contain CI or
+release automation; Phase 5 freezes and pins those toolchains before use.
 
 Every applicable phase gate includes:
 

@@ -1,284 +1,310 @@
-# Phase 5 — IAM
+# Phase 5 — Initial release
 
 - Status: **In progress**
 - Updated: **2026-08-04**
 - Next task: `P5-010`
 
-Read [AGENTS.md](../../AGENTS.md), the
-[current project plan](../plan.md), then [todo.md](todo.md). No completed phase
-package is required.
+This package is the active execution context for the first public release of
+the FeatBit Terraform Provider. The release contains the four completed core
+resource families only. IAM begins after this release and must not add schema,
+configuration, transport headers, API calls, documentation, or compatibility
+claims during Phase 5.
 
 ## Starting point
 
-The Phase 4 exit gate passed. The repository has one locally loadable Protocol
-v6 provider with five configuration attributes, a shared handwritten HTTP
-client, and four registered core resources plus their exact single-object data
-sources. Project, Environment, Feature Flag, and environment-specific Segment
-lifecycles already provide:
+Phases 1 through 4 passed their local, Protocol v6, and scoped current-Cloud
+gates. The repository currently contains:
 
-- escaped path construction, strict UUID validation, bounded responses,
-  cancellation, bodyless-GET retry, one-shot mutations, central envelope/error
-  handling, and runtime-value redaction;
-- complete pagination and exact zero/one/duplicate resolution that never treats
-  a direct `404`, fuzzy filter result, or partial collection as authoritative;
-- canonical read-after-write state, strict Import parsing, replacement-aware
-  stable IDs, ambiguous-mutation reconciliation, and cancellation-safe keyed
-  serialization where a concrete lifecycle needs it; and
-- Protocol v6, cross-resource ownership, trusted current-Cloud cleanup, local
-  override, schema JSON, race, dependency, license, vulnerability, and
-  repository-secret verification.
+- a Protocol v6 provider at `registry.terraform.io/featbit/featbit`;
+- five provider configuration attributes;
+- Project, Environment, Feature Flag, and Segment resources;
+- one exact single-object data source for each resource family;
+- stable Import contracts for all four managed resources;
+- a handwritten public REST client with exact lookup, cancellation, bounded
+  concurrency, read-only retry, one-shot mutation, reconciliation, and
+  redaction contracts;
+- `main.go` build-time version injection and a Protocol 6
+  `terraform-registry-manifest.json`; and
+- trusted current-Cloud acceptance coverage with exact cleanup for every
+  managed core resource.
 
-Reuse those contracts only when IAM tenant scope, identity, collection, and
-relationship ownership match. Do not weaken the transport boundary or expose
-member, policy-resource, or tenant values merely to share an existing helper.
+The repository does not yet contain a public README, Registry documentation or
+examples, GitHub Actions, GoReleaser configuration, release signing workflow,
+security/contribution guidance, or a clean-directory Registry-install smoke
+test. Phase 5 adds those release surfaces without changing the implemented
+product scope.
 
 ## Objective
 
-Deliver exact read-only member lookup, managed custom groups and policies, and
-three independent relationship resources:
+Publish a signed, reproducible, documented initial provider release whose
+public contract consists of exactly:
 
-- `featbit_group_member`;
-- `featbit_group_policy`; and
-- `featbit_member_policy` for direct member policies only.
+- `featbit_project`;
+- `featbit_environment`;
+- `featbit_feature_flag`;
+- `featbit_segment`; and
+- `data.featbit_project`, `data.featbit_environment`,
+  `data.featbit_feature_flag`, and `data.featbit_segment`.
 
-Also provide exact single-object data sources for members, groups, and
-policies. Every relationship resource owns one pair and must coexist with
-relationships created by the UI, other Terraform states, or other automation.
-Member invitation, creation, profile changes, password handling, and removal
-from the team remain external.
+The Segment resource manages environment-specific segments only. Its data
+source may also observe an exact shared segment through the already-proven
+read-only contract.
 
-## Public IAM boundary to freeze
+The release must be installable from a clean Terraform directory, report its
+real build version, expose only the frozen Protocol v6 schema, and complete
+plan/apply/refresh/import/destroy lifecycles without permanent diffs or leaked
+credentials. Publication is not complete until the Registry-served artifact,
+rather than a development override, passes the final smoke test.
 
-The current official [IAM documentation](https://docs.featbit.co/iam/overview)
-describes members, groups, cumulative policies, and direct or inherited
-assignments. The current public
-[OpenAPI document](https://app-api.featbit.co/swagger/OpenApi/swagger.json)
-advertises the candidate operations below. P5-010 and P5-011 must freeze their
-exact safe request/response shapes before a Terraform schema or mutation caller
-depends on them.
+## Frozen product boundary
 
-| Purpose | Candidate documented operation |
-|---|---|
-| Member exact/list read | `GET /api/v1/members/{memberId}` and `GET /api/v1/members` with `SearchText`, `PageIndex`, and `PageSize` |
-| Member group/direct-policy reads | `GET /api/v1/members/{memberId}/groups` and `GET /api/v1/members/{memberId}/direct-policies` |
-| Group exact/list read | `GET /api/v1/groups/{id}` and `GET /api/v1/groups` with `Name`, `PageIndex`, and `PageSize` |
-| Group lifecycle | `POST /api/v1/groups`, `PUT /api/v1/groups/{id}`, and `DELETE /api/v1/groups/{id}` |
-| Group member edge | `GET /api/v1/groups/{groupId}/members` plus `PUT .../add-member/{memberId}` and `PUT .../remove-member/{memberId}` |
-| Group policy edge | `GET /api/v1/groups/{groupId}/policies` plus `PUT .../add-policy/{policyId}` and `PUT .../remove-policy/{policyId}` |
-| Policy exact/list read | `GET /api/v1/policies/{id}` and `GET /api/v1/policies` with `Name`, `PageIndex`, and `PageSize` |
-| Custom policy lifecycle | `POST /api/v1/policies`, `PUT /api/v1/policies/{policyId}/settings`, `PUT /api/v1/policies/{policyId}/statements`, and `DELETE /api/v1/policies/{policyId}` |
-| Direct member policy edge | `GET /api/v1/members/{memberId}/direct-policies` plus `PUT .../add-policy/{policyId}` and `PUT .../remove-policy/{policyId}` |
+The initial release preserves these provider attributes:
 
-The list and relationship endpoints also expose exact-cased `GetAllMembers`,
-`GetAllGroups`, or `GetAllPolicies` switches where applicable. Do not infer
-their containment semantics; focused contracts must freeze which value proves
-one edge and which value merely supplies candidates.
-
-Do not call member-add, invitation, organization/workspace removal, policy
-clone, built-in-policy mutation, Portal-private, or direct database operations.
-Do not expose a generic IAM/raw-REST resource.
-
-## Tenant scope and authentication boundary
-
-The general public REST guide requires `Authorization` and `Content-Type` for
-body requests. IAM OpenAPI operations additionally advertise optional
-`Organization` and `Workspace` header parameters, while group/policy create
-bodies include an `organizationId` field. The existing transport deliberately
-strips caller-supplied organization/workspace headers.
-
-P5-010 must determine, using official sources and narrowly scoped read-only
-current-Cloud evidence, whether an access token alone selects the exact IAM
-tenant or whether IAM requires an explicit immutable tenant selector. Until
-that task completes:
-
-- preserve the existing five-attribute provider schema;
-- do not enable arbitrary header injection or forward caller headers;
-- do not hardcode any Cloud organization/workspace identity;
-- do not assume an organization key and organization UUID are interchangeable;
-  and
-- do not publish IAM Import IDs as stable contracts.
-
-If a tenant selector is proven necessary, add only the narrow validated
-provider/client contract required by public IAM callers, make it impossible to
-send credentials or tenant headers to another origin/path, and redact the
-selector from all diagnostics and logs.
-
-## Terraform contracts
-
-### Exact member data source
-
-`data.featbit_member` is read-only. P5-010 freezes whether it accepts an exact
-UUID only or also an exact email selector. A search result is discovery input,
-not identity: consume every page, compare the frozen field exactly, and reject
-zero, duplicate, contradictory, or incomplete results. Return only safe fields
-needed by binding callers, such as exact ID, name, and email.
-
-The public member response can contain `initialPassword`. Endpoint wire types,
-formatters, fixtures, diagnostics, logs, and Terraform state must omit it
-completely. The provider never invites, creates, updates, or removes members.
-
-### Group resource and data source
-
-`featbit_group` manages only the frozen custom-group name and description
-contract. Membership and attached policies are not set-valued fields owned by
-the group resource. `data.featbit_group` reads one exact group without granting
-mutation ownership.
-
-P5-011 freezes tenant identity, name uniqueness/filter behavior, nullable
-description canonicalization, server UUID/RN observations, replacement
-semantics, and Import form before P5-012 registers CRUD.
-
-### Policy resource and data source
-
-`featbit_policy` manages custom policy settings and the statement fields proven
-safe by the public contract. `data.featbit_policy` may observe built-in or
-custom policies, but built-in policy type must be structurally unreachable from
-resource mutation.
-
-Policy statement order is semantically irrelevant according to the public IAM
-documentation. P5-011 must still freeze exact effect/resource-type/action/RN
-spellings, element identity, server IDs, set canonicalization, validation, and
-unknown-value behavior before exposing statements. Member and group
-assignments remain separate resources, never fields owned by the policy.
-
-### Independent relationship resources
-
-Each binding resource requires two exact immutable identities and computes one
-canonical composite identity after P5-010/P5-011 freeze its public form:
-
-| Resource | Owned edge | Authoritative read |
+| Attribute | Environment fallback | Contract |
 |---|---|---|
-| `featbit_group_member` | one group UUID + member UUID | complete exact group-member or member-group relation |
-| `featbit_group_policy` | one group UUID + custom/built-in policy UUID | complete exact group-policy or policy-group relation |
-| `featbit_member_policy` | one member UUID + direct policy UUID | direct-policy view only; inherited policy is never an owned edge |
+| `api_url` | `FEATBIT_API_URL` | Optional; defaults to current FeatBit Cloud and supports an empty path or `/api/v1`. |
+| `access_token` | `FEATBIT_ACCESS_TOKEN` | Optional in configuration, required after environment resolution, and Sensitive. |
+| `http_timeout_seconds` | `FEATBIT_HTTP_TIMEOUT_SECONDS` | Optional; default `30`, range `1..300`. |
+| `max_concurrency` | `FEATBIT_MAX_CONCURRENCY` | Optional; default `4`, range `1..32`. |
+| `max_retries` | `FEATBIT_MAX_RETRIES` | Optional; default `3`, range `0..10`; mutations are never retried. |
 
-Create adds the one missing edge once. Read preserves state unless complete
-evidence proves the exact pair absent. Delete removes the one pair once and
-then proves exact absence. Ambiguous add/remove responses reconcile through the
-authoritative relation read without replay. Import accepts only the frozen
-ordered pair and never claims sibling edges.
+Phase 5 must not:
 
-## Identity, pagination, and canonicalization invariants
+- register an IAM resource or data source;
+- add an organization, workspace, member, group, policy, team, or context-header
+  provider attribute;
+- forward caller-supplied organization/workspace headers;
+- call IAM, Portal-private, deployment, analytics, or audit endpoints;
+- change an existing resource identity, ownership boundary, Import ID, default,
+  replacement rule, or canonical state shape merely for release convenience;
+  or
+- claim self-hosted compatibility that has not been exercised against an exact
+  named version and configuration.
 
-- Treat IAM object IDs as strict UUIDs once the public response proves that
-  contract. Never select the first name/email filter result.
-- Preserve email/name case and whitespace exactly until P5-010/P5-011 freeze
-  documented comparison and validation semantics.
-- Consume every page and reconcile `totalCount`. Empty-before-total, repeated,
-  malformed, inconsistent, or non-advancing pages are ambiguous.
-- A direct `404` or filtered zero is not authoritative absence when a complete
-  collection or relationship view is required by the lifecycle.
-- Keep endpoint wire models narrow. Never retain `initialPassword`, invitation
-  data, tenant details, audit fields, or unrelated member/group/policy lists.
-- Canonicalize policy statements independently of API order without changing
-  deny/allow meaning, exact resource RNs, or exact action strings.
-- Correlate server-owned statement identities only when the public API makes
-  them stable. Reject duplicates or missing required identities instead of
-  matching by response index.
+Release-only fixes are allowed when a focused failing contract proves that the
+documented core behavior, packaging, generated documentation, or installation
+path is incorrect. Any public schema change requires an explicit compatibility
+decision under the active TODO item.
 
-## Lifecycle and relationship invariants
+## Release contract to freeze
 
-- Before creating an object, use only the collision contract frozen for that
-  endpoint. Do not invent uniqueness or adopt an existing fuzzy match.
-- Execute every add, remove, Create, Update, and Delete mutation once. Reconcile
-  ambiguous results by exact read; never retry a mutation automatically.
-- Read and persist canonical state after each logical write boundary. Preserve
-  prior state whenever identity, tenant scope, relationship existence, or
-  mutation outcome is ambiguous.
-- Reject built-in/system policy mutation before transport. A custom policy must
-  not become mutable merely because its response shape resembles a built-in
-  policy.
-- Parent object resources never rewrite complete member/policy collections.
-  Binding resources never remove or reorder sibling relationships.
-- Direct member-policy ownership excludes policies inherited through groups.
-- Serialize only concrete colliding write boundaries and keep lock waits
-  cancellation-safe. Do not add a generic global IAM lock.
-- Trusted cleanup removes member-policy, group-policy, and group-member edges
-  before custom policies and groups, while proving all pre-existing edges are
-  unchanged.
+`P5-010` freezes the following before documentation or automation makes it
+public:
 
-## Security and redaction invariants
+- the initial SemVer strategy, including whether the first Registry artifact
+  is a prerelease or stable version;
+- the minimum and tested Terraform CLI versions;
+- the Go version used for CI and release builds;
+- the supported OS/architecture archive matrix;
+- the distinction between tested FeatBit Cloud behavior, configurable API
+  origins, and any certified self-hosted release;
+- the exact four-resource/four-data-source Protocol v6 schema snapshot;
+- compatibility promises for provider configuration, state, Import IDs, and
+  subsequent additive releases; and
+- the maintainer-owned prerequisites for GitHub Releases, GPG signing, and the
+  Terraform Registry namespace.
 
-- Credentials remain out of Terraform state, files, fixtures, diagnostics, and
-  logs. Prefer least-privilege service tokens for long-lived automation.
-- Treat member IDs, names, emails, tenant selectors, group/policy IDs and keys,
-  statement resources/actions, and relation pairs as runtime values in errors
-  and captured logs.
-- Never format or decode `initialPassword`. Tests inject markers for every
-  unsafe field and prove they are absent from diagnostics, logs, assertions,
-  and repository content.
-- Do not persist current-Cloud member inventories, policy documents, tenant
-  identity, response bodies, or cleanup journals. Test ownership and cleanup
-  inventory remain in memory.
+Do not infer a version number, platform, Terraform lower bound, self-hosted
+version, signing identity, or Registry ownership from a template. Record only
+values proven by the repository, official release requirements, or explicit
+maintainer choice.
 
-## Verification strategy
+## Registry documentation
 
-- Table-driven endpoint contracts freeze method, escaped path, exact query
-  casing, optional tenant context, JSON body, envelope, pagination,
-  cancellation, retry, one-shot mutation, and redaction behavior.
-- Focused provider tests freeze schemas, canonicalization, plan modifiers,
-  Import, ambiguity, state preservation, and single-edge ownership.
-- Protocol v6 tests exercise member/group/policy data sources, both managed
-  objects, all three bindings, Import, drift, second plans, out-of-band edge
-  changes, and child-first destroy through one narrow stateful fixture.
-- Cross-resource tests prove core resources remain unchanged while IAM policy
-  RNs refer to them only as opaque verified values.
-- Trusted current-Cloud tests use only uniquely named test-owned groups/custom
-  policies and an explicitly supplied member identity. They never create or
-  remove a member, mutate built-in policies, inspect unrelated projects, or
-  alter unrelated relationships.
-- The complete local gate retains formatting, vet, unit/race, repeated
-  contracts, Protocol tests, build, module/dependency/license/vulnerability,
-  diff, local override, schema JSON, and repository redaction scans.
+The public repository must contain:
+
+- a concise `README.md` covering scope, installation, authentication,
+  supported resource families, development, testing, and security reporting;
+- Registry `docs/index.md`;
+- one generated-and-reviewed page for every resource and data source;
+- credential-free examples for provider configuration, all four resource
+  families, exact data-source lookup, and every Import form;
+- an explicit statement that targeting owned by the UI remains outside the
+  Feature Flag resource and that shared Segments are read-only; and
+- no example token, tenant value, live object identifier, state, plan, cleanup
+  journal, or copied Cloud response.
+
+Use the official `terraform-plugin-docs` generator when its schema-derived
+output matches the provider contract. Pin the tool and retain the narrow
+templates or examples needed for human guidance. CI must regenerate into an
+isolated or clean tree and fail on drift; a release must never silently publish
+stale docs.
+
+## Registry artifact contract
+
+The current official
+[provider publishing requirements](https://developer.hashicorp.com/terraform/registry/providers/publishing)
+are the authority. At minimum, a final release must provide:
+
+- a valid `vX.Y.Z` SemVer tag with no same-named branch;
+- one zip per supported OS/architecture containing the correctly named
+  `terraform-provider-featbit_vX.Y.Z` binary;
+- `terraform-provider-featbit_X.Y.Z_manifest.json` declaring Protocol
+  `6.0`;
+- `terraform-provider-featbit_X.Y.Z_SHA256SUMS` covering every archive and
+  the manifest; and
+- a valid detached GPG signature
+  `terraform-provider-featbit_X.Y.Z_SHA256SUMS.sig` made by the key registered
+  for the Registry namespace.
+
+Use a pinned GoReleaser v2 configuration derived from the current official
+Terraform Plugin Framework scaffold, then narrow it to the platform matrix
+frozen in `P5-010`. Builds are `CGO_ENABLED=0`, trimmed, version-injected
+through `main.version`, and free of local paths. Snapshot builds may exercise
+the complete packaging path but must not create a tag, GitHub release, Registry
+version, or reusable signing artifact.
+
+Never replace assets for an already published version. A required correction
+is a new version.
+
+## CI and privilege separation
+
+Credential-free pull-request and ordinary branch CI:
+
+- uses read-only repository permissions;
+- works for untrusted forks without secrets;
+- never uses `pull_request_target` to execute or package contributor code;
+- pins every action to a verified full commit SHA;
+- runs format, vet, unit/Protocol tests, race where supported, build,
+  module-tidiness/verification, documentation drift, dependency/license/
+  vulnerability checks, secret scanning, and snapshot packaging as applicable;
+  and
+- leaves trusted FeatBit Cloud tests skipped because no token is present.
+
+Trusted current-Cloud acceptance is a separate, explicitly invoked or protected
+workflow. It receives only the required token through a protected environment,
+uses a unique test-owned prefix, operates only on its own core objects, and
+proves exact child-first cleanup. It never enumerates or modifies unrelated
+projects.
+
+The tag release workflow is separate again. It has only the permissions needed
+to create GitHub release assets and receives the GPG key/passphrase only after
+the protected release boundary. It must not process an untrusted checkout,
+reuse artifacts from an untrusted workflow, print secret-derived data, or
+publish when validation fails.
+
+## Compatibility and installation verification
+
+Before publication, snapshot assets must be verified independently of the
+GoReleaser job:
+
+- archive names and contents match the frozen matrix;
+- every checksum verifies and the detached signature verifies with the public
+  key;
+- the embedded provider version matches the proposed release;
+- the manifest parses and advertises Protocol `6.0`;
+- representative native runners can start the packaged provider and retrieve
+  its exact schema; and
+- a clean Terraform directory installs the candidate through an isolated
+  filesystem/network-mirror path without a development override.
+
+The release candidate then runs the frozen Terraform CLI compatibility matrix.
+The trusted current-Cloud smoke test covers Project, Environment, all four
+Feature Flag types, an environment-specific Segment, Import, second-plan
+idempotence, drift repair, dependency-ordered destroy, and independent exact
+cleanup. Shared Segment behavior remains public-contract/Protocol verified
+unless an explicitly owned shared fixture exists; lack of one never authorizes
+reading unrelated objects.
+
+After publication, a new clean directory must install the exact Registry
+version and repeat schema, plan, apply, Import, empty second plan, and destroy
+smoke tests without local overrides.
+
+## Security, support, and supply chain
+
+- Keep credentials, GPG private material, passphrases, Cloud runtime values,
+  Terraform state, plans, and generated logs out of the repository and release
+  assets.
+- Publish a security policy with a private reporting path, supported-version
+  policy, and response expectations; do not ask reporters to disclose a
+  vulnerability publicly.
+- Publish contribution, development, test, documentation-generation, and
+  release-maintainer guidance without embedding workstation-specific paths.
+- Record an upgrade and compatibility policy before the first stable public
+  contract.
+- Pin quality/release tools and GitHub Actions. Review licenses, vulnerabilities,
+  provenance, permissions, and maintenance before adding them.
+- Produce and inspect a software bill of materials when the chosen release
+  tooling supports it without weakening the required Registry artifact names
+  or signature contract.
+- Scan the current tree and final archives for secrets and unexpected files.
+
+## Maintainer-owned external actions
+
+The following actions require explicit maintainer authorization and cannot be
+inferred from implementation work:
+
+- choosing the initial public version when it is not already frozen;
+- creating/importing the release GPG key and storing protected secrets;
+- registering the public signing key with the Terraform Registry namespace;
+- changing GitHub organization/repository Actions or environment settings;
+- creating or pushing a release tag;
+- publishing/finalizing a GitHub release;
+- connecting or resynchronizing the provider in the Terraform Registry; and
+- announcing the release.
+
+Tasks may prepare and locally verify everything before these boundaries. Stop
+and request authorization before performing an external action that has not
+already been explicitly requested.
 
 ## Execution order
 
-1. Freeze tenant scope/context-header behavior and complete exact member reads.
-2. Freeze Group/Policy wire taxonomy, canonicalization, schemas, and exact data
-   sources.
-3. Add custom Group CRUD, Import, and recovery.
-4. Add custom Policy settings/statements CRUD, Import, and recovery.
-5. Add one-edge group-member, group-policy, and direct member-policy resources.
-6. Prove the combined Protocol lifecycle, ownership/redaction boundaries,
-   trusted scoped current-Cloud behavior, and the complete Phase 5 gate.
+1. Freeze the core-only release, compatibility, versioning, and platform
+   contract.
+2. Add Registry documentation, examples, and a reproducible drift check.
+3. Add public security, contribution, support, and upgrade guidance.
+4. Add fork-safe credential-free CI with pinned tools/actions.
+5. Add reproducible GoReleaser packaging, checksums, signing configuration,
+   and snapshot verification.
+6. Add the isolated protected release workflow.
+7. Prove packaged-provider installation and the Terraform/platform
+   compatibility matrix.
+8. Run the trusted core-only current-Cloud release-candidate gate and the full
+   local/supply-chain gate.
+9. With explicit maintainer authorization, publish and verify the initial
+   GitHub/Registry release.
 
 ## Out of scope
 
-- Member invitation, creation, initial password, profile changes, activation,
-  removal from an organization/workspace/team, or Terraform ownership of the
-  default team.
-- Nested groups, bulk relationship-set ownership, inherited-policy mutation,
-  built-in policy mutation/clone, access-token management, SSO, licenses,
-  Relay Proxy permissions, or IAM audit streams.
-- Arbitrary context headers, Portal APIs, direct database access, generated
-  clients, a raw REST resource, or speculative generic graph/policy engines.
-- Permanent CI/release wiring, Registry documentation, packaging, and
-  publication; those remain Phase 6.
+- Every IAM member, group, policy, team, relationship, tenant-context, or
+  context-header capability. These begin in Phase 6.
+- New core resource fields, generic raw-REST resources, Portal-private APIs,
+  backend/database access, flag evaluation, deployments, Relay Proxy,
+  analytics, or audit streams.
+- Modifying unrelated FeatBit projects, shared objects, account settings,
+  tokens, organization membership, or repository settings outside a separately
+  authorized release prerequisite.
+- Certifying an unspecified self-hosted version.
+- Publishing an unsigned, mutable, unverified, or locally overridden provider
+  as the initial release.
 
 ## Exit gate
 
 - All items in [todo.md](todo.md) are complete.
-- IAM tenant scope and authentication are proven without arbitrary header
-  forwarding, credential leakage, or regression of the four core resources.
-- The provider schema preserves every core provider/resource/data-source
-  contract and exposes exactly the IAM objects and bindings frozen in this
-  phase.
-- Exact member lookup rejects fuzzy, duplicate, incomplete, or contradictory
-  results and never observes or stores `initialPassword`.
-- Custom Group and Policy Create, exact Read, Update, Import, second-plan
-  idempotence, drift, replacement where applicable, out-of-band deletion, and
-  exact cleanup pass.
-- All three binding resources converge, reconcile ambiguous one-shot
-  mutations, preserve sibling/direct/inherited relationships, and own only one
-  exact pair.
-- Built-in policies and member lifecycle remain structurally unreachable from
-  mutation paths.
-- Formatting, vet, unit/race, repeated endpoint contracts, Protocol v6 tests,
-  build, module/dependency verification, diff checks, local override, schema
-  assertions, repository redaction scans, and trusted scoped current-Cloud
-  acceptance pass.
-- The current plan identifies Phase 6's first concrete release-readiness task.
+- The published provider exposes exactly five provider attributes, four core
+  resources, four data sources, Protocol `6.0`, and no IAM surface.
+- README, Registry docs, examples, security/contribution/support guidance, and
+  upgrade policy match the frozen schema and contain no credentials or runtime
+  tenant/object values.
+- Fork pull requests pass credential-free read-only CI; no untrusted workflow
+  can access release or Cloud secrets.
+- Snapshot and final artifacts match the frozen OS/architecture matrix,
+  contain the correct versioned binary and manifest, pass checksum/signature/
+  provenance inspection, and contain no unexpected file.
+- The Terraform CLI/platform compatibility matrix and clean-directory
+  prepublication install tests pass.
+- Trusted current-Cloud release-candidate tests pass only against uniquely
+  test-owned core objects and independently prove exact cleanup without reading
+  or mutating unrelated projects.
+- Formatting, vet, unit/race/Protocol tests, build, module/dependency/license/
+  vulnerability checks, docs drift, secret scans, and repository diff checks
+  pass.
+- With explicit maintainer authorization, the signed GitHub release is final,
+  the Terraform Registry serves the exact version, and a new clean directory
+  completes init/schema/plan/apply/Import/empty-plan/destroy without a local
+  override.
+- The current plan identifies Phase 6 IAM as post-initial-release work.
 
-After the gate passes, fold only still-current architecture and roadmap facts
-into [the master plan](../plan.md), delete this Phase 5 directory, and create
-only the Phase 6 README/TODO.
+After the gate passes, fold only still-current architecture, compatibility, and
+roadmap facts into [the master plan](../plan.md), delete this Phase 5 package,
+and create only the Phase 6 IAM README/TODO.
