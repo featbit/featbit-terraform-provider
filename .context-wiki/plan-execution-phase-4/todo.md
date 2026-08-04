@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-015**
+Next: **P4-030**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -259,7 +259,7 @@ handoff.
   passed. Race remains owned by P4-032 because this Windows host has no `gcc`
   available for CGO.
 
-- [ ] **P4-015 — Prove the Segment Terraform Protocol v6 lifecycle.**
+- [x] **P4-015 — Prove the Segment Terraform Protocol v6 lifecycle.**
 
   Scope: exercise the registered Segment resource/data source through Protocol
   v6 against one narrow stateful public-API fixture. Model full exact reads,
@@ -283,6 +283,24 @@ handoff.
   segment passes exact data-source Read while every resource mutation is
   rejected. The recorder proves exact call order, no mutation retry/forbidden
   endpoint/context header, and complete active/archived teardown.
+
+  Result (2026-08-04): `internal/provider/segment_protocol_test.go` and the
+  focused `segment_protocol_fixture_test.go` exercise the registered resource
+  and both environment-specific/shared exact data-source reads through the
+  existing Terraform CLI/Protocol v6 harness. The narrow stateful fixture
+  implements only the production Segment public calls and proves Create,
+  Import plus empty plan, a second empty plan, all owned drift repair,
+  arbitrary set/collection ordering, ordered-rule changes, every replacement
+  input, direct-read fallback, out-of-band deletion, shared mutation rejection,
+  external archive fail-closed behavior, reference conflict, and exact
+  archive-plus-delete. Runtime is `terraform plan/apply/refresh/import/destroy
+  -> providerserver Protocol v6 -> Segment resource/data source -> Segment
+  adapter -> isolated public-API fixture`; its recorder verifies deterministic
+  specialized-write order, one-shot reconciliation after an injected ambiguous
+  mutation response, no forbidden endpoint or context header, and final
+  complete active/archived zero proof. `gofmt -l .`, three repeated focused
+  Protocol lifecycles, `go test ./...`, `go vet ./...`, `go build ./...`, `go
+  mod tidy -diff`, `go mod verify`, and `git diff --check` passed.
 
 ## Integration and verification
 
