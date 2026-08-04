@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-012**
+Next: **P4-014**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -118,7 +118,7 @@ handoff.
 
 ## Environment-specific Segment resource
 
-- [ ] **P4-012 — Add Segment Create, replacement, Import, and recovery.**
+- [x] **P4-012 — Add Segment Create, replacement, Import, and recovery.**
 
   Scope: add and register `featbit_segment`; add the documented one-shot Create
   endpoint and only the specialized targeting/tag initialization needed to
@@ -151,7 +151,24 @@ handoff.
   replacement and in-place stable-ID plans; cancellation/lock waits; one-shot
   call counts; and redaction-safe recoverable state.
 
-- [ ] **P4-013 — Add specialized metadata, targeting, and tag Update.**
+  Result (2026-08-04): `internal/client/segments.go` and its focused tests add
+  the exact one-shot Create, targeting, and tag payloads; the new
+  `internal/provider/segment_resource.go` and tests register the
+  environment-specific resource with canonical ModifyPlan, exact Read,
+  provisional UUID state, strict Import, keyed Create serialization, and
+  fail-closed Update/Delete boundaries reserved for P4-013/P4-014. Runtime is
+  now `segmentResource.Create -> complete active+archived key preflight -> one
+  CreateSegment -> provisional UUID -> exact GetSegment -> conditional one
+  targeting PUT/Get -> conditional one tags PUT/Get -> canonical state`;
+  ambiguous POST or initialization outcomes reconcile without replay or
+  adoption, and shared/type/scope contradictions reach no follow-up mutation.
+  Current official OpenAPI/source shapes were rechecked. `gofmt -l .`, 10
+  repeated client and provider Segment contracts, `go test ./...`, `go vet
+  ./...`, `go build ./...`, `go mod tidy -diff`, `go mod verify`, and `git diff
+  --check` passed. Focused race remains part of P4-032 because this Windows
+  host currently has no C compiler for CGO.
+
+- [x] **P4-013 — Add specialized metadata, targeting, and tag Update.**
 
   Scope: add only the documented name, description, targeting, and tag endpoint
   methods. Diff canonical prior state from plan and execute each changed owned
@@ -176,6 +193,24 @@ handoff.
   ambiguous and partial-success reconciliation; cancellation including lock
   wait; one-shot call counts; and diagnostics/state that reveal no runtime
   identity or targeting value.
+
+  Result (2026-08-04): `internal/client/segments.go` and its focused tests add
+  exact one-shot name and description PUT contracts while reusing the existing
+  targeting/tag Boolean mutation boundary. `internal/provider/segment_resource.go`
+  and the focused `segment_update_test.go` freeze one canonical prior/plan diff,
+  serialize the exact Environment/Segment write boundary, send only changed
+  components in name/description/targeting/tags order, advance recoverable state
+  after each successful component, reconcile ambiguous results by exact read
+  without replay, and finish with one exact canonical read. Runtime is now
+  `segmentResource.Update -> canonical diff -> optional name PUT -> optional
+  description PUT -> optional targeting PUT -> optional tags PUT -> GetSegment
+  -> canonical state`; unsafe identity/type/scope state and remote reconciliation
+  mismatches fail closed. Current official OpenAPI shapes were rechecked.
+  `gofmt -l .`, 10 repeated specialized client and resource Update contracts,
+  `go test ./...`, `go vet ./...`, `go build ./...`, `go mod tidy -diff`, `go
+  mod verify`, and `git diff --check` passed. Race remains owned by P4-032:
+  this Windows host has `CGO_ENABLED=0`, and enabling it confirms that `gcc` is
+  not installed.
 
 - [ ] **P4-014 — Add reference-aware archive-plus-hard-delete.**
 

@@ -16,6 +16,10 @@ import (
 const (
 	segmentsPath              = "segments"
 	segmentFlagReferencesPath = "flag-references"
+	segmentNamePath           = "name"
+	segmentDescriptionPath    = "description"
+	segmentTargetingPath      = "targeting"
+	segmentTagsPath           = "tags"
 	segmentPageSize           = 100
 	maxSegmentPageIndex       = int64(1<<31 - 1)
 )
@@ -120,6 +124,69 @@ type SegmentCondition struct {
 // condition.
 func (SegmentCondition) Format(state fmt.State, _ rune) {
 	_, _ = io.WriteString(state, "client.SegmentCondition{redacted}")
+}
+
+// CreateSegmentRequest is the complete documented Segment create payload.
+// The lifecycle-owned caller only permits the environment-specific taxonomy;
+// targeting and tags are initialized through their specialized endpoints.
+type CreateSegmentRequest struct {
+	Type        SegmentType `json:"type"`
+	Name        string      `json:"name"`
+	Key         string      `json:"key"`
+	Description string      `json:"description"`
+	Scopes      []string    `json:"scopes"`
+}
+
+// Format prevents a Segment create payload from exposing runtime definition
+// values if it is accidentally formatted in a diagnostic or log.
+func (CreateSegmentRequest) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.CreateSegmentRequest{redacted}")
+}
+
+// UpdateSegmentNameRequest is the documented specialized name payload.
+// Optional audit comments and path identity are deliberately absent.
+type UpdateSegmentNameRequest struct {
+	Name string `json:"name"`
+}
+
+// Format applies the Segment redaction boundary to name mutations.
+func (UpdateSegmentNameRequest) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.UpdateSegmentNameRequest{redacted}")
+}
+
+// UpdateSegmentDescriptionRequest is the documented specialized description
+// payload. Optional audit comments and path identity are deliberately absent.
+type UpdateSegmentDescriptionRequest struct {
+	Description string `json:"description"`
+}
+
+// Format applies the Segment redaction boundary to description mutations.
+func (UpdateSegmentDescriptionRequest) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.UpdateSegmentDescriptionRequest{redacted}")
+}
+
+// UpdateSegmentTargetingRequest is the documented specialized targeting
+// payload. Optional audit comments and path identity are deliberately absent.
+type UpdateSegmentTargetingRequest struct {
+	Included []string      `json:"included"`
+	Excluded []string      `json:"excluded"`
+	Rules    []SegmentRule `json:"rules"`
+}
+
+// Format applies the Segment redaction boundary to targeting mutations.
+func (UpdateSegmentTargetingRequest) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.UpdateSegmentTargetingRequest{redacted}")
+}
+
+// UpdateSegmentTagsRequest is the documented specialized tag payload.
+// Optional audit comments and the route-owned Segment UUID are omitted.
+type UpdateSegmentTagsRequest struct {
+	Tags []string `json:"tags"`
+}
+
+// Format applies the Segment redaction boundary to tag mutations.
+func (UpdateSegmentTagsRequest) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, "client.UpdateSegmentTagsRequest{redacted}")
 }
 
 // SegmentMatch is the intentionally incomplete collection shape used only for
@@ -316,6 +383,275 @@ func (c *Client) ResolveSegment(
 		identity,
 		c.redactor.With(environmentID, identity.ID, identity.Key),
 	)
+}
+
+// CreateSegment executes the documented mutation exactly once. Exact-zero
+// preflight, canonical read-after-write, specialized initialization, and
+// ambiguous-outcome reconciliation belong to the Terraform lifecycle caller.
+// A structurally inconsistent successful response still returns its valid UUID
+// so the caller can establish recoverable provisional state without mutation
+// replay or silent adoption.
+func (c *Client) CreateSegment(
+	ctx context.Context,
+	environmentID string,
+	input CreateSegmentRequest,
+) (Segment, error) {
+	if !ValidUUID(environmentID) || !validCreateSegmentRequest(input) {
+		return Segment{}, newAPIError(
+			ClassificationValidation,
+			0,
+			"create_segment",
+			nil,
+			c.redactor,
+		)
+	}
+
+	sensitiveValues := segmentCreateSensitiveValues(environmentID, input)
+	request, err := c.newSegmentJSONRequest(
+		ctx,
+		http.MethodPost,
+		environmentID,
+		nil,
+		input,
+	)
+	if err != nil {
+		return Segment{}, newAPIError(
+			ClassificationAmbiguous,
+			0,
+			"create_segment",
+			nil,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+
+	response, err := c.Do(request)
+	if err != nil {
+		return Segment{}, err
+	}
+	var wire segmentWire
+	if err := c.DecodeResponse(
+		"create_segment",
+		response,
+		&wire,
+		sensitiveValues...,
+	); err != nil {
+		return Segment{}, segmentReadError(
+			"create_segment",
+			err,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+
+	canonicalID, idValid := CanonicalUUID(wire.ID)
+	if !idValid {
+		return Segment{}, newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			"create_segment",
+			nil,
+			c.redactor.With(sensitiveValues...).With(wire.ID),
+		)
+	}
+	segment, valid := segmentFromWire(wire, environmentID)
+	if !valid {
+		return Segment{ID: canonicalID, EnvironmentID: environmentID}, newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			"create_segment",
+			nil,
+			c.redactor.With(sensitiveValues...).With(wire.ID),
+		)
+	}
+	if segment.IsArchived || segment.Key != input.Key ||
+		segment.Name != input.Name || segment.Description != input.Description ||
+		segment.Type != input.Type || !sameSegmentStringSet(segment.Scopes, input.Scopes) {
+		return segment, newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			"create_segment",
+			nil,
+			c.redactor.With(sensitiveValues...).With(wire.ID),
+		)
+	}
+	return segment, nil
+}
+
+// UpdateSegmentName executes the documented specialized name mutation exactly
+// once. The lifecycle caller owns diffing, reconciliation, and canonical
+// read-after-write state.
+func (c *Client) UpdateSegmentName(
+	ctx context.Context,
+	environmentID string,
+	segmentID string,
+	input UpdateSegmentNameRequest,
+) error {
+	if !ValidUUID(environmentID) || !ValidUUID(segmentID) ||
+		strings.TrimSpace(input.Name) == "" {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			"update_segment_name",
+			nil,
+			c.redactor,
+		)
+	}
+	return c.mutateSegmentBoolean(
+		ctx,
+		http.MethodPut,
+		environmentID,
+		segmentID,
+		[]string{segmentID, segmentNamePath},
+		input,
+		"update_segment_name",
+		[]string{environmentID, segmentID, input.Name},
+	)
+}
+
+// UpdateSegmentDescription executes the documented specialized description
+// mutation exactly once. The lifecycle caller owns diffing, reconciliation,
+// and canonical read-after-write state.
+func (c *Client) UpdateSegmentDescription(
+	ctx context.Context,
+	environmentID string,
+	segmentID string,
+	input UpdateSegmentDescriptionRequest,
+) error {
+	if !ValidUUID(environmentID) || !ValidUUID(segmentID) {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			"update_segment_description",
+			nil,
+			c.redactor,
+		)
+	}
+	return c.mutateSegmentBoolean(
+		ctx,
+		http.MethodPut,
+		environmentID,
+		segmentID,
+		[]string{segmentID, segmentDescriptionPath},
+		input,
+		"update_segment_description",
+		[]string{environmentID, segmentID, input.Description},
+	)
+}
+
+// UpdateSegmentTargeting executes the documented specialized targeting
+// mutation exactly once. The lifecycle caller owns diffing, reconciliation,
+// and canonical read-after-write state.
+func (c *Client) UpdateSegmentTargeting(
+	ctx context.Context,
+	environmentID string,
+	segmentID string,
+	input UpdateSegmentTargetingRequest,
+) error {
+	if !ValidUUID(environmentID) || !ValidUUID(segmentID) ||
+		!validSegmentTargetingRequest(input) {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			"update_segment_targeting",
+			nil,
+			c.redactor,
+		)
+	}
+	return c.mutateSegmentBoolean(
+		ctx,
+		http.MethodPut,
+		environmentID,
+		segmentID,
+		[]string{segmentID, segmentTargetingPath},
+		input,
+		"update_segment_targeting",
+		segmentTargetingSensitiveValues(environmentID, segmentID, input),
+	)
+}
+
+// UpdateSegmentTags executes the documented specialized tag mutation exactly
+// once. The lifecycle caller owns diffing, reconciliation, and canonical
+// read-after-write state.
+func (c *Client) UpdateSegmentTags(
+	ctx context.Context,
+	environmentID string,
+	segmentID string,
+	input UpdateSegmentTagsRequest,
+) error {
+	if !ValidUUID(environmentID) || !ValidUUID(segmentID) || input.Tags == nil {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			"update_segment_tags",
+			nil,
+			c.redactor,
+		)
+	}
+	return c.mutateSegmentBoolean(
+		ctx,
+		http.MethodPut,
+		environmentID,
+		segmentID,
+		[]string{segmentID, segmentTagsPath},
+		input,
+		"update_segment_tags",
+		append([]string{environmentID, segmentID}, input.Tags...),
+	)
+}
+
+func (c *Client) mutateSegmentBoolean(
+	ctx context.Context,
+	method string,
+	environmentID string,
+	segmentID string,
+	segments []string,
+	payload any,
+	operation string,
+	sensitiveValues []string,
+) error {
+	request, err := c.newSegmentJSONRequest(
+		ctx,
+		method,
+		environmentID,
+		segments,
+		payload,
+	)
+	if err != nil {
+		return newAPIError(
+			ClassificationAmbiguous,
+			0,
+			operation,
+			nil,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+
+	response, err := c.Do(request)
+	if err != nil {
+		return err
+	}
+	var completed bool
+	if err := c.DecodeResponse(
+		operation,
+		response,
+		&completed,
+		sensitiveValues...,
+	); err != nil {
+		return segmentReadError(
+			operation,
+			err,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+	if !completed {
+		return newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			operation,
+			nil,
+			c.redactor.With(sensitiveValues...),
+		)
+	}
+	return nil
 }
 
 // GetSegmentFlagReferences reads the dedicated exact-ID preflight boundary.
@@ -570,6 +906,16 @@ func (c *Client) newSegmentRequest(
 	return c.newRequest(ctx, method, segmentPath(environmentID, segments), nil)
 }
 
+func (c *Client) newSegmentJSONRequest(
+	ctx context.Context,
+	method string,
+	environmentID string,
+	segments []string,
+	payload any,
+) (*http.Request, error) {
+	return c.newJSONRequest(ctx, method, segmentPath(environmentID, segments), payload)
+}
+
 func segmentPath(environmentID string, segments []string) []string {
 	path := []string{environmentsPath, environmentID, segmentsPath}
 	return append(path, segments...)
@@ -688,6 +1034,106 @@ func validSegmentIdentity(identity SegmentIdentity) bool {
 		return false
 	}
 	return identity.ID == "" || ValidUUID(identity.ID)
+}
+
+func validCreateSegmentRequest(input CreateSegmentRequest) bool {
+	if input.Type != SegmentTypeEnvironmentSpecific ||
+		strings.TrimSpace(input.Name) == "" || input.Key == "" ||
+		len(input.Scopes) != 1 {
+		return false
+	}
+	isEnvironmentSpecific := true
+	return validSegmentTaxonomy(input.Type, input.Scopes, &isEnvironmentSpecific)
+}
+
+func validSegmentTargetingRequest(input UpdateSegmentTargetingRequest) bool {
+	if input.Included == nil || input.Excluded == nil || input.Rules == nil {
+		return false
+	}
+	seenRuleIDs := make(map[string]struct{}, len(input.Rules))
+	seenConditionIDs := make(map[string]struct{})
+	for _, rule := range input.Rules {
+		ruleID, valid := CanonicalUUID(rule.ID)
+		if !valid || rule.Conditions == nil || len(rule.Conditions) == 0 {
+			return false
+		}
+		if _, duplicate := seenRuleIDs[ruleID]; duplicate {
+			return false
+		}
+		seenRuleIDs[ruleID] = struct{}{}
+		for _, condition := range rule.Conditions {
+			conditionID, valid := CanonicalUUID(condition.ID)
+			if !valid || condition.Property == "" || condition.Operator == "" {
+				return false
+			}
+			if _, duplicate := seenConditionIDs[conditionID]; duplicate {
+				return false
+			}
+			seenConditionIDs[conditionID] = struct{}{}
+		}
+	}
+	return true
+}
+
+func sameSegmentStringSet(left []string, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	values := make(map[string]struct{}, len(left))
+	for _, value := range left {
+		if _, duplicate := values[value]; duplicate {
+			return false
+		}
+		values[value] = struct{}{}
+	}
+	seenRight := make(map[string]struct{}, len(right))
+	for _, value := range right {
+		if _, exists := values[value]; !exists {
+			return false
+		}
+		if _, duplicate := seenRight[value]; duplicate {
+			return false
+		}
+		seenRight[value] = struct{}{}
+	}
+	return true
+}
+
+func segmentCreateSensitiveValues(
+	environmentID string,
+	input CreateSegmentRequest,
+) []string {
+	values := []string{
+		environmentID,
+		string(input.Type),
+		input.Name,
+		input.Key,
+		input.Description,
+	}
+	return append(values, input.Scopes...)
+}
+
+func segmentTargetingSensitiveValues(
+	environmentID string,
+	segmentID string,
+	input UpdateSegmentTargetingRequest,
+) []string {
+	values := []string{environmentID, segmentID}
+	values = append(values, input.Included...)
+	values = append(values, input.Excluded...)
+	for _, rule := range input.Rules {
+		values = append(values, rule.ID, rule.Name)
+		for _, condition := range rule.Conditions {
+			values = append(
+				values,
+				condition.ID,
+				condition.Property,
+				condition.Operator,
+				condition.Value,
+			)
+		}
+	}
+	return values
 }
 
 func resolveSegment(

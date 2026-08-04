@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -135,6 +136,506 @@ func TestGetSegmentUsesExactCompleteSafeContract(t *testing.T) {
 	}
 	if calls.Load() != 1 {
 		t.Fatalf("exact Segment request count = %d, want 1", calls.Load())
+	}
+}
+
+func TestCreateSegmentUsesExactOneShotContract(t *testing.T) {
+	t.Parallel()
+
+	input := CreateSegmentRequest{
+		Type:        SegmentTypeEnvironmentSpecific,
+		Name:        "Synthetic Segment",
+		Key:         "synthetic-segment",
+		Description: "Synthetic description",
+		Scopes:      []string{segmentEnvironmentScope},
+	}
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			if request.Method != http.MethodPost ||
+				request.URL.EscapedPath() != "/api/v1/envs/"+environmentOne+"/segments" ||
+				request.URL.RawQuery != "" || request.Header.Get("Content-Type") != "application/json" {
+				t.Fatal("CreateSegment did not use the exact documented request boundary")
+			}
+			assertNoContextHeaders(t, request)
+			assertSegmentJSONBody(t, request, input, []string{
+				"type", "name", "key", "description", "scopes",
+			})
+			data := segmentExactTestJSON(
+				strings.ToUpper(segmentIDOne),
+				environmentOne,
+				input.Key,
+				input.Type,
+				input.Scopes,
+				false,
+				true,
+				nil,
+			)
+			return segmentTestResponse(request, http.StatusOK, data), nil
+		},
+	))
+
+	segment, err := clientUnderTest.CreateSegment(context.Background(), environmentOne, input)
+	if err != nil {
+		t.Fatalf("CreateSegment() error = %v", err)
+	}
+	if !EqualUUID(segment.ID, segmentIDOne) || segment.Key != input.Key ||
+		segment.Type != SegmentTypeEnvironmentSpecific || segment.IsArchived {
+		t.Fatal("CreateSegment() did not return the exact created Segment")
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("CreateSegment() request count = %d, want 1", calls.Load())
+	}
+
+	formatted := fmt.Sprintf(
+		"%v|%+v|%#v|%v|%v|%v|%v",
+		input,
+		input,
+		input,
+		UpdateSegmentNameRequest{Name: "synthetic-name"},
+		UpdateSegmentDescriptionRequest{Description: "synthetic-description"},
+		UpdateSegmentTargetingRequest{Included: []string{"synthetic-user"}},
+		UpdateSegmentTagsRequest{Tags: []string{"synthetic-tag"}},
+	)
+	for _, unsafe := range []string{
+		input.Name, input.Key, input.Description, segmentEnvironmentScope,
+		"synthetic-name", "synthetic-description", "synthetic-user", "synthetic-tag",
+	} {
+		if strings.Contains(formatted, unsafe) {
+			t.Fatal("formatted Segment mutation payload exposed a runtime value")
+		}
+	}
+}
+
+func TestCreateSegmentPreservesAuthoritativeIDOnResponseMismatch(t *testing.T) {
+	t.Parallel()
+
+	input := CreateSegmentRequest{
+		Type:        SegmentTypeEnvironmentSpecific,
+		Name:        "Synthetic Segment",
+		Key:         "synthetic-segment",
+		Description: "Synthetic description",
+		Scopes:      []string{segmentEnvironmentScope},
+	}
+	tests := map[string]struct {
+		mutate        func(map[string]any)
+		wantPreserved bool
+	}{
+		"wrong environment": {
+			mutate:        func(data map[string]any) { data["envId"] = environmentTwo },
+			wantPreserved: true,
+		},
+		"wrong key": {
+			mutate:        func(data map[string]any) { data["key"] = "other-key" },
+			wantPreserved: true,
+		},
+		"shared taxonomy": {
+			mutate: func(data map[string]any) {
+				data["type"] = string(SegmentTypeShared)
+				data["scopes"] = []string{segmentOrganizationScope}
+				data["isEnvironmentSpecific"] = false
+			},
+			wantPreserved: true,
+		},
+		"unknown taxonomy": {
+			mutate:        func(data map[string]any) { data["type"] = "synthetic-unknown" },
+			wantPreserved: true,
+		},
+		"scope mismatch": {
+			mutate:        func(data map[string]any) { data["scopes"] = []string{segmentProjectScope} },
+			wantPreserved: true,
+		},
+		"archived response": {
+			mutate:        func(data map[string]any) { data["isArchived"] = true },
+			wantPreserved: true,
+		},
+		"missing id": {
+			mutate: func(data map[string]any) { delete(data, "id") },
+		},
+	}
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					data := segmentExactTestData(
+						segmentIDOne,
+						environmentOne,
+						input.Key,
+						input.Type,
+						input.Scopes,
+						false,
+						true,
+					)
+					test.mutate(data)
+					return segmentTestResponse(request, http.StatusOK, mustJSON(t, data)), nil
+				},
+			))
+
+			segment, err := clientUnderTest.CreateSegment(context.Background(), environmentOne, input)
+			requireAPIErrorClassification(t, err, ClassificationAmbiguous)
+			if got := EqualUUID(segment.ID, segmentIDOne); got != test.wantPreserved {
+				t.Fatalf("authoritative response ID preserved = %t, want %t", got, test.wantPreserved)
+			}
+			if calls.Load() != 1 {
+				t.Fatalf("CreateSegment() request count = %d, want 1", calls.Load())
+			}
+		})
+	}
+}
+
+func TestSegmentMutationValidationStopsBeforeTransport(t *testing.T) {
+	t.Parallel()
+
+	validCreate := CreateSegmentRequest{
+		Type:        SegmentTypeEnvironmentSpecific,
+		Name:        "Synthetic Segment",
+		Key:         "synthetic-segment",
+		Description: "Synthetic description",
+		Scopes:      []string{segmentEnvironmentScope},
+	}
+	validTargeting := func() UpdateSegmentTargetingRequest {
+		return UpdateSegmentTargetingRequest{
+			Included: []string{},
+			Excluded: []string{},
+			Rules: []SegmentRule{{
+				ID: segmentRuleID, Name: "Synthetic rule",
+				Conditions: []SegmentCondition{{
+					ID: segmentConditionID, Property: "region", Operator: "IsOneOf", Value: `[]`,
+				}},
+			}},
+		}
+	}
+	tests := map[string]func(*Client) error{
+		"invalid create environment": func(apiClient *Client) error {
+			_, err := apiClient.CreateSegment(context.Background(), "invalid", validCreate)
+			return err
+		},
+		"blank create name": func(apiClient *Client) error {
+			input := validCreate
+			input.Name = " \t"
+			_, err := apiClient.CreateSegment(context.Background(), environmentOne, input)
+			return err
+		},
+		"missing create key": func(apiClient *Client) error {
+			input := validCreate
+			input.Key = ""
+			_, err := apiClient.CreateSegment(context.Background(), environmentOne, input)
+			return err
+		},
+		"shared create type": func(apiClient *Client) error {
+			input := validCreate
+			input.Type = SegmentTypeShared
+			input.Scopes = []string{segmentOrganizationScope}
+			_, err := apiClient.CreateSegment(context.Background(), environmentOne, input)
+			return err
+		},
+		"unsafe create scope": func(apiClient *Client) error {
+			input := validCreate
+			input.Scopes = []string{segmentProjectScope}
+			_, err := apiClient.CreateSegment(context.Background(), environmentOne, input)
+			return err
+		},
+		"blank update name": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentName(
+				context.Background(),
+				environmentOne,
+				segmentIDOne,
+				UpdateSegmentNameRequest{Name: " \t"},
+			)
+		},
+		"invalid description segment": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentDescription(
+				context.Background(),
+				environmentOne,
+				"invalid",
+				UpdateSegmentDescriptionRequest{Description: "Synthetic"},
+			)
+		},
+		"nil targeting users": func(apiClient *Client) error {
+			input := validTargeting()
+			input.Included = nil
+			return apiClient.UpdateSegmentTargeting(context.Background(), environmentOne, segmentIDOne, input)
+		},
+		"missing targeting rule id": func(apiClient *Client) error {
+			input := validTargeting()
+			input.Rules[0].ID = ""
+			return apiClient.UpdateSegmentTargeting(context.Background(), environmentOne, segmentIDOne, input)
+		},
+		"duplicate targeting condition id": func(apiClient *Client) error {
+			input := validTargeting()
+			input.Rules[0].Conditions = append(
+				input.Rules[0].Conditions,
+				input.Rules[0].Conditions[0],
+			)
+			return apiClient.UpdateSegmentTargeting(context.Background(), environmentOne, segmentIDOne, input)
+		},
+		"nil tags": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentTags(
+				context.Background(),
+				environmentOne,
+				segmentIDOne,
+				UpdateSegmentTagsRequest{},
+			)
+		},
+	}
+	for name, invoke := range tests {
+		name := name
+		invoke := invoke
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(*http.Request) (*http.Response, error) {
+					t.Fatal("invalid Segment mutation reached the transport")
+					return nil, nil
+				},
+			))
+			requireAPIErrorClassification(t, invoke(clientUnderTest), ClassificationValidation)
+		})
+	}
+}
+
+func TestSegmentSpecializedMutationsUseExactOneShotContracts(t *testing.T) {
+	t.Parallel()
+
+	name := UpdateSegmentNameRequest{Name: "Synthetic renamed Segment"}
+	description := UpdateSegmentDescriptionRequest{Description: "Synthetic updated description"}
+	targeting := UpdateSegmentTargetingRequest{
+		Included: []string{"synthetic-user-included"},
+		Excluded: []string{"synthetic-user-excluded"},
+		Rules: []SegmentRule{{
+			ID: segmentRuleID, Name: "Synthetic rule",
+			Conditions: []SegmentCondition{{
+				ID:       segmentConditionID,
+				Property: "region",
+				Operator: "IsOneOf",
+				Value:    `["eu"]`,
+			}},
+		}},
+	}
+	tags := UpdateSegmentTagsRequest{Tags: []string{"synthetic-tag"}}
+	tests := map[string]struct {
+		path        string
+		payload     any
+		allowedKeys []string
+		invoke      func(*Client) error
+	}{
+		"name": {
+			path:        "/api/v1/envs/" + environmentOne + "/segments/" + segmentIDOne + "/name",
+			payload:     name,
+			allowedKeys: []string{"name"},
+			invoke: func(apiClient *Client) error {
+				return apiClient.UpdateSegmentName(
+					context.Background(), environmentOne, segmentIDOne, name,
+				)
+			},
+		},
+		"description": {
+			path:        "/api/v1/envs/" + environmentOne + "/segments/" + segmentIDOne + "/description",
+			payload:     description,
+			allowedKeys: []string{"description"},
+			invoke: func(apiClient *Client) error {
+				return apiClient.UpdateSegmentDescription(
+					context.Background(), environmentOne, segmentIDOne, description,
+				)
+			},
+		},
+		"targeting": {
+			path:        "/api/v1/envs/" + environmentOne + "/segments/" + segmentIDOne + "/targeting",
+			payload:     targeting,
+			allowedKeys: []string{"included", "excluded", "rules"},
+			invoke: func(apiClient *Client) error {
+				return apiClient.UpdateSegmentTargeting(
+					context.Background(), environmentOne, segmentIDOne, targeting,
+				)
+			},
+		},
+		"tags": {
+			path:        "/api/v1/envs/" + environmentOne + "/segments/" + segmentIDOne + "/tags",
+			payload:     tags,
+			allowedKeys: []string{"tags"},
+			invoke: func(apiClient *Client) error {
+				return apiClient.UpdateSegmentTags(
+					context.Background(), environmentOne, segmentIDOne, tags,
+				)
+			},
+		},
+	}
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					if request.Method != http.MethodPut || request.URL.EscapedPath() != test.path ||
+						request.URL.RawQuery != "" || request.Header.Get("Content-Type") != "application/json" {
+						t.Fatal("Segment mutation did not use its exact specialized endpoint")
+					}
+					assertNoContextHeaders(t, request)
+					assertSegmentJSONBody(t, request, test.payload, test.allowedKeys)
+					return segmentTestResponse(request, http.StatusOK, "true"), nil
+				},
+			))
+
+			if err := test.invoke(clientUnderTest); err != nil {
+				t.Fatalf("Segment mutation error = %v", err)
+			}
+			if calls.Load() != 1 {
+				t.Fatalf("Segment mutation request count = %d, want 1", calls.Load())
+			}
+		})
+	}
+}
+
+func TestSegmentMutationsNeverRetryAmbiguousResponses(t *testing.T) {
+	t.Parallel()
+
+	targeting := UpdateSegmentTargetingRequest{
+		Included: []string{}, Excluded: []string{}, Rules: []SegmentRule{},
+	}
+	tests := map[string]func(*Client) error{
+		"create": func(apiClient *Client) error {
+			_, err := apiClient.CreateSegment(context.Background(), environmentOne, CreateSegmentRequest{
+				Type: SegmentTypeEnvironmentSpecific, Name: "Synthetic", Key: "synthetic",
+				Scopes: []string{segmentEnvironmentScope},
+			})
+			return err
+		},
+		"name": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentName(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentNameRequest{Name: "Synthetic renamed Segment"},
+			)
+		},
+		"description": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentDescription(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentDescriptionRequest{Description: "Synthetic description"},
+			)
+		},
+		"targeting": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentTargeting(
+				context.Background(), environmentOne, segmentIDOne, targeting,
+			)
+		},
+		"tags": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentTags(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentTagsRequest{Tags: []string{}},
+			)
+		},
+	}
+	for name, invoke := range tests {
+		name := name
+		invoke := invoke
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			options := defaultTestOptions()
+			options.MaxRetries = 5
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, options, roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					return segmentTestResponse(request, http.StatusServiceUnavailable, "null"), nil
+				},
+			))
+
+			requireAPIErrorClassification(t, invoke(clientUnderTest), ClassificationTransientServer)
+			if calls.Load() != 1 {
+				t.Fatalf("mutation request count = %d, want exactly 1", calls.Load())
+			}
+		})
+	}
+}
+
+func TestSegmentSpecializedMutationsRejectFalseWithoutRetry(t *testing.T) {
+	t.Parallel()
+
+	targeting := UpdateSegmentTargetingRequest{
+		Included: []string{}, Excluded: []string{}, Rules: []SegmentRule{},
+	}
+	tests := map[string]func(*Client) error{
+		"name": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentName(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentNameRequest{Name: "Synthetic renamed Segment"},
+			)
+		},
+		"description": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentDescription(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentDescriptionRequest{Description: "Synthetic description"},
+			)
+		},
+		"targeting": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentTargeting(
+				context.Background(), environmentOne, segmentIDOne, targeting,
+			)
+		},
+		"tags": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentTags(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentTagsRequest{Tags: []string{}},
+			)
+		},
+	}
+	for name, invoke := range tests {
+		name := name
+		invoke := invoke
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			options := defaultTestOptions()
+			options.MaxRetries = 5
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, options, roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					return segmentTestResponse(request, http.StatusOK, "false"), nil
+				},
+			))
+
+			requireAPIErrorClassification(t, invoke(clientUnderTest), ClassificationAmbiguous)
+			if calls.Load() != 1 {
+				t.Fatalf("false Segment mutation request count = %d, want exactly 1", calls.Load())
+			}
+		})
+	}
+}
+
+func TestSegmentSpecializedMutationCancellationStopsBeforeTransport(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(*http.Request) (*http.Response, error) {
+			calls.Add(1)
+			return nil, errors.New("canceled Segment mutation reached transport")
+		},
+	))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := clientUnderTest.UpdateSegmentName(
+		ctx,
+		environmentOne,
+		segmentIDOne,
+		UpdateSegmentNameRequest{Name: "Synthetic canceled name"},
+	)
+	apiError := requireAPIErrorClassification(t, err, ClassificationCanceled)
+	if !errors.Is(apiError, context.Canceled) || calls.Load() != 0 {
+		t.Fatalf("canceled Segment mutation cause/requests = %v/%d", apiError, calls.Load())
 	}
 }
 
@@ -879,11 +1380,168 @@ func TestSegmentReadErrorsRedactEveryRuntimeValueClass(t *testing.T) {
 	}
 }
 
+func TestSegmentMutationErrorsRedactEveryRuntimeValueClass(t *testing.T) {
+	t.Parallel()
+
+	const (
+		tokenMarker     = "api-segment-mutation-redaction-marker"
+		keyMarker       = "segment-mutation-redaction-key"
+		nameMarker      = "segment-mutation-redaction-name"
+		descriptionMark = "segment-mutation-redaction-description"
+		userMarker      = "segment-mutation-user-redaction-marker"
+		ruleMarker      = "segment-mutation-rule-redaction-marker"
+		conditionMarker = "segment-mutation-condition-redaction-marker"
+		valueMarker     = "segment-mutation-value-redaction-marker"
+		tagMarker       = "segment-mutation-tag-redaction-marker"
+		scopeMarker     = "organization/synthetic-org:project/synthetic-project:env/segment-mutation-scope-redaction-marker"
+		tenantMarker    = "featbit:segment-mutation-tenant-redaction-marker"
+		pathMarker      = "/api/v1/envs/segment-mutation-path-redaction-marker"
+		rawBodyMarker   = "segment-mutation-raw-body-redaction-marker"
+		serverMarker    = "segment-mutation-server-redaction.example.test"
+	)
+	detail := strings.Join([]string{
+		tokenMarker, environmentOne, segmentIDOne, keyMarker, nameMarker,
+		descriptionMark, userMarker, ruleMarker, conditionMarker, valueMarker,
+		tagMarker, scopeMarker, tenantMarker, pathMarker, rawBodyMarker,
+	}, " | ")
+	body, err := json.Marshal(map[string]any{
+		"success": false, "data": nil, "errors": []string{detail},
+	})
+	if err != nil {
+		t.Fatal("could not construct Segment mutation redaction response")
+	}
+
+	targeting := UpdateSegmentTargetingRequest{
+		Included: []string{userMarker},
+		Excluded: []string{},
+		Rules: []SegmentRule{{
+			ID: segmentRuleID, Name: ruleMarker,
+			Conditions: []SegmentCondition{{
+				ID: segmentConditionID, Property: conditionMarker,
+				Operator: "IsOneOf", Value: valueMarker,
+			}},
+		}},
+	}
+	tests := map[string]func(*Client) error{
+		"create": func(apiClient *Client) error {
+			_, err := apiClient.CreateSegment(context.Background(), environmentOne, CreateSegmentRequest{
+				Type: SegmentTypeEnvironmentSpecific, Name: nameMarker, Key: keyMarker,
+				Description: descriptionMark, Scopes: []string{scopeMarker},
+			})
+			return err
+		},
+		"name": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentName(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentNameRequest{Name: nameMarker},
+			)
+		},
+		"description": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentDescription(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentDescriptionRequest{Description: descriptionMark},
+			)
+		},
+		"targeting": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentTargeting(
+				context.Background(), environmentOne, segmentIDOne, targeting,
+			)
+		},
+		"tags": func(apiClient *Client) error {
+			return apiClient.UpdateSegmentTags(
+				context.Background(), environmentOne, segmentIDOne,
+				UpdateSegmentTagsRequest{Tags: []string{tagMarker}},
+			)
+		},
+	}
+	for name, invoke := range tests {
+		name := name
+		invoke := invoke
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			options := defaultTestOptions()
+			options.MaxRetries = 0
+			clientUnderTest, err := newClient(
+				mustParseURL(t, "https://"+serverMarker+"/api/v1"),
+				tokenMarker,
+				options,
+				roundTripFunc(func(request *http.Request) (*http.Response, error) {
+					return syntheticResponse(
+						request,
+						http.StatusBadRequest,
+						io.NopCloser(strings.NewReader(string(body))),
+					), nil
+				}),
+			)
+			if err != nil {
+				t.Fatal("could not construct Segment mutation redaction client")
+			}
+
+			apiError := requireAPIErrorClassification(t, invoke(clientUnderTest), ClassificationValidation)
+			formatted := fmt.Sprintf("%v|%+v|%#v|%s", apiError, apiError, apiError, apiError)
+			redactedDetails := strings.Join(apiError.Details(), " | ")
+			for _, unsafe := range []string{
+				tokenMarker, environmentOne, segmentIDOne, keyMarker, nameMarker,
+				descriptionMark, userMarker, ruleMarker, conditionMarker,
+				valueMarker, tagMarker, scopeMarker, tenantMarker, pathMarker,
+				rawBodyMarker, serverMarker,
+			} {
+				if strings.Contains(formatted, unsafe) || strings.Contains(redactedDetails, unsafe) {
+					t.Fatal("Segment mutation error exposed a runtime or server value")
+				}
+			}
+			if len(apiError.Details()) != 0 {
+				t.Fatal("Segment mutation error retained arbitrary server detail strings")
+			}
+		})
+	}
+}
+
 func assertNoContextHeaders(t *testing.T, request *http.Request) {
 	t.Helper()
 	for _, header := range contextHeaders {
 		if request.Header.Get(header) != "" {
 			t.Fatalf("Segment request sent unsupported context header %q", header)
+		}
+	}
+}
+
+func assertSegmentJSONBody(
+	t *testing.T,
+	request *http.Request,
+	want any,
+	allowedKeys []string,
+) {
+	t.Helper()
+
+	body, err := io.ReadAll(request.Body)
+	if err != nil {
+		t.Fatal("could not read Segment mutation request body")
+	}
+	var gotValue any
+	if err := json.Unmarshal(body, &gotValue); err != nil {
+		t.Fatal("Segment mutation request body was not valid JSON")
+	}
+	wantBody, err := json.Marshal(want)
+	if err != nil {
+		t.Fatal("could not encode expected Segment mutation body")
+	}
+	var wantValue any
+	if err := json.Unmarshal(wantBody, &wantValue); err != nil {
+		t.Fatal("expected Segment mutation body was not valid JSON")
+	}
+	if !reflect.DeepEqual(gotValue, wantValue) {
+		t.Fatal("Segment mutation body did not match the documented payload")
+	}
+
+	object, ok := gotValue.(map[string]any)
+	if !ok || len(object) != len(allowedKeys) {
+		t.Fatal("Segment mutation body contained an unexpected field")
+	}
+	for _, key := range allowedKeys {
+		if _, exists := object[key]; !exists {
+			t.Fatal("Segment mutation body omitted a documented field")
 		}
 	}
 }

@@ -19,10 +19,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// segmentResourceSchema freezes the environment-specific-only resource
-// contract before its lifecycle is registered. P4-012 supplies the production
-// resource caller; shared Segment mutation is structurally impossible because
-// type is a computed observation rather than configurable input.
+// segmentResourceSchema defines the environment-specific-only resource
+// contract. Shared Segment mutation is structurally impossible because type
+// is a computed observation rather than a configurable input.
 func segmentResourceSchema() resourceschema.Schema {
 	return resourceschema.Schema{
 		MarkdownDescription: "Manages an environment-specific FeatBit Segment through the documented public API.",
