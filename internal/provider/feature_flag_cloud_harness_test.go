@@ -38,9 +38,21 @@ func newCloudFeatureFlagInventory(
 	environmentKeys []string,
 	featureFlagKeys []string,
 ) *cloudFeatureFlagInventory {
+	return newCloudFeatureFlagInventoryWithParents(
+		apiClient,
+		newCloudAcceptanceInventory(apiClient, projectKeys, environmentKeys),
+		featureFlagKeys,
+	)
+}
+
+func newCloudFeatureFlagInventoryWithParents(
+	apiClient *client.Client,
+	parents *cloudAcceptanceInventory,
+	featureFlagKeys []string,
+) *cloudFeatureFlagInventory {
 	inventory := &cloudFeatureFlagInventory{
 		api:      apiClient,
-		parents:  newCloudAcceptanceInventory(apiClient, projectKeys, environmentKeys),
+		parents:  parents,
 		flagKeys: make(map[string]struct{}, len(featureFlagKeys)),
 		flags:    make(map[string]cloudFeatureFlagRecord),
 	}

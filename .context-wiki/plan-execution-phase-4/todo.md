@@ -1,7 +1,7 @@
 # Phase 4 TODO — Segments
 
 Status: **In progress**
-Next: **P4-031**
+Next: **P4-032**
 
 Work one item at a time. Before checking an item, add a concise `Result` under
 it containing:
@@ -356,7 +356,7 @@ handoff.
   `gofmt -l .`, `go test ./...`, `go vet ./...`, `go build ./...`, `go mod
   tidy -diff`, `go mod verify`, and `git diff --check` passed.
 
-- [ ] **P4-031 — Run trusted current-Cloud acceptance and exact cleanup.**
+- [x] **P4-031 — Run trusted current-Cloud acceptance and exact cleanup.**
 
   Scope: with credentials supplied only out of band, run uniquely prefixed
   environment-specific and shared-read Segment scenarios against documented
@@ -385,6 +385,26 @@ handoff.
   and archived Segment queries plus parent Project collection verification
   return exact zero for every mutable test identity, with no pending cleanup
   owner/action or persisted runtime value.
+
+  Result (2026-08-04): `internal/provider/segment_cloud_acceptance_test.go`
+  and `segment_cloud_harness_test.go` add the credential-gated current-Cloud
+  lifecycle, public Feature Flag targeting reference adapter, exact registered
+  plus unreturned-create inventories, direct/list absence convergence, and
+  deterministic Feature Flag -> Segment -> Environment -> Project cleanup;
+  `feature_flag_cloud_harness_test.go` now permits the Segment inventory to
+  share its exact test-owned parents. Runtime verified is
+  `terraform-plugin-testing -> local Protocol v6 provider -> shared client ->
+  documented FeatBit Cloud endpoints -> complete active+archived Segment and
+  parent Project exact-zero proof`. The trusted Cloud test passed Create,
+  exact data source, Import plus empty plan, second-plan idempotence,
+  specialized drift repair with stable identity, replacement, out-of-band
+  deletion/recreation, exact Feature Flag reference conflict without mutation,
+  destroy, baseline restoration, and final child/parent cleanup with no pending
+  inventory. No safely owned shared Segment fixture was supplied, so no shared
+  or unrelated Segment object was read or mutated; shared reads remain covered
+  by the public-contract and Protocol suites. Three focused cleanup/targeting runs,
+  `go test ./...`, `go vet ./...`, `go build ./...`, `go mod tidy -diff`, `go
+  mod verify`, `gofmt -l .`, and `git diff --check` passed.
 
 - [ ] **P4-032 — Run the complete Phase 4 local gate.**
 
