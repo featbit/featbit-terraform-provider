@@ -3,25 +3,27 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Active work: [Phase 4 — segments](plan-execution-phase-4/README.md)
+- Active work: [Phase 5 — IAM](plan-execution-phase-5/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-Phase 4 is active. The repository exposes a locally loadable Protocol v6
+Phase 5 is active. The repository exposes a locally loadable Protocol v6
 provider with five configuration attributes, a shared handwritten HTTP client,
-and registered `featbit_project`, `featbit_environment`, and
-`featbit_feature_flag` resources plus their exact single-object data sources.
-Their lifecycle-owned adapters implement exact reads, CRUD, Import, canonical
-state, authoritative absence composition, replacement-aware stable ID
-planning, settings-preserving Environment Update, precise four-type Feature
-Flag normalization, UI-operation preservation, and exact active/archived
-Feature Flag deletion. The implemented local and trusted current-Cloud gates
-passed with exact zero cleanup. The next action is Phase 4 `P4-010`: freeze the
-public Segment taxonomy and safe wire boundary, then add complete active and
-archived pagination plus exact UUID/key status resolution.
+and registered Project, Environment, Feature Flag, and Segment resources plus
+their four exact single-object data sources. Their lifecycle-owned adapters
+implement exact reads, CRUD, Import, canonical state, authoritative absence
+composition, replacement-aware stable ID planning, one-shot mutation
+reconciliation, and redaction-safe diagnostics. The Segment resource manages
+only environment-specific metadata, targeting, and tags through specialized
+public endpoints; exact shared Segment reads remain data-source-only, and
+reference-aware destroy proves complete active/archived absence. All four core
+resource phases passed their local, Protocol, and trusted current-Cloud gates
+with exact cleanup. The next action is Phase 5 `P5-010`: freeze IAM tenant
+scope and context-header behavior, then add complete exact member reads without
+exposing member creation or initial-password data.
 
 ## 2. Product boundary
 
@@ -46,9 +48,13 @@ FeatBit Cloud behavior for the planned core scope was verified on 2026-07-31.
 The implemented Project/Environment contracts and exact-zero cleanup were
 reverified against the current Cloud API on 2026-08-03, and the four-type
 Feature Flag lifecycle passed its current-Cloud gate with exact active and
-archived cleanup on the same date. Each later resource must pass its own
-current-Cloud gate. Self-hosted is an intended target through a configurable
-API origin, but no exact self-hosted release is currently certified.
+archived cleanup on the same date. The environment-specific Segment lifecycle
+passed on 2026-08-04 with exact Segment and parent cleanup. No safely owned
+shared Segment fixture was available, so shared reads remain verified through
+public-contract and Protocol tests without inspecting or mutating unrelated
+objects. Each later resource must pass its own current-Cloud gate. Self-hosted
+is an intended target through a configurable API origin, but no exact
+self-hosted release is currently certified.
 
 ## 3. Current architecture
 
@@ -100,9 +106,12 @@ Architecture rules:
 | `max_retries` | `FEATBIT_MAX_RETRIES` | `3`, range `0..10` |
 
 The token is sent directly in `Authorization`, without a Bearer prefix, login
-exchange, token-kind selector, or organization/workspace context header. The
-client never sends credentials outside the configured origin and `/api/v1`
-path.
+exchange, or token-kind selector. The implemented core transport strips
+organization/workspace context headers and never sends credentials outside the
+configured origin and `/api/v1` path. The public IAM OpenAPI advertises
+optional Organization/Workspace parameters while the general REST guide names
+Authorization as the required authentication header; P5-010 must resolve that
+scope contract before any provider configuration or transport change.
 
 ### Shared HTTP contract
 
@@ -130,8 +139,11 @@ path.
 | Project | Implemented | UUID identity. Manage verified safe fields; key replaces. Server-created `Dev/dev` and `Prod/prod` environments are Computed. Confirm absence through the complete project collection when direct Read is ambiguous. |
 | Environment | Implemented | Project-scoped UUID identity. Name/description update; project and key replace. Discard secret values from ordinary state. Confirm absence through the parent project's environment collection and preserve UI-owned settings across Update. |
 | Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
-| Environment-specific segment | Phase 4 active | Environment plus UUID identity. Manage verified metadata, targeting, and tags through specialized endpoints. The first Phase 4 task freezes type/scope ownership before the Terraform schema. Destroy first checks exact flag references, then archives, hard-deletes, and proves exact active/archived absence. |
-| Shared segment | Phase 4 active, read-only | Exact data-source observation and binding only; Terraform does not create, update, archive, or delete it. |
+| Environment-specific segment | Implemented | Environment plus UUID identity. Manage name, description, included/excluded users, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence. |
+| Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
+| IAM member | Phase 5 verification first | Read-only exact lookup for relationship endpoints. Invitation, creation, profile mutation, team removal, and initial-password handling remain external. |
+| IAM group and custom policy | Phase 5 planned | Manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only. |
+| IAM relationship edge | Phase 5 planned | Each group-member, group-policy, or direct member-policy resource owns one exact pair, never an entire shared relationship set. |
 
 Common lifecycle rules:
 
@@ -147,7 +159,7 @@ Common lifecycle rules:
   state or a user-facing destroy option.
 - Preserve state whenever absence or mutation outcome is ambiguous.
 
-Core Import IDs are stable public contracts:
+Implemented core Import IDs are stable public contracts:
 
 | Object | Import ID |
 |---|---|
@@ -155,8 +167,10 @@ Core Import IDs are stable public contracts:
 | Environment | `<project_uuid>/<environment_uuid>` |
 | Feature flag | `<environment_uuid>/<exact_key>` |
 | Segment | `<environment_uuid>/<segment_uuid>` |
-| Future IAM object | `<uuid>` |
-| Future IAM binding | `<left_uuid>/<right_uuid>` |
+
+IAM object and binding Import forms remain provisional until P5-010/P5-011
+freeze tenant scope, exact identities, and relationship direction. They must
+not be published as stable contracts before then.
 
 ## 5. Roadmap
 
@@ -185,7 +199,7 @@ replacement, Import, and archive-plus-hard-delete behavior.
 
 Gate: every supported type converges without rewriting UI-owned operations.
 
-### Phase 4 — Segments (active)
+### Phase 4 — Segments (complete)
 
 Implement environment-specific segment resource/data source behavior,
 ordered rules, set-valued users/tags, scope resolution, reference preflight,
@@ -193,10 +207,12 @@ Import, drift, and exact destroy. Keep shared segments read/bind only.
 
 Gate: lifecycle and Import converge; reference conflicts preserve valid state.
 
-### Phase 5 — IAM
+### Phase 5 — IAM (active)
 
-After target-specific member lookup verification, add groups, policies, and
-independent binding resources with composite IDs. Keep member creation external.
+First verify access-token tenant scope, optional context-header behavior, and
+complete exact member lookup without exposing initial-password data. Then add
+groups, custom policies, and independent group-member, group-policy, and direct
+member-policy resources. Keep member creation and team removal external.
 
 Gate: bindings are idempotent and never claim an entire shared relationship set.
 
