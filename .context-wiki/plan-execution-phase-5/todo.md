@@ -108,34 +108,38 @@ the corresponding item and explicit maintainer authorization permit it.
   API or secret; scans found no state, plan, log, runtime UUID, or credential
   assignment.
 
-- [ ] **P5-012 — Add public security, contribution, support, and upgrade policy.**
+- [ ] **P5-012 — Add practical security, contribution, support, and upgrade guidance.**
 
-  Scope: add the repository guidance required for maintainable public use:
-  security reporting and supported-version expectations, contribution and
-  development workflow, code of conduct if the FeatBit organization does not
-  already provide an inherited one, issue/support boundaries, changelog
-  policy, and compatibility/upgrade rules. Explain credential handling,
-  trusted acceptance safeguards, generated-doc updates, release ownership,
-  versioning, deprecation, state/schema compatibility, and the prohibition on
-  editing published release assets.
+  Scope: add only the concise guidance needed to run, diagnose, and change the
+  provider safely. Document credential, state, plan, log, and vulnerability
+  handling; the issue/support boundary; local build, test, generated-doc, and
+  trusted acceptance workflows; remote-object isolation and cleanup; and the
+  compatibility rules that protect SemVer, provider schema, Terraform state,
+  and Import contracts. Use a private security-reporting route only when it
+  actually exists and can be verified; otherwise give a non-sensitive
+  escalation path without inventing an address or asking for vulnerability
+  details in public. Preserve the existing license and SPDX notices, but do not
+  add or expand copyright, legal, code-of-conduct, formal governance, or
+  organization-policy material in this item.
 
-  Important files: `SECURITY.md`, `CONTRIBUTING.md`,
-  `CODE_OF_CONDUCT.md` only if needed, `CHANGELOG.md`, upgrade/versioning
-  guidance, GitHub issue/PR templates only where they reduce unsafe reports,
-  and README links. Reuse organization-level policies when they are current
-  and linkable; do not duplicate or invent contact addresses.
+  Important files: `SECURITY.md`, `CONTRIBUTING.md`, concise support and upgrade
+  guidance in a dedicated file or the README where that is clearer, and README
+  links. Add an issue template only if it materially prevents credentials,
+  state, plans, logs, or runtime identifiers from entering public reports. Do
+  not add `CODE_OF_CONDUCT.md`, new copyright/legal documents, speculative
+  contacts, or unrelated release-process bureaucracy.
 
-  Runtime relationship: `user or contributor -> public support/security/
-  contribution entry point -> safe reproduction or private disclosure ->
-  tested change -> SemVer and state-compatible release process`.
+  Runtime relationship: `user or contributor -> safe setup, support, or
+  security entry point -> credential-free reproduction or verified private
+  disclosure -> isolated tests and cleanup -> state-compatible change`.
 
-  Done when a user can identify supported scope, report a vulnerability
-  privately, request support, build/test/generate docs, and understand upgrade
-  guarantees without receiving credentials or maintainer-only instructions;
-  contributors are warned that acceptance tests create remote objects; release
-  responsibilities and immutable-version policy are explicit; every referenced
-  contact/process exists; and no speculative email, SLA, or organization policy
-  is claimed.
+  Done when a user can configure and operate the provider without exposing
+  sensitive material, choose the correct support or security path, and
+  understand compatibility expectations; a contributor can build, test,
+  regenerate docs, and run opt-in acceptance safely against exclusively
+  test-owned objects; every referenced contact and command exists; links
+  resolve; and the guidance makes no speculative SLA, legal, copyright, or
+  organization-policy claim.
 
 ## Credential-free CI and release packaging
 
