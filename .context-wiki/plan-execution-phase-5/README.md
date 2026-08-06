@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-06**
-- Next task: `P5-012`
+- Next task: `P5-013`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core
@@ -29,11 +29,12 @@ gates. The repository currently contains:
   managed core resource.
 
 The repository now contains a public README, schema-derived Registry
-documentation, credential-free examples, and non-writing documentation drift
-and example validation. It does not yet contain GitHub Actions, GoReleaser
-configuration, a release signing workflow, complete security/contribution
-guidance, or a clean-directory Registry-install smoke test. Phase 5 adds those
-remaining release surfaces without changing the implemented product scope.
+documentation, credential-free examples, non-writing documentation drift and
+example validation, security/contribution/support/upgrade guidance, and a
+safety-first public bug form. It does not yet contain GitHub Actions,
+GoReleaser configuration, a release signing workflow, or a clean-directory
+Registry-install smoke test. Phase 5 adds those remaining release surfaces
+without changing the implemented product scope.
 
 ## Objective
 
@@ -327,13 +328,15 @@ smoke tests without local overrides.
 - Keep credentials, GPG private material, passphrases, Cloud runtime values,
   Terraform state, plans, and generated logs out of the repository and release
   assets.
-- Publish a security policy with a private reporting path, supported-version
-  policy, and response expectations; do not ask reporters to disclose a
-  vulnerability publicly.
-- Publish contribution, development, test, documentation-generation, and
-  release-maintainer guidance without embedding workstation-specific paths.
-- Record an upgrade and compatibility policy before the first stable public
-  contract.
+- The security policy uses a verified private path only when one exists. GitHub
+  private vulnerability reporting is currently disabled, so the public policy
+  instead provides a detail-free escalation that requests a verifiable private
+  route and never asks for vulnerability details publicly.
+- Contribution, development, test, documentation-generation, support, and
+  upgrade guidance contains no workstation-specific path or speculative
+  contact/SLA. Release-maintainer workflow guidance remains with P5-015.
+- The public compatibility policy protects patch-line SemVer, provider schema,
+  existing Terraform state, and all four exact Import contracts.
 - Pin quality/release tools and GitHub Actions. Review licenses, vulnerabilities,
   provenance, permissions, and maintenance before adding them.
 - Produce and inspect a software bill of materials when the chosen release

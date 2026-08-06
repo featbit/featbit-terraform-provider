@@ -21,7 +21,8 @@
   <a href="#quick-start">Quick Start</a> &middot;
   <a href="docs/index.md">Registry Documentation</a> &middot;
   <a href="examples">Examples</a> &middot;
-  <a href="https://github.com/featbit/featbit-terraform-provider/issues">Report a Bug</a>
+  <a href="SUPPORT.md">Support</a> &middot;
+  <a href="SECURITY.md">Security</a>
 </div>
 
 ## Why this provider?
@@ -70,7 +71,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.1"
+      version = "~> 0.1.0"
     }
   }
 }
@@ -87,6 +88,7 @@ native-platform qualification gate.
 Set `FEATBIT_ACCESS_TOKEN` outside Terraform configuration. A FeatBit service
 token is recommended for CI/CD. Do not put token values in `.tf` files,
 variable defaults, committed environment files, plans, state, or logs.
+See the [security policy](SECURITY.md) for safe handling and incident steps.
 
 FeatBit Cloud is the default API origin. To select another documented public
 API root, set it directly in the provider block:
@@ -171,21 +173,35 @@ make docs-check
 and validates every example without changing the working tree. Live acceptance
 tests are separate, opt-in, and must use uniquely test-owned FeatBit objects.
 
+The [contribution guide](CONTRIBUTING.md) contains the complete local quality
+gate and documentation workflow. It also documents the optional
+maintainer-operated live acceptance procedure, which is not a contribution or
+pull request requirement.
+
 ## Contributing
 
-The complete contribution and trusted-acceptance policy will be published
-before `v0.1.0`. Until then, open an issue before a substantive change and do
-not run live acceptance tests against objects that are not exclusively owned
-by that test run.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing code or generated
+documentation. It defines the credential-free local workflow, compatibility
+review, and exact remote-object isolation and cleanup rules for opt-in tests.
 
 ## Security and support
 
-Use [GitHub issues](https://github.com/featbit/featbit-terraform-provider/issues)
-for non-sensitive provider bugs and questions. Never include credentials,
-Terraform state, plans, runtime object identifiers, or vulnerability details
-in a public issue. Until the repository's dedicated security policy is
-published before `v0.1.0`, open a detail-free issue asking the maintainers for
-a private reporting channel.
+Use [SUPPORT.md](SUPPORT.md) to choose the correct provider, upstream, or
+FeatBit service route and to prepare a synthetic bug report. Never include
+credentials, state or plan content, logs, raw responses, runtime identifiers,
+or vulnerability details in a public issue.
+
+For a suspected vulnerability, follow [SECURITY.md](SECURITY.md). Because this
+repository does not currently expose a verified private reporting channel, the
+policy provides a detail-free escalation that requests one without disclosing
+the vulnerability publicly.
+
+## Upgrading
+
+Pin the initial line with `~> 0.1.0` so Terraform cannot automatically select
+a potentially breaking pre-1.0 minor release. [UPGRADING.md](UPGRADING.md)
+defines the SemVer, schema, state, and Import compatibility contract plus a
+safe plan-first upgrade and rollback workflow.
 
 ## License
 

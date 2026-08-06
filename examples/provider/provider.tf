@@ -4,7 +4,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.1"
+      version = "~> 0.1.0"
     }
   }
 }

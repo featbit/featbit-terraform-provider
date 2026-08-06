@@ -20,9 +20,15 @@ import (
 )
 
 var (
-	markdownLinkPattern = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
-	htmlLinkPattern     = regexp.MustCompile(`href="([^"]+)"`)
-	uuidValuePattern    = regexp.MustCompile(`(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b`)
+	markdownLinkPattern         = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
+	htmlLinkPattern             = regexp.MustCompile(`href="([^"]+)"`)
+	uuidValuePattern            = regexp.MustCompile(`(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b`)
+	publicGuidanceMarkdownFiles = []string{
+		"SECURITY.md",
+		"SUPPORT.md",
+		"CONTRIBUTING.md",
+		"UPGRADING.md",
+	}
 )
 
 func TestRegistryDocumentationMatchesFrozenSurface(t *testing.T) {
@@ -91,7 +97,7 @@ func TestRegistryExamplesAreCredentialFreeAndComplete(t *testing.T) {
 	for _, expected := range []string{
 		`required_version = ">= 1.0.0"`,
 		`source  = "featbit/featbit"`,
-		`version = "~> 0.1"`,
+		`version = "~> 0.1.0"`,
 		`provider "featbit" {`,
 		`# api_url = "https://featbit.example.com/api/v1"`,
 		`set FEATBIT_API_URL to the same form`,
@@ -163,7 +169,8 @@ func TestRegistryExamplesAreCredentialFreeAndComplete(t *testing.T) {
 func TestPublicDocumentationLinksResolve(t *testing.T) {
 	t.Parallel()
 
-	paths := append([]string{"README.md"}, registryMarkdownFiles(t)...)
+	paths := append([]string{"README.md"}, publicGuidanceMarkdownFiles...)
+	paths = append(paths, registryMarkdownFiles(t)...)
 	for _, path := range paths {
 		contents := readDocumentationFile(t, path)
 		targets := linkTargets(contents)
@@ -181,6 +188,160 @@ func TestPublicDocumentationLinksResolve(t *testing.T) {
 			if fragment != "" && !markdownHasAnchor(readDocumentationFile(t, resolved), fragment) {
 				t.Errorf("%s links to missing anchor %q in %s", path, fragment, resolved)
 			}
+		}
+	}
+}
+
+func TestPublicGuidanceIsSafeAndActionable(t *testing.T) {
+	t.Parallel()
+
+	checks := []struct {
+		path string
+		want []string
+	}{
+		{
+			path: "SECURITY.md",
+			want: []string{
+				"Latest published release",
+				"GitHub private vulnerability reporting is not currently enabled",
+				"Private security contact requested",
+				"The body must contain only that request",
+				"FEATBIT_ACCESS_TOKEN",
+				"Terraform state or plan",
+				"does not promise a response or remediation SLA",
+			},
+		},
+		{
+			path: "SUPPORT.md",
+			want: []string{
+				"SECURITY.md",
+				"provider issue",
+				"FeatBit account, token issuance, billing",
+				"minimal HCL using synthetic names",
+				"no response or resolution SLA is promised",
+			},
+		},
+		{
+			path: "CONTRIBUTING.md",
+			want: []string{
+				"Go 1.25.8",
+				"make fmt",
+				"make lint",
+				"make test",
+				"go test -race ./...",
+				"make build",
+				"go mod tidy -diff",
+				"go mod verify",
+				"make docs",
+				"make docs-check",
+				"make testacc",
+				"not a contribution or pull request requirement",
+				"Do not seek or create remote-service credentials merely to contribute",
+				"FEATBIT_TEST_ORGANIZATION_KEY",
+				"removes children before parents",
+				"release_contract_test.go",
+			},
+		},
+		{
+			path: "UPGRADING.md",
+			want: []string{
+				"patch releases in a published minor line",
+				`version = "~> 0.1.0"`,
+				"terraform init -upgrade",
+				"terraform plan",
+				"Do not downgrade blindly",
+				"Never edit state JSON by hand",
+				"<environment_uuid>/<exact_key>",
+			},
+		},
+	}
+
+	var combined strings.Builder
+	for _, check := range checks {
+		contents := normalizedDocumentationText(readDocumentationFile(t, check.path))
+		combined.WriteString(contents)
+		for _, want := range check.want {
+			if !strings.Contains(contents, want) {
+				t.Errorf("%s does not contain %q", check.path, want)
+			}
+		}
+	}
+
+	readme := readDocumentationFile(t, "README.md")
+	for _, target := range publicGuidanceMarkdownFiles {
+		if !strings.Contains(readme, "]("+target+")") &&
+			!strings.Contains(readme, `href="`+target+`"`) {
+			t.Errorf("README.md does not link to %s", target)
+		}
+	}
+	if !strings.Contains(readme, `version = "~> 0.1.0"`) {
+		t.Error("README.md does not pin the compatible initial minor line")
+	}
+
+	issueTemplate := readDocumentationFile(t, ".github/ISSUE_TEMPLATE/bug_report.yml")
+	for _, want := range []string{
+		"Do not include access tokens",
+		"state or plan content",
+		"real runtime identifiers",
+		"vulnerability details",
+		"minimal credential-free reproduction",
+		"I read SUPPORT.md",
+		"stop and follow SECURITY.md",
+	} {
+		if !strings.Contains(issueTemplate, want) {
+			t.Errorf("bug report template does not contain %q", want)
+		}
+	}
+	issueConfig := readDocumentationFile(t, ".github/ISSUE_TEMPLATE/config.yml")
+	if !strings.Contains(issueConfig, "blank_issues_enabled: true") {
+		t.Error("issue template configuration does not retain a blank, detail-free security escalation path")
+	}
+
+	makefile := readDocumentationFile(t, "GNUmakefile")
+	for _, target := range []string{
+		"fmt",
+		"lint",
+		"test",
+		"testacc",
+		"build",
+		"docs",
+		"docs-check",
+	} {
+		if !regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(target) + `:`).MatchString(makefile) {
+			t.Errorf("CONTRIBUTING.md references missing make target %s", target)
+		}
+	}
+	if !regexp.MustCompile(`(?m)^go 1\.25\.8$`).MatchString(readDocumentationFile(t, "go.mod")) {
+		t.Error("CONTRIBUTING.md Go prerequisite does not match go.mod")
+	}
+
+	acceptanceContract := strings.Join([]string{
+		readDocumentationFile(t, "internal/provider/cloud_acceptance_test.go"),
+		readDocumentationFile(t, "internal/provider/feature_flag_cloud_acceptance_test.go"),
+		readDocumentationFile(t, "internal/provider/segment_cloud_acceptance_test.go"),
+		readDocumentationFile(t, "internal/provider/feature_flag_cloud_harness_test.go"),
+		readDocumentationFile(t, "internal/provider/segment_cloud_harness_test.go"),
+	}, "\n")
+	for _, want := range []string{
+		`os.Getenv("TF_ACC")`,
+		"FEATBIT_ACCESS_TOKEN",
+		"FEATBIT_TEST_ORGANIZATION_KEY",
+		"cloudAcceptancePrefix",
+		"cleanupAndVerify",
+	} {
+		if !strings.Contains(acceptanceContract, want) {
+			t.Errorf("CONTRIBUTING.md acceptance guidance has no production test contract for %q", want)
+		}
+	}
+
+	combined.WriteString(issueTemplate)
+	for _, forbidden := range []string{
+		"mailto:",
+		"security@",
+		"/security/advisories/new",
+	} {
+		if strings.Contains(strings.ToLower(combined.String()), forbidden) {
+			t.Errorf("public guidance contains unverified private reporting route %q", forbidden)
 		}
 	}
 }
@@ -266,7 +427,11 @@ func assertRegistryPages(
 func publicDocumentationFiles(t *testing.T) []string {
 	t.Helper()
 
-	paths := []string{"README.md"}
+	paths := append([]string{"README.md"}, publicGuidanceMarkdownFiles...)
+	paths = append(paths,
+		".github/ISSUE_TEMPLATE/bug_report.yml",
+		".github/ISSUE_TEMPLATE/config.yml",
+	)
 	for _, root := range []string{"docs", "examples", "templates"} {
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {

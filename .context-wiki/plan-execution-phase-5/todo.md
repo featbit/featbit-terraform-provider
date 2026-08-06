@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-012**
+Next: **P5-013**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -108,7 +108,7 @@ the corresponding item and explicit maintainer authorization permit it.
   API or secret; scans found no state, plan, log, runtime UUID, or credential
   assignment.
 
-- [ ] **P5-012 — Add practical security, contribution, support, and upgrade guidance.**
+- [x] **P5-012 — Add practical security, contribution, support, and upgrade guidance.**
 
   Scope: add only the concise guidance needed to run, diagnose, and change the
   provider safely. Document credential, state, plan, log, and vulnerability
@@ -140,6 +140,23 @@ the corresponding item and explicit maintainer authorization permit it.
   test-owned objects; every referenced contact and command exists; links
   resolve; and the guidance makes no speculative SLA, legal, copyright, or
   organization-policy claim.
+
+  Result (2026-08-06): added focused `SECURITY.md`, `SUPPORT.md`,
+  `CONTRIBUTING.md`, and `UPGRADING.md` entry points plus a safety-first GitHub
+  bug form and an enabled blank issue path. GitHub inspection confirmed Issues
+  are enabled while private vulnerability reporting is disabled, so the
+  security policy exposes only a detail-free request for a verified private
+  route. The guides cover secret/state/plan/log handling, support boundaries,
+  credential-free development, generated docs, optional maintainer-operated
+  live acceptance with unique objects and exact cleanup,
+  SemVer/schema/state/Import compatibility, and safe upgrades. Corrected the
+  public constraint from `~> 0.1` to `~> 0.1.0`
+  so Terraform cannot auto-select a potentially breaking `0.2.0`. Focused
+  guidance/link/command/harness contracts, issue-template YAML, README quality,
+  docs drift, all nine examples, full non-live tests, vet, build, formatting,
+  tidy-diff, module verification, and diff checks passed with credentials
+  removed. The later release-wide race gate remains pending because this host
+  has no C compiler for Go's Windows race runtime.
 
 ## Credential-free CI and release packaging
 

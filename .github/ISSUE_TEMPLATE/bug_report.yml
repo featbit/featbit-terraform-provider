@@ -1,0 +1,79 @@
+name: Provider bug report
+description: Report a reproducible provider problem using synthetic, non-sensitive values.
+title: "[Bug]: "
+labels: []
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include access tokens, authorization headers, state or plan content, backend snapshots, logs, crash files, raw API responses, internal URLs or paths, organization/workspace data, real object IDs or keys, user identifiers, or vulnerability details.
+
+        Use synthetic values and a minimal credential-free reproduction. If this might be a security weakness, stop and follow SECURITY.md instead of submitting this form. See SUPPORT.md for issue routing.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checks
+      options:
+        - label: I read SUPPORT.md and this problem belongs in the provider issue tracker.
+          required: true
+        - label: I did not include credentials, state or plan content, logs, raw API responses, or real runtime identifiers.
+          required: true
+        - label: This report does not contain or imply vulnerability details.
+          required: true
+  - type: input
+    id: terraform_version
+    attributes:
+      label: Terraform version
+      description: Provide only the Terraform CLI version, for example 1.15.8.
+    validations:
+      required: true
+  - type: input
+    id: provider_version
+    attributes:
+      label: Provider version
+      description: Provide the FeatBit provider version without attaching a lock file.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Operating system and architecture only; do not include hostnames or paths.
+    validations:
+      required: true
+  - type: input
+    id: featbit_target
+    attributes:
+      label: FeatBit target
+      description: State FeatBit Cloud or an exact self-hosted version; omit account, tenant, organization, and hostname details.
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Minimal synthetic configuration
+      description: Remove backends and use example.com plus synthetic names. Never set access_token in HCL.
+      render: hcl
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide deterministic commands and steps without secret-bearing arguments or raw output.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Summarize the error manually. Do not paste logs, state, plans, crash output, request paths, or API responses.
+    validations:
+      required: true
