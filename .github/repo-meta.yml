@@ -1,0 +1,17 @@
+description: Terraform provider for managing FeatBit projects, environments, feature flags, and environment-specific segments.
+homepage: ""
+topics:
+  - featbit
+  - feature-flags
+  - feature-management
+  - infrastructure-as-code
+  - terraform
+  - terraform-provider
+  - terraform-plugin-framework
+  - golang
+  - devops
+  - gitops
+  - automation
+  - configuration-management
+  - open-source
+  - mpl-2-0

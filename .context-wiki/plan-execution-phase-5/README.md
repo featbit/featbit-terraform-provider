@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-06**
-- Next task: `P5-011`
+- Next task: `P5-012`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core
@@ -28,11 +28,12 @@ gates. The repository currently contains:
 - trusted current-Cloud acceptance coverage with exact cleanup for every
   managed core resource.
 
-The repository does not yet contain a public README, Registry documentation or
-examples, GitHub Actions, GoReleaser configuration, release signing workflow,
-security/contribution guidance, or a clean-directory Registry-install smoke
-test. Phase 5 adds those release surfaces without changing the implemented
-product scope.
+The repository now contains a public README, schema-derived Registry
+documentation, credential-free examples, and non-writing documentation drift
+and example validation. It does not yet contain GitHub Actions, GoReleaser
+configuration, a release signing workflow, complete security/contribution
+guidance, or a clean-directory Registry-install smoke test. Phase 5 adds those
+remaining release surfaces without changing the implemented product scope.
 
 ## Objective
 

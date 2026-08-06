@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-011**
+Next: **P5-012**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -61,7 +61,7 @@ the corresponding item and explicit maintainer authorization permit it.
   module verification, repeated focused checks, and
   CGO-free builds for every frozen target passed without a live API or secret.
 
-- [ ] **P5-011 — Add Registry documentation, examples, and drift verification.**
+- [x] **P5-011 — Add Registry documentation, examples, and drift verification.**
 
   Scope: add a public `README.md`, Registry provider index, one page for each
   of the four resources and four data sources, and credential-free examples
@@ -91,6 +91,22 @@ the corresponding item and explicit maintainer authorization permit it.
   alone; all four Import forms are exact; regeneration produces an empty diff;
   links resolve; and repository scans find no runtime Cloud value, state,
   plan, log, or secret.
+
+  Result (2026-08-06): added the public README, schema-derived provider index
+  and eight object pages, reviewed behavior templates, and nine credential-free
+  provider/resource/data-source example sets with explicit `api_url` and
+  `FEATBIT_API_URL` endpoint guidance plus all four strict Import forms.
+  The workflow pins `terraform-plugin-docs@v0.25.0` and downloads a
+  SHA-256-pinned Terraform 1.15.8 only into a temporary tool directory;
+  `make docs` is the explicit writer, while `make docs-check` generates into a
+  temporary directory, byte-compares committed output, validates Registry
+  structure, and formats/initializes/validates every example against a
+  temporary `registry.terraform.io/featbit/featbit` package without a token or
+  development override. The non-writing drift run, all nine example
+  validations, link/import/ownership/sensitive-value contract checks, full Go
+  tests, vet, build, tidy-diff, and module verification passed without a live
+  API or secret; scans found no state, plan, log, runtime UUID, or credential
+  assignment.
 
 - [ ] **P5-012 — Add public security, contribution, support, and upgrade policy.**
 

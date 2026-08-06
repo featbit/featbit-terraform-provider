@@ -24,4 +24,14 @@ testacc:
 build:
 	$(GO) build -v $(GO_PACKAGES)
 
-.PHONY: default fmt lint test testacc build
+docs:
+	$(GO) run ./internal/tools/docsgen -write
+
+examples-check:
+	$(GO) run ./internal/tools/examplecheck
+
+docs-check:
+	$(GO) run ./internal/tools/docsgen
+	$(GO) run ./internal/tools/examplecheck
+
+.PHONY: default fmt lint test testacc build docs examples-check docs-check
