@@ -23,9 +23,11 @@ reference-aware destroy proves complete active/archived absence. All four core
 resource phases passed their local, Protocol, and trusted current-Cloud gates
 with exact cleanup. The initial public release contains only those four core
 resources and their data sources; IAM is deferred until after that release.
-The next action is Phase 5 `P5-010`: freeze the core-only release contract,
-version/compatibility policy, supported artifact matrix, and release
-prerequisites before adding documentation or automation.
+The core-only release contract is frozen by a checked-in Protocol v6 schema
+snapshot and focused registration, Import, manifest, and release-version
+checks. The next action is Phase 5 `P5-011`: add Registry documentation,
+credential-free examples, and generated-document drift verification against
+that contract.
 
 ## 2. Product boundary
 
@@ -238,8 +240,16 @@ Gate: bindings are idempotent and never claim an entire shared relationship set.
 
 Current runtime pins are authoritative in `go.mod`: Go `1.25.8`, Plugin
 Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
-Log `v0.10.0`. Protocol is `6.0`. The repository does not yet contain CI or
-release automation; Phase 5 freezes and pins those toolchains before use.
+Log `v0.10.0`. Protocol is `6.0`, so the minimum Terraform CLI is `1.0.0`.
+Release qualification is pinned to Terraform `1.0.11`, `1.5.7`, and `1.15.8`;
+those are not public tested claims until the packaged-provider matrix passes.
+Initial archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
+`linux_arm64`, and `windows_amd64`, built without CGO and later verified on
+native runners. The first Registry artifact is the stable non-prerelease SemVer
+release `v0.1.0`; freezing its version does not authorize tag creation or
+publication.
+The repository does not yet contain CI or release automation; Phase 5 adds and
+pins those surfaces without expanding the frozen core schema.
 
 Every applicable phase gate includes:
 

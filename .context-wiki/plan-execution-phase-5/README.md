@@ -1,8 +1,8 @@
 # Phase 5 — Initial release
 
 - Status: **In progress**
-- Updated: **2026-08-04**
-- Next task: `P5-010`
+- Updated: **2026-08-06**
+- Next task: `P5-011`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core
@@ -86,28 +86,139 @@ documented core behavior, packaging, generated documentation, or installation
 path is incorrect. Any public schema change requires an explicit compatibility
 decision under the active TODO item.
 
-## Release contract to freeze
+## Frozen release baseline
 
-`P5-010` freezes the following before documentation or automation makes it
-public:
+The `P5-010` baseline was updated on 2026-08-06. Its executable authority is
+[`release_contract_test.go`](../../release_contract_test.go) together with the
+reviewed Protocol snapshot at
+[`internal/provider/testdata/release-schema.json`](../../internal/provider/testdata/release-schema.json).
+The test obtains the schema through the production Protocol v6 server, not a
+parallel hand-written resource model.
 
-- the initial SemVer strategy, including whether the first Registry artifact
-  is a prerelease or stable version;
-- the minimum and tested Terraform CLI versions;
-- the Go version used for CI and release builds;
-- the supported OS/architecture archive matrix;
-- the distinction between tested FeatBit Cloud behavior, configurable API
-  origins, and any certified self-hosted release;
-- the exact four-resource/four-data-source Protocol v6 schema snapshot;
-- compatibility promises for provider configuration, state, Import IDs, and
-  subsequent additive releases; and
-- the maintainer-owned prerequisites for GitHub Releases, GPG signing, and the
-  Terraform Registry namespace.
+### Version and runtime contract
 
-Do not infer a version number, platform, Terraform lower bound, self-hosted
-version, signing identity, or Registry ownership from a template. Record only
-values proven by the repository, official release requirements, or explicit
-maintainer choice.
+| Area | Frozen contract |
+|---|---|
+| First Registry artifact | Stable, non-prerelease SemVer release `v0.1.0`. Terraform does not select prereleases without an exact constraint, so a prerelease cannot satisfy the normal clean-install gate. Freezing this version does not authorize tag creation or publication. |
+| Binary version | `0.1.0` without the tag's leading `v`, injected into `main.version`; `dev`, empty, or a value different from the release version fails the release-contract check. |
+| Terraform CLI | Minimum supported language/protocol boundary is `>= 1.0.0`, because Protocol 6 requires Terraform 1.0 or later. Release qualification is pinned to `1.0.11` (last 1.0 patch), `1.5.7` (representative intermediate), and `1.15.8` (current stable on 2026-08-05). These become public tested claims only after P5-030 passes with packaged binaries. |
+| Go | CI and release builds use exactly Go `1.25.8`, matching `go.mod` and the inspected current HashiCorp Plugin Framework scaffold. A newer local Go toolchain is not release evidence. |
+| Plugin protocol | Protocol `6.0` only, served with `providerserver.NewProtocol6` and declared by manifest format version `1`. |
+
+These values were reconciled against HashiCorp's current
+[Protocol 6 compatibility contract](https://developer.hashicorp.com/terraform/plugin/terraform-plugin-protocol#protocol-version-6),
+[official Terraform release index](https://releases.hashicorp.com/terraform/),
+[provider publishing requirements](https://developer.hashicorp.com/terraform/registry/providers/publishing),
+and [Plugin Framework scaffold](https://github.com/hashicorp/terraform-provider-scaffolding-framework),
+rather than copied from its template unchanged.
+
+Patch releases within a published minor line are backward-compatible bug and
+security fixes. Additive resources, data sources, and optional capabilities use
+a minor release. Removing or renaming an existing attribute/object, changing a
+type, identity, default, ownership/replacement rule, canonical state meaning,
+or rejecting a previously valid configuration or Import ID is breaking. Because
+the initial release is `v0.1.0`, patches remain compatible within `0.1.x`; a
+breaking change may occur only at a new minor such as `v0.2.0` and requires an
+explicit migration decision and upgrade guidance. It must be called out rather
+than hidden in a patch.
+
+No published tag or asset may be replaced. A correction is always a new
+version.
+
+### Archive and native-verification matrix
+
+The initial release produces exactly these five `CGO_ENABLED=0` archives:
+
+| OS | Architectures |
+|---|---|
+| `darwin` | `amd64`, `arm64` |
+| `linux` | `amd64`, `arm64` |
+| `windows` | `amd64` |
+
+Go 1.25.8 supports all five targets, this repository cross-builds for all five
+without CGO, Terraform 1.0.11 published a matching CLI for each, and current
+standard GitHub-hosted native runner families cover them. P5-030 must still
+start and test each packaged target natively before the matrix becomes a public
+compatibility claim. Windows ARM64, 32-bit, ARM32, FreeBSD, and other Go targets
+are not initial-release archives: cross-compilation alone would not satisfy the
+native release gate, and Terraform 1.0.11 did not publish Windows ARM64.
+
+### Public schema, state, and Import compatibility
+
+The snapshot freezes exactly five provider attributes, these four managed
+resources, and the same four exact single-object data sources:
+
+- `featbit_project`;
+- `featbit_environment`;
+- `featbit_feature_flag`; and
+- `featbit_segment`.
+
+It also freezes every Protocol-visible schema version, attribute/nested type,
+Required/Optional/Computed/Sensitive/WriteOnly flag, description, and the
+absence of provider-meta, functions, ephemeral/list resources, actions, and
+state stores. The focused name assertions remain independent of snapshot
+regeneration so adding an IAM or other registration requires a deliberate
+contract change.
+
+The accepted Import forms remain:
+
+| Resource | Import ID |
+|---|---|
+| Project | `<project_uuid>` |
+| Environment | `<project_uuid>/<environment_uuid>` |
+| Feature Flag | `<environment_uuid>/<exact_key>` |
+| Segment | `<environment_uuid>/<segment_uuid>` |
+
+Compatible releases preserve existing configuration, refresh existing state,
+and continue accepting all four forms. New state fields must be additive and
+safe for old state, or ship with an explicit schema-version migration before
+use. An additional Import spelling may be additive, but none of the frozen
+forms may be removed or reinterpreted. New resources/data sources may be added
+without changing the existing four lifecycles; IAM remains entirely outside
+the initial release.
+
+### Compatibility claims
+
+The implemented core behavior was exercised against current FeatBit Cloud on
+the dated gates recorded in the master plan. P5-031 must repeat that evidence
+with the exact release candidate before publication. `api_url` makes another
+documented `/api/v1` origin configurable; configurability is not a
+compatibility certification. No named self-hosted FeatBit version or deployment
+configuration has been tested, so the initial release makes no self-hosted
+support claim.
+
+### Repository baseline and external prerequisites
+
+Read-only inspection on 2026-08-05 proved that
+`featbit/featbit-terraform-provider` is a public, lowercase, correctly named
+GitHub repository with default branch `main`, and that the checked-out module,
+provider address, and repository namespace agree. It had no tag or GitHub
+release. The tree had no public README, Registry docs/examples, GitHub Actions,
+GoReleaser configuration, signing workflow, public security/contribution
+guidance, or isolated Registry-install smoke test. Existing local gates are
+`gofmt`, vet, unit/mock/Protocol tests, race, build, module tidiness/verification,
+and separately opted-in trusted Cloud acceptance.
+
+The following facts and actions cannot be inferred from source and remain
+maintainer-owned prerequisites, not P5-010 implementation work:
+
+- confirm that the intended Terraform Registry organization namespace is
+  `featbit` and that the publishing GitHub account has organization-admin and
+  Registry application access;
+- select a Registry-compatible RSA release-signing identity (the current
+  Registry documentation accepts RSA/DSA but not the default ECC key type),
+  register only its public key for that namespace, and retain the private
+  key/passphrase only in protected release secrets;
+- create and approve the protected GitHub release environment and required
+  secrets; the repository exposed no configured Actions environment or secret
+  name during the read-only baseline;
+- decide in P5-015 whether the workflow creates a draft for inspection before
+  finalization; and
+- explicitly authorize tag creation, GitHub release finalization, Registry
+  connection/resynchronization, and publication in P5-033.
+
+P5-010 used no FeatBit endpoint or credential, signing material, tag, GitHub
+release mutation, repository-setting mutation, or Terraform Registry mutation.
 
 ## Registry documentation
 
@@ -136,15 +247,15 @@ The current official
 [provider publishing requirements](https://developer.hashicorp.com/terraform/registry/providers/publishing)
 are the authority. At minimum, a final release must provide:
 
-- a valid `vX.Y.Z` SemVer tag with no same-named branch;
+- the valid initial SemVer tag `v0.1.0` with no same-named branch;
 - one zip per supported OS/architecture containing the correctly named
-  `terraform-provider-featbit_vX.Y.Z` binary;
-- `terraform-provider-featbit_X.Y.Z_manifest.json` declaring Protocol
+  `terraform-provider-featbit_v0.1.0` binary;
+- `terraform-provider-featbit_0.1.0_manifest.json` declaring Protocol
   `6.0`;
-- `terraform-provider-featbit_X.Y.Z_SHA256SUMS` covering every archive and
+- `terraform-provider-featbit_0.1.0_SHA256SUMS` covering every archive and
   the manifest; and
 - a valid detached GPG signature
-  `terraform-provider-featbit_X.Y.Z_SHA256SUMS.sig` made by the key registered
+  `terraform-provider-featbit_0.1.0_SHA256SUMS.sig` made by the key registered
   for the Registry namespace.
 
 Use a pinned GoReleaser v2 configuration derived from the current official
@@ -234,7 +345,6 @@ smoke tests without local overrides.
 The following actions require explicit maintainer authorization and cannot be
 inferred from implementation work:
 
-- choosing the initial public version when it is not already frozen;
 - creating/importing the release GPG key and storing protected secrets;
 - registering the public signing key with the Terraform Registry namespace;
 - changing GitHub organization/repository Actions or environment settings;

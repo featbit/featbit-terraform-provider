@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-010**
+Next: **P5-011**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -11,7 +11,7 @@ the corresponding item and explicit maintainer authorization permit it.
 
 ## Release contract and public documentation
 
-- [ ] **P5-010 — Freeze the core-only initial release contract and baseline.**
+- [x] **P5-010 — Freeze the core-only initial release contract and baseline.**
 
   Scope: inventory the actual provider schema, resource/data-source
   registrations, Import forms, build version path, manifest, repository
@@ -46,6 +46,20 @@ the corresponding item and explicit maintainer authorization permit it.
   explicit; the exact public-versus-maintainer prerequisites are recorded; and
   no live endpoint, signing secret, tag, GitHub release, or Registry mutation
   was used to obtain the baseline.
+
+  Result (updated 2026-08-06): froze the initial stable tag as `v0.1.0`,
+  Terraform `>= 1.0.0` and qualification pins
+  `1.0.11`/`1.5.7`/`1.15.8`, Go `1.25.8`, Protocol `6.0`, and the five
+  native-verifiable 64-bit archives in the Phase README. Added
+  `release_contract_test.go` and the reviewed
+  `internal/provider/testdata/release-schema.json`; they independently lock
+  the five provider attributes, four resources/data sources, empty non-core
+  surfaces, four strict Import forms, manifest/address metadata, and
+  release-version injection. Signing identity and protected secrets, Registry
+  namespace authority, and all publication mutations remain explicit
+  maintainer prerequisites. Go 1.25.8 full tests, vet, build, tidy-diff,
+  module verification, repeated focused checks, and
+  CGO-free builds for every frozen target passed without a live API or secret.
 
 - [ ] **P5-011 — Add Registry documentation, examples, and drift verification.**
 
@@ -320,8 +334,8 @@ the corresponding item and explicit maintainer authorization permit it.
 - [ ] **P5-033 — Publish and verify the initial GitHub/Registry release.**
 
   Scope: only after every prior item passes and the maintainer explicitly
-  authorizes the exact version and external actions, confirm the compatible GPG
-  public key is registered for the intended Registry namespace, protected
+  authorizes the external actions for frozen version `v0.1.0`, confirm the
+  compatible GPG public key is registered for the intended Registry namespace, protected
   secrets/settings are ready, create and push the exact SemVer tag, run the
   protected release workflow, inspect every signed asset before finalization,
   connect/resynchronize the Terraform Registry provider if required, and verify

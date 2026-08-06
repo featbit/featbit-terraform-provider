@@ -1,0 +1,1231 @@
+{
+  "format_version": 1,
+  "provider_address": "registry.terraform.io/featbit/featbit",
+  "protocol_versions": [
+    "6.0"
+  ],
+  "provider": {
+    "version": 0,
+    "block": {
+      "version": 0,
+      "description": "Terraform provider for managing FeatBit through its documented public REST API.",
+      "description_kind": "MARKDOWN",
+      "deprecated": false,
+      "attributes": [
+        {
+          "name": "access_token",
+          "type": "string",
+          "description": "FeatBit personal or service API access token. May also be set with `FEATBIT_ACCESS_TOKEN`; service tokens are recommended for CI/CD.",
+          "description_kind": "MARKDOWN",
+          "required": false,
+          "optional": true,
+          "computed": false,
+          "sensitive": true,
+          "write_only": false,
+          "deprecated": false
+        },
+        {
+          "name": "api_url",
+          "type": "string",
+          "description": "FeatBit API base URL. May also be set with `FEATBIT_API_URL`. Defaults to `https://app-api.featbit.co`. The path may be empty or `/api/v1`.",
+          "description_kind": "MARKDOWN",
+          "required": false,
+          "optional": true,
+          "computed": false,
+          "sensitive": false,
+          "write_only": false,
+          "deprecated": false
+        },
+        {
+          "name": "http_timeout_seconds",
+          "type": "number",
+          "description": "Timeout in seconds for one FeatBit HTTP request. May also be set with `FEATBIT_HTTP_TIMEOUT_SECONDS`. Defaults to 30; valid range is 1 through 300.",
+          "description_kind": "MARKDOWN",
+          "required": false,
+          "optional": true,
+          "computed": false,
+          "sensitive": false,
+          "write_only": false,
+          "deprecated": false
+        },
+        {
+          "name": "max_concurrency",
+          "type": "number",
+          "description": "Maximum number of concurrent FeatBit API requests. May also be set with `FEATBIT_MAX_CONCURRENCY`. Defaults to 4; valid range is 1 through 32.",
+          "description_kind": "MARKDOWN",
+          "required": false,
+          "optional": true,
+          "computed": false,
+          "sensitive": false,
+          "write_only": false,
+          "deprecated": false
+        },
+        {
+          "name": "max_retries",
+          "type": "number",
+          "description": "Maximum retry count for safely retryable reads. Mutations are never retried automatically. May also be set with `FEATBIT_MAX_RETRIES`. Defaults to 3; valid range is 0 through 10.",
+          "description_kind": "MARKDOWN",
+          "required": false,
+          "optional": true,
+          "computed": false,
+          "sensitive": false,
+          "write_only": false,
+          "deprecated": false
+        }
+      ],
+      "block_types": []
+    }
+  },
+  "provider_meta": null,
+  "resources": {
+    "featbit_environment": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages a FeatBit Environment through the documented public API.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Environment description. An omitted value canonicalizes to an empty string.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Environment UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Immutable Environment key within the parent Project.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Environment display name.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "project_id",
+            "type": "string",
+            "description": "Immutable parent Project UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_feature_flag": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages a FeatBit Feature Flag definition through the documented public API.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Immutable Feature Flag description. An omitted value canonicalizes to an empty string.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "environment_id",
+            "type": "string",
+            "description": "Immutable parent Environment UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Feature Flag UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Immutable exact Feature Flag key within the parent Environment.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Feature Flag display name. This is the only field updated in place.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "variation_type",
+            "type": "string",
+            "description": "Immutable variation type: boolean, string, number, or json.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "variations",
+            "nested_type": {
+              "nesting": "LIST",
+              "attributes": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "description": "Stable variation UUID.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "description": "Variation display name.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "value",
+                  "type": "string",
+                  "description": "Variation value, canonicalized according to variation_type.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Immutable ordered Feature Flag variations. IDs are computed deterministically for provider-created flags.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_project": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages a FeatBit Project through the documented public API.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "environments",
+            "nested_type": {
+              "nesting": "LIST",
+              "attributes": [
+                {
+                  "name": "description",
+                  "type": "string",
+                  "description": "Environment description.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "description": "Environment UUID.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "key",
+                  "type": "string",
+                  "description": "Environment key.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "description": "Environment display name.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Canonical, non-owning observations of the Project environments. Manage additional environments with featbit_environment.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Project UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Immutable Project key.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Project display name.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_segment": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages an environment-specific FeatBit Segment through the documented public API.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Segment description, canonicalized to an empty string when omitted and updated in place.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "environment_id",
+            "type": "string",
+            "description": "Immutable parent Environment UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "excluded_users",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Exact user keys explicitly excluded from the Segment. Ordering is not significant.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Segment UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "included_users",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Exact user keys explicitly included in the Segment. Ordering is not significant.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Immutable exact case-sensitive Segment key within the Environment.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Segment display name, updated in place.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "rules",
+            "nested_type": {
+              "nesting": "LIST",
+              "attributes": [
+                {
+                  "name": "conditions",
+                  "nested_type": {
+                    "nesting": "LIST",
+                    "attributes": [
+                      {
+                        "name": "id",
+                        "type": "string",
+                        "description": "Stable condition UUID.",
+                        "description_kind": "MARKDOWN",
+                        "required": false,
+                        "optional": false,
+                        "computed": true,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      },
+                      {
+                        "name": "operator",
+                        "type": "string",
+                        "description": "Exact documented Segment condition operator.",
+                        "description_kind": "MARKDOWN",
+                        "required": true,
+                        "optional": false,
+                        "computed": false,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      },
+                      {
+                        "name": "property",
+                        "type": "string",
+                        "description": "Exact user property name.",
+                        "description_kind": "MARKDOWN",
+                        "required": true,
+                        "optional": false,
+                        "computed": false,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      },
+                      {
+                        "name": "value",
+                        "type": "string",
+                        "description": "Operator value. Multi-value operators use a JSON string array; IsTrue and IsFalse require an empty string.",
+                        "description_kind": "MARKDOWN",
+                        "required": true,
+                        "optional": false,
+                        "computed": false,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      }
+                    ]
+                  },
+                  "description": "Ordered conditions combined with logical AND.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "description": "Stable rule UUID.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "description": "Rule display name.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Ordered Segment rules. Provider-created rule and condition UUIDs are deterministic.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "scopes",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Exactly one immutable, fully qualified Environment resource RN.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "tags",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Segment tags. Ordering is not significant.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "description": "Fixed Segment type. Managed resources are always `environment-specific`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    }
+  },
+  "data_sources": {
+    "featbit_environment": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one FeatBit Environment by its exact parent Project UUID and Environment UUID.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Environment description, canonicalized to an empty string when absent.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Environment UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Environment key.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Environment display name.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "project_id",
+            "type": "string",
+            "description": "Exact parent Project UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_feature_flag": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one active FeatBit Feature Flag by exact Environment UUID and case-sensitive key.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Feature Flag description, canonicalized to an empty string when absent.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "environment_id",
+            "type": "string",
+            "description": "Exact parent Environment UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Feature Flag UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Exact case-sensitive Feature Flag key.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Feature Flag display name.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "variation_type",
+            "type": "string",
+            "description": "Canonical lowercase variation type.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "variations",
+            "nested_type": {
+              "nesting": "LIST",
+              "attributes": [
+                {
+                  "name": "id",
+                  "type": "string",
+                  "description": "Variation UUID.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "description": "Variation display name.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "value",
+                  "type": "string",
+                  "description": "Canonical variation value.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Canonical Feature Flag variations ordered by exact UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_project": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one FeatBit Project by its exact UUID.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "environments",
+            "nested_type": {
+              "nesting": "LIST",
+              "attributes": [
+                {
+                  "name": "description",
+                  "type": "string",
+                  "description": "Environment description.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "description": "Environment UUID.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "key",
+                  "type": "string",
+                  "description": "Environment key.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "description": "Environment display name.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Canonical, non-owning observations of the Project environments. Secret values and settings are not exposed.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Project UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Project key.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Project display name.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_segment": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one active FeatBit Segment by exact Environment and Segment UUIDs.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Segment description, canonicalized to an empty string when absent.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "environment_id",
+            "type": "string",
+            "description": "Exact Environment UUID from which the Segment is visible.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "excluded_users",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Exact user keys explicitly excluded from the Segment.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Segment UUID.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "included_users",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Exact user keys explicitly included in the Segment.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Exact case-sensitive Segment key.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Segment display name.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "rules",
+            "nested_type": {
+              "nesting": "LIST",
+              "attributes": [
+                {
+                  "name": "conditions",
+                  "nested_type": {
+                    "nesting": "LIST",
+                    "attributes": [
+                      {
+                        "name": "id",
+                        "type": "string",
+                        "description": "Condition UUID.",
+                        "description_kind": "MARKDOWN",
+                        "required": false,
+                        "optional": false,
+                        "computed": true,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      },
+                      {
+                        "name": "operator",
+                        "type": "string",
+                        "description": "Exact documented condition operator.",
+                        "description_kind": "MARKDOWN",
+                        "required": false,
+                        "optional": false,
+                        "computed": true,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      },
+                      {
+                        "name": "property",
+                        "type": "string",
+                        "description": "Exact user property name.",
+                        "description_kind": "MARKDOWN",
+                        "required": false,
+                        "optional": false,
+                        "computed": true,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      },
+                      {
+                        "name": "value",
+                        "type": "string",
+                        "description": "Canonical operator value encoding.",
+                        "description_kind": "MARKDOWN",
+                        "required": false,
+                        "optional": false,
+                        "computed": true,
+                        "sensitive": false,
+                        "write_only": false,
+                        "deprecated": false
+                      }
+                    ]
+                  },
+                  "description": "Ordered conditions combined with logical AND.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "id",
+                  "type": "string",
+                  "description": "Rule UUID.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "description": "Rule display name.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Ordered Segment rules.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "scopes",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Immutable fully qualified Segment scope RNs.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "tags",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Segment tags.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "description": "Exact Segment type: `environment-specific` or `shared`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    }
+  },
+  "functions": [],
+  "ephemeral_resources": [],
+  "list_resources": [],
+  "actions": [],
+  "state_stores": [],
+  "import_forms": {
+    "featbit_environment": "<project_uuid>/<environment_uuid>",
+    "featbit_feature_flag": "<environment_uuid>/<exact_key>",
+    "featbit_project": "<project_uuid>",
+    "featbit_segment": "<environment_uuid>/<segment_uuid>"
+  }
+}
