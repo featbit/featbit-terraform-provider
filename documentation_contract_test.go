@@ -26,7 +26,6 @@ var (
 	publicGuidanceMarkdownFiles = []string{
 		"SECURITY.md",
 		"SUPPORT.md",
-		"CONTRIBUTING.md",
 		"UPGRADING.md",
 	}
 )
@@ -222,27 +221,6 @@ func TestPublicGuidanceIsSafeAndActionable(t *testing.T) {
 			},
 		},
 		{
-			path: "CONTRIBUTING.md",
-			want: []string{
-				"Go 1.25.8",
-				"make fmt",
-				"make lint",
-				"make test",
-				"go test -race ./...",
-				"make build",
-				"go mod tidy -diff",
-				"go mod verify",
-				"make docs",
-				"make docs-check",
-				"make testacc",
-				"not a contribution or pull request requirement",
-				"Do not seek or create remote-service credentials merely to contribute",
-				"FEATBIT_TEST_ORGANIZATION_KEY",
-				"removes children before parents",
-				"release_contract_test.go",
-			},
-		},
-		{
 			path: "UPGRADING.md",
 			want: []string{
 				"patch releases in a published minor line",
@@ -297,43 +275,6 @@ func TestPublicGuidanceIsSafeAndActionable(t *testing.T) {
 		t.Error("issue template configuration does not retain a blank, detail-free security escalation path")
 	}
 
-	makefile := readDocumentationFile(t, "GNUmakefile")
-	for _, target := range []string{
-		"fmt",
-		"lint",
-		"test",
-		"testacc",
-		"build",
-		"docs",
-		"docs-check",
-	} {
-		if !regexp.MustCompile(`(?m)^` + regexp.QuoteMeta(target) + `:`).MatchString(makefile) {
-			t.Errorf("CONTRIBUTING.md references missing make target %s", target)
-		}
-	}
-	if !regexp.MustCompile(`(?m)^go 1\.25\.8$`).MatchString(readDocumentationFile(t, "go.mod")) {
-		t.Error("CONTRIBUTING.md Go prerequisite does not match go.mod")
-	}
-
-	acceptanceContract := strings.Join([]string{
-		readDocumentationFile(t, "internal/provider/cloud_acceptance_test.go"),
-		readDocumentationFile(t, "internal/provider/feature_flag_cloud_acceptance_test.go"),
-		readDocumentationFile(t, "internal/provider/segment_cloud_acceptance_test.go"),
-		readDocumentationFile(t, "internal/provider/feature_flag_cloud_harness_test.go"),
-		readDocumentationFile(t, "internal/provider/segment_cloud_harness_test.go"),
-	}, "\n")
-	for _, want := range []string{
-		`os.Getenv("TF_ACC")`,
-		"FEATBIT_ACCESS_TOKEN",
-		"FEATBIT_TEST_ORGANIZATION_KEY",
-		"cloudAcceptancePrefix",
-		"cleanupAndVerify",
-	} {
-		if !strings.Contains(acceptanceContract, want) {
-			t.Errorf("CONTRIBUTING.md acceptance guidance has no production test contract for %q", want)
-		}
-	}
-
 	combined.WriteString(issueTemplate)
 	for _, forbidden := range []string{
 		"mailto:",
@@ -352,10 +293,9 @@ func TestDocumentationToolchainIsPinnedAndCheckOnlyByDefault(t *testing.T) {
 	docsgen := readDocumentationFile(t, "internal/tools/docsgen/main.go")
 	for _, expected := range []string{
 		"tfplugindocs@v0.25.0",
-		`docsTerraformVersion      = "1.15.8"`,
 		`write := flag.Bool("write", false`,
 		`os.MkdirTemp("", "featbit-docs-tool-")`,
-		`"windows_amd64": "2ff41d2129afb1982733c132c61a8d6ef038f879f3aeede7fc28b8b8b24acf02"`,
+		`exec.LookPath("terraform")`,
 	} {
 		if !strings.Contains(docsgen, expected) {
 			t.Errorf("documentation generator does not contain pinned/check-only contract %q", expected)

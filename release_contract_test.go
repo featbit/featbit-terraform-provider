@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"slices"
@@ -281,56 +280,6 @@ func TestInitialReleaseMetadataAndManifest(t *testing.T) {
 		manifest.Metadata.ProtocolVersions[0] != "6.0" {
 		t.Fatalf("Registry manifest = %#v, want format 1 and Protocol 6.0", manifest)
 	}
-}
-
-func TestReleaseBuildVersionContract(t *testing.T) {
-	t.Parallel()
-
-	tests := map[string]struct {
-		builtVersion string
-		expected     string
-		wantErr      bool
-	}{
-		"exact injected version": {builtVersion: initialReleaseVersion, expected: initialReleaseVersion},
-		"development default":    {builtVersion: "dev", expected: initialReleaseVersion, wantErr: true},
-		"empty build version":    {builtVersion: "", expected: initialReleaseVersion, wantErr: true},
-		"wrong injected version": {builtVersion: "0.1.1", expected: initialReleaseVersion, wantErr: true},
-		"missing expectation":    {builtVersion: initialReleaseVersion, expected: "", wantErr: true},
-	}
-	for name, test := range tests {
-		name := name
-		test := test
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			err := validateReleaseBuildVersion(test.builtVersion, test.expected)
-			if (err != nil) != test.wantErr {
-				t.Fatalf("validateReleaseBuildVersion() error = %v, want error %t", err, test.wantErr)
-			}
-		})
-	}
-}
-
-func TestReleaseBuildUsesInjectedVersion(t *testing.T) {
-	expected := os.Getenv("FEATBIT_RELEASE_VERSION")
-	if expected == "" {
-		t.Skip("set FEATBIT_RELEASE_VERSION when verifying a release build")
-	}
-	if err := validateReleaseBuildVersion(version, expected); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func validateReleaseBuildVersion(builtVersion string, expected string) error {
-	if expected == "" {
-		return errors.New("release version expectation is empty")
-	}
-	if builtVersion == "" || builtVersion == "dev" {
-		return fmt.Errorf("release build contains development version %q", builtVersion)
-	}
-	if builtVersion != expected {
-		return fmt.Errorf("release build version %q does not match %q", builtVersion, expected)
-	}
-	return nil
 }
 
 func releaseSnapshotJSON(t *testing.T, response *tfprotov6.GetProviderSchemaResponse) []byte {

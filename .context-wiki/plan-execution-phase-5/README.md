@@ -1,8 +1,8 @@
 # Phase 5 — Initial release
 
 - Status: **In progress**
-- Updated: **2026-08-06**
-- Next task: `P5-013`
+- Updated: **2026-08-08**
+- Next task: `P5-030`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core
@@ -30,11 +30,16 @@ gates. The repository currently contains:
 
 The repository now contains a public README, schema-derived Registry
 documentation, credential-free examples, non-writing documentation drift and
-example validation, security/contribution/support/upgrade guidance, and a
-safety-first public bug form. It does not yet contain GitHub Actions,
-GoReleaser configuration, a release signing workflow, or a clean-directory
-Registry-install smoke test. Phase 5 adds those remaining release surfaces
-without changing the implemented product scope.
+example validation, security/support/upgrade guidance, a
+safety-first public bug form, fork-safe read-only credential-free GitHub Actions
+CI, deterministic GoReleaser packaging for the frozen five-platform Registry
+artifact set, a scaffold-style protected tag-only workflow that creates a
+signed draft, and the existing frozen Protocol schema contract. The current
+release design intentionally has no custom artifact verifier or clean-install
+harness; GoReleaser owns packaging and maintainers inspect the draft before
+publication. Remaining Phase 5 work qualifies the Terraform and current-Cloud
+contracts before any authorized publication, without changing the implemented
+product scope.
 
 ## Objective
 
@@ -102,9 +107,9 @@ parallel hand-written resource model.
 | Area | Frozen contract |
 |---|---|
 | First Registry artifact | Stable, non-prerelease SemVer release `v0.1.0`. Terraform does not select prereleases without an exact constraint, so a prerelease cannot satisfy the normal clean-install gate. Freezing this version does not authorize tag creation or publication. |
-| Binary version | `0.1.0` without the tag's leading `v`, injected into `main.version`; `dev`, empty, or a value different from the release version fails the release-contract check. |
-| Terraform CLI | Minimum supported language/protocol boundary is `>= 1.0.0`, because Protocol 6 requires Terraform 1.0 or later. Release qualification is pinned to `1.0.11` (last 1.0 patch), `1.5.7` (representative intermediate), and `1.15.8` (current stable on 2026-08-05). These become public tested claims only after P5-030 passes with packaged binaries. |
-| Go | CI and release builds use exactly Go `1.25.8`, matching `go.mod` and the inspected current HashiCorp Plugin Framework scaffold. A newer local Go toolchain is not release evidence. |
+| Binary version | The tag version without its leading `v` is injected into `main.version` by GoReleaser and passed into provider metadata; ordinary local builds retain `dev`. |
+| Terraform CLI | Minimum supported language/protocol boundary is `>= 1.0.0`, because Protocol 6 requires Terraform 1.0 or later. Release qualification is pinned to `1.0.11` (last 1.0 patch), `1.5.7` (representative intermediate), and `1.15.8` (current stable on 2026-08-05). These become public tested claims only after P5-030 passes on credential-free Linux/AMD64. |
+| Go | CI and release builds use exactly Go `1.26.5`, matching `go.mod`. This pre-`v0.1.0` baseline uses the current stable Go line and includes the standard-library security fixes required by P5-013. A different local Go toolchain is not release evidence. |
 | Plugin protocol | Protocol `6.0` only, served with `providerserver.NewProtocol6` and declared by manifest format version `1`. |
 
 These values were reconciled against HashiCorp's current
@@ -127,7 +132,7 @@ than hidden in a patch.
 No published tag or asset may be replaced. A correction is always a new
 version.
 
-### Archive and native-verification matrix
+### Archive matrix
 
 The initial release produces exactly these five `CGO_ENABLED=0` archives:
 
@@ -137,13 +142,13 @@ The initial release produces exactly these five `CGO_ENABLED=0` archives:
 | `linux` | `amd64`, `arm64` |
 | `windows` | `amd64` |
 
-Go 1.25.8 supports all five targets, this repository cross-builds for all five
-without CGO, Terraform 1.0.11 published a matching CLI for each, and current
-standard GitHub-hosted native runner families cover them. P5-030 must still
-start and test each packaged target natively before the matrix becomes a public
-compatibility claim. Windows ARM64, 32-bit, ARM32, FreeBSD, and other Go targets
-are not initial-release archives: cross-compilation alone would not satisfy the
-native release gate, and Terraform 1.0.11 did not publish Windows ARM64.
+Go 1.26.5 supports all five targets and GoReleaser cross-builds each one without
+CGO. P5-030 qualifies the frozen Terraform CLI versions on Linux/AMD64 and
+rechecks the complete snapshot; it does not create five native-runner test
+matrices. Archive availability is a distribution contract, not a claim of
+separate native execution evidence for every target. Windows ARM64, 32-bit,
+ARM32, FreeBSD, and other Go targets are not initial-release archives;
+Terraform 1.0.11 did not publish Windows ARM64.
 
 ### Public schema, state, and Import compatibility
 
@@ -196,7 +201,7 @@ Read-only inspection on 2026-08-05 proved that
 GitHub repository with default branch `main`, and that the checked-out module,
 provider address, and repository namespace agree. It had no tag or GitHub
 release. The tree had no public README, Registry docs/examples, GitHub Actions,
-GoReleaser configuration, signing workflow, public security/contribution
+GoReleaser configuration, signing workflow, public security/support
 guidance, or isolated Registry-install smoke test. Existing local gates are
 `gofmt`, vet, unit/mock/Protocol tests, race, build, module tidiness/verification,
 and separately opted-in trusted Cloud acceptance.
@@ -214,8 +219,8 @@ maintainer-owned prerequisites, not P5-010 implementation work:
 - create and approve the protected GitHub release environment and required
   secrets; the repository exposed no configured Actions environment or secret
   name during the read-only baseline;
-- decide in P5-015 whether the workflow creates a draft for inspection before
-  finalization; and
+- preserve the P5-015 decision that automation creates only a draft for
+  inspection and never finalizes it; and
 - explicitly authorize tag creation, GitHub release finalization, Registry
   connection/resynchronization, and publication in P5-033.
 
@@ -280,7 +285,7 @@ Credential-free pull-request and ordinary branch CI:
 - pins every action to a verified full commit SHA;
 - runs format, vet, unit/Protocol tests, race where supported, build,
   module-tidiness/verification, documentation drift, dependency/license/
-  vulnerability checks, secret scanning, and snapshot packaging as applicable;
+  vulnerability checks, and secret scanning;
   and
 - leaves trusted FeatBit Cloud tests skipped because no token is present.
 
@@ -290,34 +295,31 @@ uses a unique test-owned prefix, operates only on its own core objects, and
 proves exact child-first cleanup. It never enumerates or modifies unrelated
 projects.
 
-The tag release workflow is separate again. It has only the permissions needed
-to create GitHub release assets and receives the GPG key/passphrase only after
-the protected release boundary. It must not process an untrusted checkout,
-reuse artifacts from an untrusted workflow, print secret-derived data, or
-publish when validation fails.
+The tag release workflow is separate again. It follows the official Terraform
+Provider scaffold shape: checkout, the Go version from `go.mod`, protected GPG
+key import, and pinned GoReleaser execution. It has only the permissions needed
+to create GitHub release assets, receives the GPG key/passphrase only inside
+the protected release environment, and creates a draft for manual inspection.
 
-## Compatibility and installation verification
+## Compatibility and release review
 
-Before publication, snapshot assets must be verified independently of the
-GoReleaser job:
+The current version deliberately keeps no custom artifact or clean-install
+verification program. Local maintainers may run `make release-config-check`
+and `make snapshot` to inspect GoReleaser output without publishing. Before a
+draft is finalized, maintainers inspect that:
 
 - archive names and contents match the frozen matrix;
-- every checksum verifies and the detached signature verifies with the public
-  key;
-- the embedded provider version matches the proposed release;
-- the manifest parses and advertises Protocol `6.0`;
-- representative native runners can start the packaged provider and retrieve
-  its exact schema; and
-- a clean Terraform directory installs the candidate through an isolated
-  filesystem/network-mirror path without a development override.
+- checksum and detached-signature assets are present;
+- the version and manifest names match the release tag; and
+- no unexpected file is attached.
 
-The release candidate then runs the frozen Terraform CLI compatibility matrix.
+Normal Protocol and acceptance tests remain the executable product contract.
 The trusted current-Cloud smoke test covers Project, Environment, all four
 Feature Flag types, an environment-specific Segment, Import, second-plan
-idempotence, drift repair, dependency-ordered destroy, and independent exact
-cleanup. Shared Segment behavior remains public-contract/Protocol verified
-unless an explicitly owned shared fixture exists; lack of one never authorizes
-reading unrelated objects.
+idempotence, drift repair, dependency-ordered destroy, and exact cleanup.
+Shared Segment behavior remains public-contract/Protocol verified unless an
+explicitly owned shared fixture exists; lack of one never authorizes reading
+unrelated objects.
 
 After publication, a new clean directory must install the exact Registry
 version and repeat schema, plan, apply, Import, empty second plan, and destroy
@@ -334,7 +336,8 @@ smoke tests without local overrides.
   route and never asks for vulnerability details publicly.
 - Contribution, development, test, documentation-generation, support, and
   upgrade guidance contains no workstation-specific path or speculative
-  contact/SLA. Release-maintainer workflow guidance remains with P5-015.
+  contact/SLA. Release operation remains encoded in the scaffold-style workflow
+  rather than a separate repository manual.
 - The public compatibility policy protects patch-line SemVer, provider schema,
   existing Terraform state, and all four exact Import contracts.
 - Pin quality/release tools and GitHub Actions. Review licenses, vulnerabilities,
@@ -366,13 +369,12 @@ already been explicitly requested.
 1. Freeze the core-only release, compatibility, versioning, and platform
    contract.
 2. Add Registry documentation, examples, and a reproducible drift check.
-3. Add public security, contribution, support, and upgrade guidance.
+3. Add public security, support, and upgrade guidance.
 4. Add fork-safe credential-free CI with pinned tools/actions.
-5. Add reproducible GoReleaser packaging, checksums, signing configuration,
-   and snapshot verification.
-6. Add the isolated protected release workflow.
-7. Prove packaged-provider installation and the Terraform/platform
-   compatibility matrix.
+5. Add reproducible GoReleaser packaging, checksums, and signing configuration.
+6. Add the scaffold-style protected release workflow.
+7. Prove the Terraform CLI compatibility matrix on Linux/AMD64 and recheck the
+   GoReleaser archive matrix.
 8. Run the trusted core-only current-Cloud release-candidate gate and the full
    local/supply-chain gate.
 9. With explicit maintainer authorization, publish and verify the initial
@@ -397,16 +399,15 @@ already been explicitly requested.
 - All items in [todo.md](todo.md) are complete.
 - The published provider exposes exactly five provider attributes, four core
   resources, four data sources, Protocol `6.0`, and no IAM surface.
-- README, Registry docs, examples, security/contribution/support guidance, and
+- README, Registry docs, examples, security/support guidance, and
   upgrade policy match the frozen schema and contain no credentials or runtime
   tenant/object values.
 - Fork pull requests pass credential-free read-only CI; no untrusted workflow
   can access release or Cloud secrets.
-- Snapshot and final artifacts match the frozen OS/architecture matrix,
-  contain the correct versioned binary and manifest, pass checksum/signature/
-  provenance inspection, and contain no unexpected file.
-- The Terraform CLI/platform compatibility matrix and clean-directory
-  prepublication install tests pass.
+- GoReleaser configuration and a local unsigned snapshot build succeed for the
+  frozen OS/architecture matrix without publishing.
+- The Terraform CLI compatibility matrix passes on credential-free
+  Linux/AMD64 through the normal Protocol gates.
 - Trusted current-Cloud release-candidate tests pass only against uniquely
   test-owned core objects and independently prove exact cleanup without reading
   or mutating unrelated projects.

@@ -24,10 +24,10 @@ resource phases passed their local, Protocol, and trusted current-Cloud gates
 with exact cleanup. The initial public release contains only those four core
 resources and their data sources; IAM is deferred until after that release.
 The core-only release contract is frozen by a checked-in Protocol v6 schema
-snapshot and focused registration, Import, manifest, and release-version
-checks. The next action is Phase 5 `P5-011`: add Registry documentation,
-credential-free examples, and generated-document drift verification against
-that contract.
+snapshot and focused registration, Import, and manifest checks. GoReleaser owns
+tag-derived version injection. The next action is Phase 5 `P5-030`: run the
+Terraform CLI compatibility matrix on credential-free Linux/AMD64 through the
+existing Protocol gates and recheck the GoReleaser archive matrix.
 
 ## 2. Product boundary
 
@@ -218,7 +218,7 @@ Gate: lifecycle and Import converge; reference conflicts preserve valid state.
 
 Add fork-safe credential-free pull-request CI with pinned quality tools, while
 keeping live acceptance jobs separately trusted and scoped. Add Registry
-documentation/examples, security and contribution guides, upgrade policy,
+documentation/examples, security and support guidance, upgrade policy,
 cross-platform release packaging, checksums/signatures, Cloud and self-hosted
 compatibility claims backed by evidence, prerelease smoke tests, and Registry
 publication. The release schema contains exactly the four implemented core
@@ -238,18 +238,27 @@ Gate: bindings are idempotent and never claim an entire shared relationship set.
 
 ## 6. Global verification
 
-Current runtime pins are authoritative in `go.mod`: Go `1.25.8`, Plugin
+Current runtime pins are authoritative in `go.mod`: Go `1.26.5`, Plugin
 Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
 Log `v0.10.0`. Protocol is `6.0`, so the minimum Terraform CLI is `1.0.0`.
 Release qualification is pinned to Terraform `1.0.11`, `1.5.7`, and `1.15.8`;
-those are not public tested claims until the packaged-provider matrix passes.
+those are not public tested claims until the Linux/AMD64 compatibility matrix
+passes.
 Initial archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
-`linux_arm64`, and `windows_amd64`, built without CGO and later verified on
-native runners. The first Registry artifact is the stable non-prerelease SemVer
+`linux_arm64`, and `windows_amd64`, cross-built without CGO and checked by the
+GoReleaser snapshot. This archive matrix is a distribution contract, not a
+claim that every target has a separate native-runner qualification. The first
+Registry artifact is the stable non-prerelease SemVer
 release `v0.1.0`; freezing its version does not authorize tag creation or
 publication.
-The repository does not yet contain CI or release automation; Phase 5 adds and
-pins those surfaces without expanding the frozen core schema.
+The repository contains fork-safe, read-only, credential-free CI with pinned
+actions and quality/supply-chain tools; deterministic five-platform GoReleaser
+packaging; a protected stable-tag workflow that can create only a signed draft;
+and the existing frozen Protocol schema contract. The current release design
+intentionally follows the scaffold without a custom artifact verifier or
+clean-install harness. Release signing identity, protected environment, tag creation,
+draft inspection/finalization, Registry connection, and publication remain
+maintainer-owned Phase 5 gates and do not expand the frozen core schema.
 
 Every applicable phase gate includes:
 

@@ -13,7 +13,7 @@
 
 [![License: MPL 2.0][license-shield]][license-url]
 [![Terraform: >= 1.0.0][terraform-shield]][terraform-url]
-[![Go: 1.25.8][go-shield]][go-url]
+[![Go: 1.26.5][go-shield]][go-url]
 
 </div>
 
@@ -79,9 +79,9 @@ terraform {
 provider "featbit" {}
 ```
 
-Terraform Protocol 6 requires Terraform 1.0 or later. The full release
-compatibility matrix will be published only after packaged binaries pass their
-native-platform qualification gate.
+Terraform Protocol 6 requires Terraform 1.0 or later. Release qualification
+tests the frozen Terraform CLI versions on Linux/AMD64; GoReleaser separately
+cross-builds the published OS/architecture archive set.
 
 ## Authentication
 
@@ -160,7 +160,7 @@ credential-free example; every resource page includes its exact Import form.
 
 ## Development
 
-Use Go 1.25.8 for release-equivalent local checks:
+Use Go 1.26.5 for release-equivalent local checks:
 
 ```shell
 go test ./...
@@ -172,17 +172,6 @@ make docs-check
 `make docs-check` generates into a temporary directory, compares the result,
 and validates every example without changing the working tree. Live acceptance
 tests are separate, opt-in, and must use uniquely test-owned FeatBit objects.
-
-The [contribution guide](CONTRIBUTING.md) contains the complete local quality
-gate and documentation workflow. It also documents the optional
-maintainer-operated live acceptance procedure, which is not a contribution or
-pull request requirement.
-
-## Contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before changing code or generated
-documentation. It defines the credential-free local workflow, compatibility
-review, and exact remote-object isolation and cleanup rules for opt-in tests.
 
 ## Security and support
 
@@ -215,5 +204,5 @@ Crafted with [Readme Craft](https://github.com/motiful/readme-craft)
 [license-url]: LICENSE
 [terraform-shield]: https://img.shields.io/badge/Terraform-%3E%3D_1.0.0-844FBA?logo=terraform&logoColor=white
 [terraform-url]: https://developer.hashicorp.com/terraform/plugin/terraform-plugin-protocol#protocol-version-6
-[go-shield]: https://img.shields.io/badge/Go-1.25.8-00ADD8?logo=go&logoColor=white
+[go-shield]: https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white
 [go-url]: go.mod

@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-013**
+Next: **P5-030**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -41,23 +41,24 @@ the corresponding item and explicit maintainer authorization permit it.
 
   Done when a checked-in focused release-contract/schema snapshot rejects any
   unexpected provider attribute, resource, data source, Protocol change, IAM
-  registration, unstable Import form, or development version in a release
-  build; the supported version/platform matrix and compatibility policy are
+  registration, or unstable Import form; GoReleaser injects the tag-derived
+  version; the supported version/platform matrix and compatibility policy are
   explicit; the exact public-versus-maintainer prerequisites are recorded; and
   no live endpoint, signing secret, tag, GitHub release, or Registry mutation
   was used to obtain the baseline.
 
   Result (updated 2026-08-06): froze the initial stable tag as `v0.1.0`,
   Terraform `>= 1.0.0` and qualification pins
-  `1.0.11`/`1.5.7`/`1.15.8`, Go `1.25.8`, Protocol `6.0`, and the five
-  native-verifiable 64-bit archives in the Phase README. Added
+  `1.0.11`/`1.5.7`/`1.15.8`, Go `1.26.5`, Protocol `6.0`, and the five
+  supported 64-bit archives in the Phase README. Added
   `release_contract_test.go` and the reviewed
   `internal/provider/testdata/release-schema.json`; they independently lock
   the five provider attributes, four resources/data sources, empty non-core
-  surfaces, four strict Import forms, manifest/address metadata, and
-  release-version injection. Signing identity and protected secrets, Registry
-  namespace authority, and all publication mutations remain explicit
-  maintainer prerequisites. Go 1.25.8 full tests, vet, build, tidy-diff,
+  surfaces, four strict Import forms, and manifest/address metadata. The
+  scaffold-style GoReleaser configuration owns release-version injection.
+  Signing identity and protected secrets, Registry namespace authority, and all
+  publication mutations remain explicit maintainer prerequisites. The current
+  Go 1.26.5 baseline passes full tests, vet, build, tidy-diff,
   module verification, repeated focused checks, and
   CGO-free builds for every frozen target passed without a live API or secret.
 
@@ -96,102 +97,96 @@ the corresponding item and explicit maintainer authorization permit it.
   and eight object pages, reviewed behavior templates, and nine credential-free
   provider/resource/data-source example sets with explicit `api_url` and
   `FEATBIT_API_URL` endpoint guidance plus all four strict Import forms.
-  The workflow pins `terraform-plugin-docs@v0.25.0` and downloads a
-  SHA-256-pinned Terraform 1.15.8 only into a temporary tool directory;
-  `make docs` is the explicit writer, while `make docs-check` generates into a
-  temporary directory, byte-compares committed output, validates Registry
-  structure, and formats/initializes/validates every example against a
-  temporary `registry.terraform.io/featbit/featbit` package without a token or
-  development override. The non-writing drift run, all nine example
+  The workflow pins `terraform-plugin-docs@v0.25.0`; CI installs Terraform
+  1.15.8 through HashiCorp's pinned `setup-terraform` action, and local checks
+  use the documented Terraform binary on `PATH`. `make docs` is the explicit
+  writer, while `make docs-check` generates into a temporary directory, byte-
+  compares committed output, validates Registry structure, and formats/
+  initializes/validates every example against a temporary
+  `registry.terraform.io/featbit/featbit` package without a token or development
+  override. The non-writing drift run, all nine example
   validations, link/import/ownership/sensitive-value contract checks, full Go
   tests, vet, build, tidy-diff, and module verification passed without a live
   API or secret; scans found no state, plan, log, runtime UUID, or credential
   assignment.
 
-- [x] **P5-012 — Add practical security, contribution, support, and upgrade guidance.**
+- [x] **P5-012 — Add practical security, support, and upgrade guidance.**
 
-  Scope: add only the concise guidance needed to run, diagnose, and change the
-  provider safely. Document credential, state, plan, log, and vulnerability
-  handling; the issue/support boundary; local build, test, generated-doc, and
-  trusted acceptance workflows; remote-object isolation and cleanup; and the
-  compatibility rules that protect SemVer, provider schema, Terraform state,
-  and Import contracts. Use a private security-reporting route only when it
-  actually exists and can be verified; otherwise give a non-sensitive
-  escalation path without inventing an address or asking for vulnerability
-  details in public. Preserve the existing license and SPDX notices, but do not
-  add or expand copyright, legal, code-of-conduct, formal governance, or
-  organization-policy material in this item.
+  Scope: add only the concise user guidance needed for credential, state, plan,
+  log, vulnerability, support, and upgrade handling. Use a private security-
+  reporting route only when it exists and can be verified; otherwise provide a
+  detail-free escalation path. Preserve the existing license and SPDX notices,
+  and do not add contribution governance before a collaboration model exists.
 
-  Important files: `SECURITY.md`, `CONTRIBUTING.md`, concise support and upgrade
-  guidance in a dedicated file or the README where that is clearer, and README
-  links. Add an issue template only if it materially prevents credentials,
-  state, plans, logs, or runtime identifiers from entering public reports. Do
-  not add `CODE_OF_CONDUCT.md`, new copyright/legal documents, speculative
-  contacts, or unrelated release-process bureaucracy.
+  Important files: `SECURITY.md`, `SUPPORT.md`, `UPGRADING.md`, README links,
+  and a safety-first issue template. Do not add `CONTRIBUTING.md`,
+  `CODE_OF_CONDUCT.md`, speculative contacts, or unrelated process documents.
 
-  Runtime relationship: `user or contributor -> safe setup, support, or
-  security entry point -> credential-free reproduction or verified private
-  disclosure -> isolated tests and cleanup -> state-compatible change`.
+  Runtime relationship: `user -> support or security entry point -> safe
+  reproduction or verified private disclosure -> compatible upgrade`.
 
-  Done when a user can configure and operate the provider without exposing
-  sensitive material, choose the correct support or security path, and
-  understand compatibility expectations; a contributor can build, test,
-  regenerate docs, and run opt-in acceptance safely against exclusively
-  test-owned objects; every referenced contact and command exists; links
-  resolve; and the guidance makes no speculative SLA, legal, copyright, or
-  organization-policy claim.
+  Done when users can choose the correct support/security path, report issues
+  without exposing sensitive material, and understand compatibility and upgrade
+  expectations; every referenced route exists; and the guidance makes no
+  speculative SLA, legal, copyright, governance, or collaboration claim.
 
-  Result (2026-08-06): added focused `SECURITY.md`, `SUPPORT.md`,
-  `CONTRIBUTING.md`, and `UPGRADING.md` entry points plus a safety-first GitHub
-  bug form and an enabled blank issue path. GitHub inspection confirmed Issues
-  are enabled while private vulnerability reporting is disabled, so the
-  security policy exposes only a detail-free request for a verified private
-  route. The guides cover secret/state/plan/log handling, support boundaries,
-  credential-free development, generated docs, optional maintainer-operated
-  live acceptance with unique objects and exact cleanup,
-  SemVer/schema/state/Import compatibility, and safe upgrades. Corrected the
-  public constraint from `~> 0.1` to `~> 0.1.0`
-  so Terraform cannot auto-select a potentially breaking `0.2.0`. Focused
-  guidance/link/command/harness contracts, issue-template YAML, README quality,
-  docs drift, all nine examples, full non-live tests, vet, build, formatting,
-  tidy-diff, module verification, and diff checks passed with credentials
-  removed. The later release-wide race gate remains pending because this host
-  has no C compiler for Go's Windows race runtime.
+  Result (updated 2026-08-08): retained focused `SECURITY.md`, `SUPPORT.md`, and
+  `UPGRADING.md` entry points plus a safety-first GitHub bug form and enabled
+  blank issue path. They cover secret/state/plan/log handling, support
+  boundaries, SemVer/schema/state/Import compatibility, and safe upgrades. The
+  constraint is `~> 0.1.0`, so Terraform cannot auto-select a potentially
+  breaking `0.2.0`. No standalone contribution guide is retained before a
+  collaboration model is chosen. Guidance, issue-template, README, docs, test,
+  build, module, and diff checks passed without credentials.
 
 ## Credential-free CI and release packaging
 
-- [ ] **P5-013 — Add fork-safe credential-free pull-request CI.**
+- [x] **P5-013 — Add fork-safe credential-free pull-request CI.**
 
   Scope: add read-only GitHub Actions for pull requests and ordinary branch
   pushes. Pin every action to a verified full commit SHA and every invoked tool
   to a reviewed version. Run formatting, vet, unit/mock/Protocol tests, race on
   supported runners, build, `go mod tidy -diff`, `go mod verify`, generated
-  docs drift, dependency/license/vulnerability inspection, secret scanning,
-  and snapshot-package validation as the implementation becomes available.
+  docs drift, dependency/license/vulnerability inspection, and secret scanning.
   Keep Cloud acceptance skipped and make fork execution independent of
   repository secrets. Do not use `pull_request_target` or execute artifacts
   from an untrusted workflow in a privileged context.
 
   Important files: `.github/workflows/test.yml` and narrowly justified
   supporting configuration; `GNUmakefile`; pinned tool installation or
-  verification scripts; dependency update configuration if added; and tests
-  that statically inspect workflow permissions, triggers, action SHAs, secret
-  references, and command boundaries. Prefer official/mature tools already
-  used by the ecosystem and record license/maintenance/security fit before
-  adding one.
+  verification commands; and dependency update configuration if added. Prefer
+  official/mature tools already used by the ecosystem and record license,
+  maintenance, and security fit before adding one.
 
   Runtime relationship: `fork pull_request or branch push -> read-only
   credential-free workflow -> pinned actions/tools -> repository quality,
-  Protocol, documentation, supply-chain, and snapshot checks -> status result`.
+  Protocol, documentation, and supply-chain checks -> status result`.
 
   Done when an untrusted fork can run every required non-live check with
   `contents: read`, no write/id-token permission, no FeatBit/GPG secret
   reference, no `TF_ACC=1`, and no privileged follow-up consuming its
   checkout/artifacts; all actions are immutable SHA pins with auditable version
-  comments; cache keys cannot cross into privileged jobs; tests fail on unsafe
-  triggers/permissions; and the complete credential-free workflow passes.
+  comments; cache keys cannot cross into privileged jobs; actionlint accepts
+  the workflow; and the complete credential-free workflow passes.
 
-- [ ] **P5-014 — Add reproducible cross-platform Registry packaging.**
+  Result (updated 2026-08-08): added branch-push and fork `pull_request` CI with only
+  `contents: read`, credential persistence and caches disabled, no artifact or
+  privileged follow-up, and official checkout/setup-go actions pinned to the
+  verified full SHAs for `v7.0.1`/`v7.0.0`. Added non-writing Make targets and
+  exact pins for actionlint `v1.7.12` (MIT), Go-team govulncheck `v1.6.0`
+  (BSD-3-Clause), Google go-licenses `v2.0.1` (Apache-2.0), and Gitleaks
+  `v8.28.0` (MIT). The vulnerability gate found 11 reachable standard-library
+  vulnerabilities in the earlier toolchain baseline. Before `v0.1.0`, the
+  release baseline moved to official Go 1.26.5 so CI and release packaging use
+  the current stable Go line with the required fixes; every current contract
+  and guidance reference was synchronized. With exact Go 1.26.5, the full
+  non-live unit/mock/Protocol suite plus formatting, vet, build, module,
+  docs/example, license, vulnerability, workflow, and secret gates pass; an
+  isolated Linux/amd64 Provider race run also passes. Packaging remains outside
+  pull-request CI and is owned by GoReleaser; no custom workflow contract test
+  is retained.
+
+- [x] **P5-014 — Add reproducible cross-platform Registry packaging.**
 
   Scope: add a pinned GoReleaser v2 configuration for the platform matrix
   frozen in P5-010. Build with `CGO_ENABLED=0`, `-trimpath`, deterministic
@@ -204,113 +199,94 @@ the corresponding item and explicit maintainer authorization permit it.
 
   Important files: `.goreleaser.yml`,
   `terraform-registry-manifest.json`, `main.go`, `GNUmakefile`, release
-  verification tests/scripts, and `.gitignore` for local `dist/` output.
-  Derive naming/signing behavior from current official HashiCorp scaffold and
-  GoReleaser documentation, then remove unused template fields and unsupported
-  platforms.
+  workflow, and `.gitignore` for local `dist/` output. Derive naming/signing
+  behavior from the current official HashiCorp scaffold and GoReleaser
+  documentation, then remove unused template fields and unsupported platforms.
 
-  Runtime relationship: `clean source commit plus SemVer snapshot/tag ->
+  Runtime relationship: `clean source commit plus snapshot or SemVer tag ->
   pinned Go toolchain and GoReleaser -> versioned CGO-free binaries -> zip
   archives plus manifest -> SHA256SUMS -> detached GPG signature`.
 
-  Done when two clean snapshot builds have the expected file set and stable
-  contents wherever the toolchain permits; each archive contains exactly one
-  correctly named executable; binaries start on representative native runners
-  and report the injected version; checksums cover all and only required files;
-  the manifest is valid Protocol `6.0`; signature configuration uses no
-  checked-in private material; snapshot mode creates no tag/release; and
-  archive scans find no source tree, local path, credential, state, plan, log,
-  or unexpected executable.
+  Done when `goreleaser check` accepts the configuration; an unsigned local
+  snapshot builds the frozen five-platform matrix without publication; release
+  naming, manifest inclusion, checksums, and detached signing follow the
+  official scaffold contract; signing configuration contains no checked-in
+  private material; and `dist/` remains ignored and uncommitted.
 
-- [ ] **P5-015 — Add an isolated, protected tag-release workflow.**
+  Result (updated 2026-08-08): added GoReleaser v2 configuration pinned to `v2.13.3`
+  and the frozen Go 1.26.5 toolchain. It builds exactly the five reviewed
+  CGO-free targets with trimmed paths, deterministic commit timestamps,
+  tag-derived version injection, zip archives, the renamed Protocol 6
+  manifest, SHA-256 coverage, and detached GPG
+  checksum-signature configuration without private material. GoReleaser's
+  built-in extra-file mapping owns manifest checksum and upload naming. The
+  current scaffold-style design intentionally retains no custom artifact or
+  clean-install verifier; local snapshots use GoReleaser's normal snapshot
+  version and exist only for optional maintainer inspection. Configuration,
+  full tests, vet, workflow lint, and diff checks passed; snapshot mode created
+  no tag, signature, or release.
 
-  Scope: add the tag-triggered workflow that validates a clean `vX.Y.Z`
-  SemVer tag, checks that its version matches the packaging contract, imports
-  the protected GPG key, runs the already-proven release build, verifies assets,
-  and creates a GitHub release. Pin actions by full SHA, grant only job-scoped
-  `contents: write`, use an approval-protected environment where available,
-  and keep GPG/GitHub credentials out of all pull-request paths. Decide and
-  document whether the first release is created as a draft for maintainer
-  inspection before finalization.
+- [x] **P5-015 — Add an isolated, protected tag-release workflow.**
 
-  Important files: `.github/workflows/release.yml`, workflow contract tests,
-  `.goreleaser.yml`, maintainer release guidance, and protected secret/
-  environment prerequisite documentation. Never commit a key, passphrase,
-  fingerprint obtained from private material, or repository-specific secret
-  value.
+  Scope: add the scaffold-style tag workflow that checks out the tagged commit,
+  installs the Go version from `go.mod`, imports the protected GPG key, and runs
+  pinned GoReleaser. Grant only job-scoped `contents: write`, use an approval-
+  protected environment, keep release secrets out of pull-request paths, and
+  create a draft for maintainer inspection before publication.
 
-  Runtime relationship: `explicit maintainer-approved protected SemVer tag ->
-  trusted exact commit checkout -> pinned Go/GPG/GoReleaser actions -> local
-  verification -> signed immutable GitHub release assets -> Registry webhook`.
+  Important files: `.github/workflows/release.yml` and `.goreleaser.yml`. Never
+  commit a key, passphrase, or repository-specific secret value.
 
-  Done when static tests reject non-SemVer tags, moving branch/tag ambiguity,
-  unpinned actions, broad default permissions, PR-accessible secrets,
-  `pull_request_target`, untrusted artifact reuse, and secret-bearing output;
-  a no-publish dry run exercises validation and packaging without credentials;
-  the protected workflow cannot finalize a release before all gates pass; and
-  actual tag creation/publication remains pending explicit maintainer
-  authorization.
+  Runtime relationship: `maintainer-approved v* tag -> tagged commit checkout
+  -> pinned Go/GPG/GoReleaser actions -> signed draft GitHub release -> manual
+  inspection and publication`.
 
-- [ ] **P5-016 — Verify packaged-provider integrity and clean installation.**
+  Done when the workflow is tag-only, actions are immutable SHA pins, the GPG
+  key is available only inside the protected release environment, only the
+  release job receives `contents: write`, GoReleaser creates a draft, and tag
+  creation/publication remain explicit maintainer actions.
 
-  Scope: add release-asset verification independent of the packaging job.
-  Check the expected matrix, archive paths/modes, binary version, manifest,
-  checksums, signature with the public key, and optional provenance/SBOM. Start
-  representative native binaries and obtain the exact Protocol v6 provider
-  schema. Install a candidate from an isolated local filesystem/network mirror
-  into a brand-new Terraform working directory with no development override,
-  user plugin cache, prior lock file, or ambient provider binary.
-
-  Important files: portable release verification scripts/tests; isolated
-  Terraform smoke fixtures under `internal/provider/testdata` or a narrower
-  release-test directory; `GNUmakefile`; expected schema snapshot; and
-  credential-safe temporary-directory handling. Reuse existing Protocol
-  fixtures rather than introducing a second fake product model.
-
-  Runtime relationship: `signed candidate assets -> independent checksum/
-  signature/content verification -> isolated provider mirror -> clean
-  terraform init -> Protocol v6 schema/validate/plan -> packaged binary`.
-
-  Done when verification fails for a missing/extra/renamed archive, wrong
-  executable name/mode/version, malformed or wrong-protocol manifest, checksum
-  mismatch, invalid signature, unexpected file, stale schema, dev override, or
-  ambient cache hit; positive runs pass on every frozen representative
-  platform; all temporary files remain outside the repository and are removed;
-  and no live FeatBit credential or mutation is required.
+  Result (2026-08-08): added the official-scaffold-shaped single release job
+  with empty default permissions, job-scoped `contents: write`, a protected
+  `release` environment, exact action pins, GPG secrets, pinned GoReleaser
+  `v2.13.3`, and draft-only publication. Custom tag, artifact, signature, and
+  clean-install verification programs and workflow contract tests are not part
+  of the current minimal design, and no standalone release manual is retained.
+  No tag, signature, GitHub release, repository setting, or publication was
+  created or changed.
 
 ## Compatibility, acceptance, and publication
 
-- [ ] **P5-030 — Prove the Terraform and native-platform compatibility matrix.**
+- [ ] **P5-030 — Prove Terraform CLI compatibility and recheck the archive matrix.**
 
-  Scope: run the packaged provider against the minimum, representative
-  intermediate, and current supported Terraform CLI versions frozen in
-  P5-010. Exercise provider initialization, schema, configuration validation,
-  resource/data-source validation, Import parsing, and representative local
-  Protocol lifecycle behavior on the native OS/architecture runners promised
-  by the release. Verify documentation examples against the same source address
-  and minimum syntax. Do not convert an untested cross-compiled archive into a
-  stronger native-runtime support claim.
+  Scope: add a focused Linux/AMD64 matrix to the existing credential-free test
+  workflow for the minimum, representative intermediate, and current Terraform
+  CLI versions frozen in P5-010. Run the existing Protocol contract against
+  each version and re-run the GoReleaser snapshot for the five archive targets.
+  Do not add a custom verifier, a second workflow, or five native OS/architecture
+  test matrices.
 
-  Important files: compatibility workflow/matrix, pinned Terraform installers
-  or checksums, packaged-provider smoke fixtures, schema snapshot, docs
-  examples, and focused result assertions. Keep this credential-free; live
-  current-Cloud coverage remains P5-031.
+  Important files: `.github/workflows/test.yml`, its pinned Terraform setup,
+  the existing Protocol tests and schema snapshot, `.goreleaser.yml`, and this
+  active context. Keep this credential-free; live current-Cloud coverage remains
+  P5-031. Add no helper program solely for the matrix.
 
-  Runtime relationship: `frozen Terraform CLI plus native runner -> clean
-  install of exact candidate archive -> Protocol v6 provider -> schema,
-  validation, Import parsing, and isolated lifecycle fixture`.
+  Runtime relationship: `each frozen Terraform CLI on Linux/AMD64 -> existing
+  Protocol contract -> compatibility result; GoReleaser snapshot -> five
+  cross-built archive targets`.
 
-  Done when every promised Terraform/platform pair either runs natively and
-  passes or is narrowed from the public support matrix; minimum-version
-  examples parse; the exact four-resource/four-data-source schema is identical
-  across binaries; version/User-Agent metadata is the candidate version; no
-  IAM/config-header surface appears; and CI records no credential, state,
-  absolute workstation path, or non-test object value.
+  Done when all three Terraform versions pass the frozen four-resource/four-
+  data-source Protocol contract on Linux/AMD64; the unsigned snapshot still
+  builds exactly the five reviewed archives with Go 1.26.5; documentation keeps
+  Terraform `>= 1.0.0` separate from archive availability; no native-runtime
+  claim, IAM/config-header surface, credential, state, absolute workstation
+  path, or non-test object value is introduced.
 
 - [ ] **P5-031 — Run the trusted core-only current-Cloud release-candidate gate.**
 
   Scope: run the exact candidate commit/binary against current FeatBit Cloud
-  using credentials supplied only out of band through a protected environment.
+  using credentials supplied only out of band to an explicit maintainer-run
+  session.
   Create one uniquely prefixed, test-owned Project and only its child
   Environments, Feature Flags, and environment-specific Segments. Exercise all
   four Feature Flag types, exact data sources, Import followed by an empty
@@ -321,12 +297,12 @@ the corresponding item and explicit maintainer authorization permit it.
   organization/workspace membership, or account setting.
 
   Important files: existing core Cloud acceptance tests/harnesses, candidate
-  binary/version wiring, a protected manually invoked acceptance workflow if
-  justified, and in-memory cleanup verification. Reuse the proven Phase 2–4
-  fixtures and tighten them only where a release-candidate artifact reveals a
-  concrete gap.
+  binary/version wiring, and in-memory cleanup verification. Reuse the proven
+  Phase 2–4 fixtures and tighten them only where the exact candidate commit
+  reveals a concrete gap. Do not add a permanent Cloud workflow unless a
+  recurring maintainer need is established separately.
 
-  Runtime relationship: `protected manual approval plus out-of-band token ->
+  Runtime relationship: `explicit maintainer execution plus out-of-band token ->
   exact candidate Protocol v6 provider -> documented core public endpoints ->
   uniquely test-owned Project tree -> independent exact child-first cleanup`.
 
@@ -341,12 +317,11 @@ the corresponding item and explicit maintainer authorization permit it.
 - [ ] **P5-032 — Run the complete local and supply-chain release gate.**
 
   Scope: run all Phase 1–4 quality gates plus release-specific documentation,
-  workflow, packaging, artifact, compatibility, dependency, license,
-  vulnerability, secret, and provenance checks from a clean tree. Re-run
-  focused tests repeatedly where ordering, concurrency, generated output, or
-  artifact enumeration could be nondeterministic. Inspect the complete diff and
-  final archives. Do not weaken or skip a core gate to make release automation
-  pass.
+  workflow, GoReleaser configuration/snapshot, compatibility, dependency,
+  license, vulnerability, and secret checks from a clean tree. Re-run focused
+  tests where ordering, concurrency, or generated output could be
+  nondeterministic. Inspect the complete diff. Do not add a custom artifact
+  verifier or weaken a core gate to make release automation pass.
 
   Important files: production/test/documentation/workflow/packaging fixes
   demonstrated by the gate, `GNUmakefile`, pinned tool metadata, this active
@@ -354,19 +329,19 @@ the corresponding item and explicit maintainer authorization permit it.
   public schema.
 
   Runtime relationship: `clean repository -> format/vet/test/race/build/
-  module/docs/security/workflow checks -> reproducible signed-candidate
-  packaging -> independent artifact/install/compatibility verification ->
-  release readiness decision`.
+  module/docs/security/workflow checks -> GoReleaser config and unsigned
+  snapshot -> release readiness decision`.
 
   Done when `gofmt -l .` is empty; `go vet ./...`, `go test ./...`,
   repeated focused/Protocol tests, `go test -race ./...`, `go build ./...`,
   `go mod tidy -diff`, and `go mod verify` pass; docs regenerate without
-  diff; workflows pass static trust-boundary tests; dependencies/licenses and
+  diff; workflows pass actionlint; dependencies/licenses and
   `govulncheck` have no unresolved release blocker; Gitleaks and exact
-  out-of-band secret scans find zero repository/archive hit; snapshot artifacts
-  pass integrity/install checks; `git diff --check` passes; only expected
-  release files changed; and the schema still contains exactly five provider
-  attributes, four resources, four data sources, and no IAM surface.
+  out-of-band secret scans find zero repository hit; GoReleaser configuration
+  and an unsigned snapshot complete without publication; generated `dist/` is
+  not retained; `git diff --check` passes; only expected release files changed;
+  and the schema still contains exactly five provider attributes, four
+  resources, four data sources, and no IAM surface.
 
 - [ ] **P5-033 — Publish and verify the initial GitHub/Registry release.**
 
@@ -377,8 +352,8 @@ the corresponding item and explicit maintainer authorization permit it.
   protected release workflow, inspect every signed asset before finalization,
   connect/resynchronize the Terraform Registry provider if required, and verify
   the Registry-served version. Never overwrite an existing tag or release
-  asset; abort to a new version if any final artifact differs from the verified
-  candidate.
+  asset; abort to a new version if the draft assets differ from the frozen
+  GoReleaser and Registry contract.
 
   Important files: no source mutation is expected after the release commit;
   use the protected tag workflow, GitHub release assets, public GPG key,
