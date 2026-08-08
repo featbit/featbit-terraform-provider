@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-031**
+Next: **P5-032**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -300,7 +300,7 @@ the corresponding item and explicit maintainer authorization permit it.
   claim, product surface, tag, or publication was used or added, and generated
   `dist/` output was not retained.
 
-- [ ] **P5-031 — Run the trusted core-only current-Cloud release-candidate gate.**
+- [x] **P5-031 — Run the trusted core-only current-Cloud release-candidate gate.**
 
   Scope: run the exact candidate commit/binary against current FeatBit Cloud
   using credentials supplied only out of band to an explicit maintainer-run
@@ -331,6 +331,18 @@ the corresponding item and explicit maintainer authorization permit it.
   without an explicit owned fixture; no IAM endpoint/header is sent; and token,
   runtime IDs/keys, paths, response bodies, state, logs, or cleanup inventory
   are neither persisted nor exposed.
+
+  Result (2026-08-09): the exact checked-out provider passed the trusted
+  current-Cloud Project/Environment, four-type Feature Flag, and
+  environment-specific Segment gates against uniquely prefixed test-owned
+  Project trees. Exact data sources, Import plus empty plans, second-plan
+  idempotence, drift repair, replacement/recreation, Segment-reference
+  refusal/recovery, child-first destroy, and exact active/archived cleanup all
+  passed. Only registered test keys and returned identities were selected for
+  mutation or cleanup; no unrelated object, shared Segment, IAM surface, or
+  account setting was inspected or changed. No credential, runtime value,
+  state, plan, log, or cleanup inventory was persisted or exposed, and no CI
+  or release workflow was added or changed.
 
 - [ ] **P5-032 — Run the complete local and supply-chain release gate.**
 
