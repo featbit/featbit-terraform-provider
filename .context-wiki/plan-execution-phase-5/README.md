@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-08**
-- Next task: `P5-030`
+- Next task: `P5-031`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core
@@ -35,11 +35,13 @@ safety-first public bug form, fork-safe read-only credential-free GitHub Actions
 CI, deterministic GoReleaser packaging for the frozen five-platform Registry
 artifact set, a scaffold-style protected tag-only workflow that creates a
 signed draft, and the existing frozen Protocol schema contract. The current
-release design intentionally has no custom artifact verifier or clean-install
+release also qualifies Terraform `1.0.11`, `1.5.7`, and `1.15.8` through the
+existing credential-free Linux/AMD64 Protocol contract, while the Go 1.26.5
+GoReleaser snapshot still produces exactly the frozen five-platform archive
+set. The design intentionally has no custom artifact verifier or clean-install
 harness; GoReleaser owns packaging and maintainers inspect the draft before
-publication. Remaining Phase 5 work qualifies the Terraform and current-Cloud
-contracts before any authorized publication, without changing the implemented
-product scope.
+publication. Remaining Phase 5 work qualifies the current-Cloud contract before
+any authorized publication, without changing the implemented product scope.
 
 ## Objective
 
@@ -108,7 +110,7 @@ parallel hand-written resource model.
 |---|---|
 | First Registry artifact | Stable, non-prerelease SemVer release `v0.1.0`. Terraform does not select prereleases without an exact constraint, so a prerelease cannot satisfy the normal clean-install gate. Freezing this version does not authorize tag creation or publication. |
 | Binary version | The tag version without its leading `v` is injected into `main.version` by GoReleaser and passed into provider metadata; ordinary local builds retain `dev`. |
-| Terraform CLI | Minimum supported language/protocol boundary is `>= 1.0.0`, because Protocol 6 requires Terraform 1.0 or later. Release qualification is pinned to `1.0.11` (last 1.0 patch), `1.5.7` (representative intermediate), and `1.15.8` (current stable on 2026-08-05). These become public tested claims only after P5-030 passes on credential-free Linux/AMD64. |
+| Terraform CLI | Minimum supported language/protocol boundary is `>= 1.0.0`, because Protocol 6 requires Terraform 1.0 or later. Release qualification passed with `1.0.11` (last 1.0 patch), `1.5.7` (representative intermediate), and `1.15.8` (current stable on 2026-08-05) through the existing credential-free Linux/AMD64 Protocol contract. |
 | Go | CI and release builds use exactly Go `1.26.5`, matching `go.mod`. This pre-`v0.1.0` baseline uses the current stable Go line and includes the standard-library security fixes required by P5-013. A different local Go toolchain is not release evidence. |
 | Plugin protocol | Protocol `6.0` only, served with `providerserver.NewProtocol6` and declared by manifest format version `1`. |
 
@@ -143,8 +145,8 @@ The initial release produces exactly these five `CGO_ENABLED=0` archives:
 | `windows` | `amd64` |
 
 Go 1.26.5 supports all five targets and GoReleaser cross-builds each one without
-CGO. P5-030 qualifies the frozen Terraform CLI versions on Linux/AMD64 and
-rechecks the complete snapshot; it does not create five native-runner test
+CGO. P5-030 qualified the frozen Terraform CLI versions on Linux/AMD64 and
+rechecked the complete snapshot; it did not create five native-runner test
 matrices. Archive availability is a distribution contract, not a claim of
 separate native execution evidence for every target. Windows ARM64, 32-bit,
 ARM32, FreeBSD, and other Go targets are not initial-release archives;
@@ -231,8 +233,8 @@ release mutation, repository-setting mutation, or Terraform Registry mutation.
 
 The public repository must contain:
 
-- a concise `README.md` covering scope, installation, authentication,
-  supported resource families, development, testing, and security reporting;
+- a concise end-user `README.md` covering scope, installation, authentication,
+  supported resource families, usage, support, and security reporting;
 - Registry `docs/index.md`;
 - one generated-and-reviewed page for every resource and data source;
 - credential-free examples for provider configuration, all four resource

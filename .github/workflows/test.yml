@@ -54,3 +54,34 @@ jobs:
         run: make vulnerability-check
       - name: Scan tracked source for secrets
         run: make secrets-check
+
+  terraform-compatibility:
+    name: Terraform ${{ matrix.terraform_version }} Protocol compatibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        terraform_version:
+          - "1.0.11"
+          - "1.5.7"
+          - "1.15.8"
+    steps:
+      - name: Check out the untrusted revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the frozen Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install Terraform ${{ matrix.terraform_version }}
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ matrix.terraform_version }}
+          terraform_wrapper: false
+      - name: Download reviewed module graph
+        run: go mod download
+      - name: Run the frozen Protocol contract
+        run: go test -count=1 -v -timeout=120s -parallel=10 -run Protocol ./...

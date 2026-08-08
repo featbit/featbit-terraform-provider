@@ -25,9 +25,11 @@ with exact cleanup. The initial public release contains only those four core
 resources and their data sources; IAM is deferred until after that release.
 The core-only release contract is frozen by a checked-in Protocol v6 schema
 snapshot and focused registration, Import, and manifest checks. GoReleaser owns
-tag-derived version injection. The next action is Phase 5 `P5-030`: run the
-Terraform CLI compatibility matrix on credential-free Linux/AMD64 through the
-existing Protocol gates and recheck the GoReleaser archive matrix.
+tag-derived version injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass
+the existing Protocol gates on credential-free Linux/AMD64, and the
+GoReleaser snapshot still produces the frozen five-platform archive matrix.
+The next action is Phase 5 `P5-031`: run the trusted core-only current-Cloud
+release-candidate gate.
 
 ## 2. Product boundary
 
@@ -241,14 +243,14 @@ Gate: bindings are idempotent and never claim an entire shared relationship set.
 Current runtime pins are authoritative in `go.mod`: Go `1.26.5`, Plugin
 Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
 Log `v0.10.0`. Protocol is `6.0`, so the minimum Terraform CLI is `1.0.0`.
-Release qualification is pinned to Terraform `1.0.11`, `1.5.7`, and `1.15.8`;
-those are not public tested claims until the Linux/AMD64 compatibility matrix
-passes.
+Release qualification passed on credential-free Linux/AMD64 with Terraform
+`1.0.11`, `1.5.7`, and `1.15.8` through the existing Protocol contract.
 Initial archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
 `linux_arm64`, and `windows_amd64`, cross-built without CGO and checked by the
-GoReleaser snapshot. This archive matrix is a distribution contract, not a
-claim that every target has a separate native-runner qualification. The first
-Registry artifact is the stable non-prerelease SemVer
+GoReleaser snapshot. The credential-free Go 1.26.5 snapshot still produces
+exactly those five archives. This archive matrix is a distribution contract,
+not a claim that every target has a separate native-runner qualification. The
+first Registry artifact is the stable non-prerelease SemVer
 release `v0.1.0`; freezing its version does not authorize tag creation or
 publication.
 The repository contains fork-safe, read-only, credential-free CI with pinned

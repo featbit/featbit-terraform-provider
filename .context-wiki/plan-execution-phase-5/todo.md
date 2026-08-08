@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-030**
+Next: **P5-031**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -97,6 +97,10 @@ the corresponding item and explicit maintainer authorization permit it.
   and eight object pages, reviewed behavior templates, and nine credential-free
   provider/resource/data-source example sets with explicit `api_url` and
   `FEATBIT_API_URL` endpoint guidance plus all four strict Import forms.
+  The root README is intentionally end-user-only: installation,
+  authentication, supported capabilities, usage and ownership behavior,
+  documentation, support/security, upgrades, and licensing; maintainer
+  development, test, and release-qualification details remain outside it.
   The workflow pins `terraform-plugin-docs@v0.25.0`; CI installs Terraform
   1.15.8 through HashiCorp's pinned `setup-terraform` action, and local checks
   use the documented Terraform binary on `PATH`. `make docs` is the explicit
@@ -257,7 +261,7 @@ the corresponding item and explicit maintainer authorization permit it.
 
 ## Compatibility, acceptance, and publication
 
-- [ ] **P5-030 — Prove Terraform CLI compatibility and recheck the archive matrix.**
+- [x] **P5-030 — Prove Terraform CLI compatibility and recheck the archive matrix.**
 
   Scope: add a focused Linux/AMD64 matrix to the existing credential-free test
   workflow for the minimum, representative intermediate, and current Terraform
@@ -281,6 +285,20 @@ the corresponding item and explicit maintainer authorization permit it.
   Terraform `>= 1.0.0` separate from archive availability; no native-runtime
   claim, IAM/config-header surface, credential, state, absolute workstation
   path, or non-test object value is introduced.
+
+  Result (2026-08-08): added a focused matrix to the existing read-only,
+  credential-free workflow for Terraform `1.0.11`, `1.5.7`, and `1.15.8` on
+  Linux/AMD64. All three passed the existing four-resource/four-data-source
+  Protocol contract with Go 1.26.5 and local test fixtures; actionlint accepted
+  the workflow. A separate credential-free GoReleaser `v2.13.3` snapshot built
+  exactly the frozen `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
+  `linux_arm64`, and `windows_amd64` archives, each containing only its provider
+  executable, with checksums covering all archives and the renamed manifest.
+  Public usage guidance states only the Terraform `>= 1.0.0` requirement;
+  qualified CLI versions and cross-built archive evidence remain in this
+  release context. No Cloud/release credential, live endpoint, native-platform
+  claim, product surface, tag, or publication was used or added, and generated
+  `dist/` output was not retained.
 
 - [ ] **P5-031 — Run the trusted core-only current-Cloud release-candidate gate.**
 

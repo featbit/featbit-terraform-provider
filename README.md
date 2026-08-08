@@ -13,7 +13,6 @@
 
 [![License: MPL 2.0][license-shield]][license-url]
 [![Terraform: >= 1.0.0][terraform-shield]][terraform-url]
-[![Go: 1.26.5][go-shield]][go-url]
 
 </div>
 
@@ -57,12 +56,12 @@ terraform init
 terraform plan
 ```
 
-The first Registry release, `v0.1.0`, is being prepared. Until it is published,
-do not treat a local development build as a Registry artifact.
+The first Registry release, `v0.1.0`, is not published yet. Registry
+installation will become available after that release.
 
 ## Install
 
-Declare the provider at its frozen Registry address:
+Declare the provider from the Terraform Registry:
 
 ```hcl
 terraform {
@@ -79,9 +78,7 @@ terraform {
 provider "featbit" {}
 ```
 
-Terraform Protocol 6 requires Terraform 1.0 or later. Release qualification
-tests the frozen Terraform CLI versions on Linux/AMD64; GoReleaser separately
-cross-builds the published OS/architecture archive set.
+Terraform 1.0 or later is required.
 
 ## Authentication
 
@@ -103,7 +100,7 @@ Alternatively, leave `api_url` unset and export the same value through
 `FEATBIT_API_URL`. The value must be an absolute HTTP or HTTPS URL with a host,
 an optional port, and either no path or `/api/v1`; the provider normalizes both
 forms to `/api/v1`. User information, query strings, fragments, and other paths
-are rejected. Configurability does not certify an untested self-hosted release.
+are rejected.
 
 ## Usage
 
@@ -153,25 +150,10 @@ the definition. Shared Segments can be observed with
 
 ## Documentation and examples
 
-The [Registry provider guide](docs/index.md) documents authentication and the
-generated provider schema. Each [resource](docs/resources) and
-[data source](docs/data-sources) has a schema-derived reference page with a
-credential-free example; every resource page includes its exact Import form.
-
-## Development
-
-Use Go 1.26.5 for release-equivalent local checks:
-
-```shell
-go test ./...
-go build ./...
-make docs-check
-```
-
-`make docs` is the explicit command that rewrites generated Registry pages.
-`make docs-check` generates into a temporary directory, compares the result,
-and validates every example without changing the working tree. Live acceptance
-tests are separate, opt-in, and must use uniquely test-owned FeatBit objects.
+The [Registry provider guide](docs/index.md) documents authentication and
+provider configuration. Each [resource](docs/resources) and
+[data source](docs/data-sources) has a complete reference page and example;
+every resource page includes its exact Import form.
 
 ## Security and support
 
@@ -180,10 +162,8 @@ FeatBit service route and to prepare a synthetic bug report. Never include
 credentials, state or plan content, logs, raw responses, runtime identifiers,
 or vulnerability details in a public issue.
 
-For a suspected vulnerability, follow [SECURITY.md](SECURITY.md). Because this
-repository does not currently expose a verified private reporting channel, the
-policy provides a detail-free escalation that requests one without disclosing
-the vulnerability publicly.
+For a suspected vulnerability, follow [SECURITY.md](SECURITY.md) without
+disclosing vulnerability details publicly.
 
 ## Upgrading
 
@@ -196,13 +176,7 @@ safe plan-first upgrade and rollback workflow.
 
 This provider is licensed under the [Mozilla Public License 2.0](LICENSE).
 
----
-
-Crafted with [Readme Craft](https://github.com/motiful/readme-craft)
-
 [license-shield]: https://img.shields.io/badge/License-MPL--2.0-blue.svg
 [license-url]: LICENSE
 [terraform-shield]: https://img.shields.io/badge/Terraform-%3E%3D_1.0.0-844FBA?logo=terraform&logoColor=white
 [terraform-url]: https://developer.hashicorp.com/terraform/plugin/terraform-plugin-protocol#protocol-version-6
-[go-shield]: https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white
-[go-url]: go.mod
