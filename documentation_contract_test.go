@@ -301,7 +301,7 @@ func TestDocumentationToolchainIsPinnedAndCheckOnlyByDefault(t *testing.T) {
 			t.Errorf("documentation generator does not contain pinned/check-only contract %q", expected)
 		}
 	}
-	makefile := readDocumentationFile(t, "GNUmakefile")
+	makefile := strings.ReplaceAll(readDocumentationFile(t, "GNUmakefile"), "\r\n", "\n")
 	if !strings.Contains(makefile, "docs:\n\t$(GO) run ./internal/tools/docsgen -write") ||
 		!strings.Contains(makefile, "docs-check:\n\t$(GO) run ./internal/tools/docsgen\n\t$(GO) run ./internal/tools/examplecheck") {
 		t.Error("GNUmakefile documentation targets do not separate explicit writes from drift checks")

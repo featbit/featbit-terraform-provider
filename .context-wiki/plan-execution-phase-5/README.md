@@ -2,7 +2,7 @@
 
 - Status: **In progress**
 - Updated: **2026-08-09**
-- Next task: `P5-032`
+- Next task: `P5-033`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core

@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-032**
+Next: **P5-033**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -344,7 +344,7 @@ the corresponding item and explicit maintainer authorization permit it.
   state, plan, log, or cleanup inventory was persisted or exposed, and no CI
   or release workflow was added or changed.
 
-- [ ] **P5-032 — Run the complete local and supply-chain release gate.**
+- [x] **P5-032 — Run the complete local and supply-chain release gate.**
 
   Scope: run all Phase 1–4 quality gates plus release-specific documentation,
   workflow, GoReleaser configuration/snapshot, compatibility, dependency,
@@ -372,6 +372,19 @@ the corresponding item and explicit maintainer authorization permit it.
   not retained; `git diff --check` passes; only expected release files changed;
   and the schema still contains exactly five provider attributes, four
   resources, four data sources, and no IAM surface.
+
+  Result (2026-08-09): formatting, vet, full tests, three repeated focused
+  Protocol/release-contract runs, the complete Linux/AMD64 race suite, build,
+  module, documentation/example, workflow, dependency/license/vulnerability,
+  Gitleaks, and exact credential gates passed. A Windows-only CRLF assumption
+  in the GNUmakefile documentation assertion was normalized without changing
+  generated output or product behavior. GoReleaser `v2.13.3` configuration and
+  an unsigned snapshot produced exactly the frozen five archives, one provider
+  executable per archive, and verified checksums for all archives plus the
+  Protocol `6.0` manifest. No signature, tag, release, publication, credential,
+  runtime artifact, or `dist/` directory was retained. The frozen schema still
+  exposes exactly five provider attributes, four resources, four data sources,
+  and no IAM surface.
 
 - [ ] **P5-033 — Publish and verify the initial GitHub/Registry release.**
 
