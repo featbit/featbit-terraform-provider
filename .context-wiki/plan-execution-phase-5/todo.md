@@ -1,7 +1,7 @@
 # Phase 5 TODO — Initial release
 
 Status: **In progress**
-Next: **P5-033**
+Next: **P5-090**
 
 Complete one item at a time. Keep implementation scope, important files,
 runtime relationship, and completion evidence under the active item. Record
@@ -386,7 +386,7 @@ the corresponding item and explicit maintainer authorization permit it.
   exposes exactly five provider attributes, four resources, four data sources,
   and no IAM surface.
 
-- [ ] **P5-033 — Publish and verify the initial GitHub/Registry release.**
+- [x] **P5-033 — Publish and verify the initial GitHub/Registry release.**
 
   Scope: only after every prior item passes and the maintainer explicitly
   authorizes the external actions for frozen version `v0.1.0`, confirm the
@@ -417,6 +417,31 @@ the corresponding item and explicit maintainer authorization permit it.
   passes; documentation renders correctly; no IAM surface appears; no secret
   or unrelated FeatBit object was accessed; and the release/tag/assets were not
   mutated after publication.
+
+  Result (2026-08-10): the protected workflow published immutable tag
+  `v0.1.0` from frozen commit `bc51bcca8335a19729a49915546c056854a6cff1`.
+  Independent inspection verified the unchanged eight-asset release: five
+  single-binary archives, complete checksums, the exact Protocol `6.0`
+  manifest, and a signature from the Registry-registered public key. The same
+  repository was renamed to the required canonical URL
+  `featbit/terraform-provider-featbit`, connected under namespace `featbit`,
+  and accepted by HCP without changing its tag or release assets. The public
+  Registry now lists exactly `0.1.0`, Protocol `6.0`, and the frozen Darwin,
+  Linux, and Windows five-platform matrix. The initially empty GitHub Release
+  body was subsequently completed with English notes covering capabilities,
+  installation, compatibility, integrity, scope, and support; only the Release
+  description changed, while the tag and all eight assets remained unchanged.
+
+  A clean temporary directory with a direct-only Registry installation and no
+  CLI override downloaded `featbit/featbit` `0.1.0`. The Registry binary
+  exposed exactly five provider attributes, four resources, four data sources,
+  and no IAM surface; its core plan/apply/exact-data-source/second-plan/import/
+  destroy smoke passed. A focused independent Segment Import also converged to
+  an empty plan, and a trusted current-Cloud repeat proved the explicit-empty
+  targeting edge with Import plus empty plan. Every temporary Project tree was
+  removed with independent exact-zero verification, all local smoke artifacts
+  were deleted, and no credential, runtime identity, unrelated object, tag,
+  or published asset was exposed or mutated.
 
 ## Phase exit
 

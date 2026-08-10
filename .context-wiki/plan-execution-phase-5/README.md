@@ -1,8 +1,8 @@
 # Phase 5 — Initial release
 
 - Status: **In progress**
-- Updated: **2026-08-09**
-- Next task: `P5-033`
+- Updated: **2026-08-10**
+- Next task: `P5-090`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core
@@ -198,10 +198,10 @@ support claim.
 
 ### Repository baseline and external prerequisites
 
-Read-only inspection on 2026-08-05 proved that
-`featbit/featbit-terraform-provider` is a public, lowercase, correctly named
-GitHub repository with default branch `main`, and that the checked-out module,
-provider address, and repository namespace agree. It had no tag or GitHub
+The current public, lowercase, Registry-compatible GitHub repository is
+`featbit/terraform-provider-featbit`, with default branch `main`; the checked-
+out module, provider address, and repository namespace agree. At phase entry
+the repository had no tag or GitHub
 release. The tree had no public README, Registry docs/examples, GitHub Actions,
 GoReleaser configuration, signing workflow, public security/support
 guidance, or isolated Registry-install smoke test. Existing local gates are
