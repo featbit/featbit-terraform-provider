@@ -1,14 +1,15 @@
 # Phase 5 — Initial release
 
 - Status: **In progress**
-- Updated: **2026-08-10**
+- Updated: **2026-08-12**
 - Next task: `P5-090`
 
 This package is the active execution context for the first public release of
 the FeatBit Terraform Provider. The release contains the four completed core
-resource families only. IAM begins after this release and must not add schema,
-configuration, transport headers, API calls, documentation, or compatibility
-claims during Phase 5.
+resource families only. Phase 6 closes the Environment-specific Segment
+targeting prerequisite gap; IAM begins only in Phase 7. Neither future phase
+may add schema, configuration, transport headers, API calls, documentation, or
+compatibility claims during Phase 5.
 
 ## Starting point
 
@@ -57,7 +58,9 @@ public contract consists of exactly:
 
 The Segment resource manages environment-specific segments only. Its data
 source may also observe an exact shared segment through the already-proven
-read-only contract.
+read-only contract. Segment targeting writes do not create Environment End
+Users or register custom End User Property metadata because those prerequisite
+operations are not part of the documented public API.
 
 The release must be installable from a clean Terraform directory, report its
 real build version, expose only the frozen Protocol v6 schema, and complete
@@ -240,7 +243,9 @@ The public repository must contain:
 - credential-free examples for provider configuration, all four resource
   families, exact data-source lookup, and every Import form;
 - an explicit statement that targeting owned by the UI remains outside the
-  Feature Flag resource and that shared Segments are read-only; and
+  Feature Flag resource, that shared Segments are read-only, and that Segment
+  targeting does not create Environment-user or custom-property metadata
+  prerequisites;
 - no example token, tenant value, live object identifier, state, plan, cleanup
   journal, or copied Cloud response.
 
@@ -384,8 +389,11 @@ already been explicitly requested.
 
 ## Out of scope
 
+- Environment End User or End User Property lookup/registration and any
+  Segment prerequisite lifecycle behavior. These begin in Phase 6 only after
+  a documented public API is verified.
 - Every IAM member, group, policy, team, relationship, tenant-context, or
-  context-header capability. These begin in Phase 6.
+  context-header capability. These begin in Phase 7 after Phase 6 exits.
 - New core resource fields, generic raw-REST resources, Portal-private APIs,
   backend/database access, flag evaluation, deployments, Relay Proxy,
   analytics, or audit streams.
@@ -420,8 +428,9 @@ already been explicitly requested.
   the Terraform Registry serves the exact version, and a new clean directory
   completes init/schema/plan/apply/Import/empty-plan/destroy without a local
   override.
-- The current plan identifies Phase 6 IAM as post-initial-release work.
+- The current plan identifies Phase 6 Segment targeting prerequisites as the
+  mandatory next phase and defers IAM to Phase 7.
 
 After the gate passes, fold only still-current architecture, compatibility, and
 roadmap facts into [the master plan](../plan.md), delete this Phase 5 package,
-and create only the Phase 6 IAM README/TODO.
+and create only the Phase 6 Segment targeting prerequisites README/TODO.

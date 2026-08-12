@@ -19,7 +19,11 @@ composition, replacement-aware stable ID planning, one-shot mutation
 reconciliation, and redaction-safe diagnostics. The Segment resource manages
 only environment-specific metadata, targeting, and tags through specialized
 public endpoints; exact shared Segment reads remain data-source-only, and
-reference-aware destroy proves complete active/archived absence. All four core
+reference-aware destroy proves complete active/archived absence. Segment
+targeting writes do not create Environment End Users or register custom End
+User Property metadata because those prerequisites are not exposed through
+the documented public API. Closing that targeting prerequisite gap is the
+mandatory post-release Phase 6 before any IAM work begins. All four core
 resource phases passed their local, Protocol, and trusted current-Cloud gates
 with exact cleanup. The initial public release contains only those four core
 resources and their data sources; IAM is deferred until after that release.
@@ -28,8 +32,8 @@ snapshot and focused registration, Import, and manifest checks. GoReleaser owns
 tag-derived version injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass
 the existing Protocol gates on credential-free Linux/AMD64, and the
 GoReleaser snapshot still produces the frozen five-platform archive matrix.
-The next action is Phase 5 `P5-031`: run the trusted core-only current-Cloud
-release-candidate gate.
+The next action is Phase 5 `P5-090`: publish and verify the documentation-only
+`v0.1.1` correction, then prepare the Phase 6 Segment prerequisite package.
 
 ## 2. Product boundary
 
@@ -41,11 +45,14 @@ Core v1 manages these environment-scoped customer workflows:
 - `featbit_segment`
 - one exact single-object data source and Import support for each resource
 
-IAM follows in a post-initial-release phase: groups, policies, exact member
-lookup, and independent group/member/policy binding resources. The initial
-release exposes no IAM object, relationship, tenant selector, or context-header
-contract. Member invitation or creation remains external in the later IAM
-scope.
+Segment targeting prerequisite closure is the first post-initial-release
+phase. It must establish a documented public API for exact Environment End
+User and End User Property lookup plus create-missing-only registration before
+the Provider depends on those operations. IAM follows only after that gate as
+Phase 7: groups, policies, exact member lookup, and independent
+group/member/policy binding resources. The initial release exposes no IAM
+object, relationship, tenant selector, or context-header contract. Member
+invitation or creation remains external in the later IAM scope.
 
 Core v1 does not evaluate flags, deploy FeatBit, manage analytics/audit streams,
 copy LaunchDarkly's resource model, or expose a generic raw-REST resource. It
@@ -148,11 +155,11 @@ configuration or transport changes.
 | Project | Implemented | UUID identity. Manage verified safe fields; key replaces. Server-created `Dev/dev` and `Prod/prod` environments are Computed. Confirm absence through the complete project collection when direct Read is ambiguous. |
 | Environment | Implemented | Project-scoped UUID identity. Name/description update; project and key replace. Discard secret values from ordinary state. Confirm absence through the parent project's environment collection and preserve UI-owned settings across Update. |
 | Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
-| Environment-specific segment | Implemented | Environment plus UUID identity. Manage name, description, included/excluded users, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence. |
+| Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 6 must close that gap without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
 | Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
-| IAM member | Deferred until after the initial release | Later read-only exact lookup for relationship endpoints. Invitation, creation, profile mutation, team removal, and initial-password handling remain external. |
-| IAM group and custom policy | Deferred until after the initial release | Later manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only. |
-| IAM relationship edge | Deferred until after the initial release | Each later group-member, group-policy, or direct member-policy resource owns one exact pair, never an entire shared relationship set. |
+| IAM member | Deferred until after Phase 6 | Later read-only exact lookup for relationship endpoints. Invitation, creation, profile mutation, team removal, and initial-password handling remain external. |
+| IAM group and custom policy | Deferred until after Phase 6 | Later manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only. |
+| IAM relationship edge | Deferred until after Phase 6 | Each later group-member, group-policy, or direct member-policy resource owns one exact pair, never an entire shared relationship set. |
 
 Common lifecycle rules:
 
@@ -178,7 +185,7 @@ Implemented core Import IDs are stable public contracts:
 | Segment | `<environment_uuid>/<segment_uuid>` |
 
 IAM object and binding Import forms are not part of the initial release. The
-post-release IAM phase must freeze tenant scope, exact identities, and
+Phase 7 IAM work must freeze tenant scope, exact identities, and
 relationship direction before publishing any such contract.
 
 ## 5. Roadmap
@@ -212,7 +219,9 @@ Gate: every supported type converges without rewriting UI-owned operations.
 
 Implement environment-specific segment resource/data source behavior,
 ordered rules, set-valued users/tags, scope resolution, reference preflight,
-Import, drift, and exact destroy. Keep shared segments read/bind only.
+Import, drift, and exact destroy. Keep shared segments read/bind only, and keep
+Environment-user and custom-property metadata registration outside the
+resource while the documented public API does not expose those prerequisites.
 
 Gate: lifecycle and Import converge; reference conflicts preserve valid state.
 
@@ -229,7 +238,38 @@ resources and four data sources; it contains no IAM surface.
 Gate: a clean directory can initialize, plan, apply, destroy, and import using
 the Registry provider; release assets satisfy Registry requirements.
 
-### Phase 6 — IAM (post-initial release)
+### Phase 6 — Segment targeting prerequisites (post-initial release)
+
+First verify that the official Swagger and OpenAPI authentication expose
+stable, documented operations for exact Environment End User and End User
+Property lookup plus create-missing-only registration. If that contract is
+absent, record the minimum upstream API requirement and stop: the Provider
+must not call Portal-private endpoints, modify the FeatBit backend, or infer
+authority from UI behavior.
+
+Once the public contract exists, choose and freeze the Terraform ownership
+model before implementation. The preferred Segment lifecycle behavior is to
+deduplicate included/excluded keys and custom rule properties, query the exact
+Environment prerequisites, register only missing values, never overwrite an
+existing user's name or custom properties, ignore built-in properties such as
+`keyId` and `name`, and never delete users or property metadata when targeting
+changes or a Segment is destroyed. Registration must complete before the
+targeting mutation; partial failure must preserve truthful state and produce
+redacted diagnostics. Concurrency, duplicate/conflicting keys, Import,
+refresh, drift detection, cancellation, and second-plan idempotence require
+focused contracts. If a first-class End User or End User Property resource is
+safer than implicit ensure behavior, the phase must document a non-destructive
+migration and ownership model before adding it.
+
+Gate: a fresh Environment-specific Segment with new included/excluded user
+keys and a repeated custom property registers only missing prerequisites,
+preserves existing records, converges to an empty second plan, reports any
+registration failure instead of false success, and leaves every prerequisite
+intact after targeting removal and Segment destroy. Trusted current-Cloud
+acceptance must query exact Environment users and properties and expose no
+token, Environment ID, user key, property name, or targeting value.
+
+### Phase 7 — IAM
 
 First verify access-token tenant scope, optional context-header behavior, and
 complete exact member lookup without exposing initial-password data. Then add

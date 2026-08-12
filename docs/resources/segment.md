@@ -20,6 +20,13 @@ Terraform owns the managed Segment's name, description, included and excluded
 user keys, ordered rules and conditions, and set-valued tags. Rule and
 condition order is significant; user and tag ordering is not.
 
+Segment targeting and its Environment prerequisites are separate. This
+resource writes included and excluded keys and rule payloads, but it does not
+create Environment End Users or register custom End User Property metadata.
+The canonical example therefore leaves direct-target lists empty and uses the
+built-in `keyId` property. Configure direct targets or custom properties only
+when those Environment prerequisites already exist.
+
 ## Example Usage
 
 ```terraform
@@ -46,24 +53,21 @@ resource "featbit_environment" "example" {
 
 resource "featbit_segment" "example" {
   environment_id = featbit_environment.example.id
-  name           = "North American beta users"
-  key            = "north-american-beta-users"
-  description    = "Users enrolled in the regional beta"
+  name           = "Checkout beta users"
+  key            = "checkout-beta-users"
+  description    = "Users selected by a built-in key rule"
   scopes = [
     "organization/${var.featbit_organization_key}:project/${local.project_key}:env/${local.environment_key}",
   ]
 
-  included_users = ["beta-user-a", "beta-user-b"]
-  excluded_users = ["beta-user-blocked"]
-
   rules = [
     {
-      name = "Supported countries"
+      name = "Beta user key"
       conditions = [
         {
-          property = "country"
+          property = "keyId"
           operator = "IsOneOf"
-          value    = jsonencode(["CA", "US"])
+          value    = jsonencode(["checkout-beta-user"])
         },
       ]
     },
@@ -81,6 +85,8 @@ an access token or runtime object UUID in configuration.
 
 - `name`, `description`, targeting, and tags update in place through their
   specialized public endpoints.
+- Removing targeting values or destroying the Segment never deletes
+  Environment End Users or End User Property metadata.
 - `environment_id`, `key`, or `scopes` changes require replacement.
 - Create refuses active or archived exact-key collisions. A shared or
   contradictory remote definition is never adopted for mutation.

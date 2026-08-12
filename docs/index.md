@@ -15,6 +15,11 @@ single-object data source for each family. IAM, flag evaluation, deployments,
 analytics, audit streams, Portal-private APIs, and generic raw REST access are
 outside this release.
 
+Segment targeting writes do not create Environment End Users or register
+custom End User Property metadata. The canonical Segment example uses the
+built-in `keyId` property; direct targets and custom-property rules require
+their Environment prerequisites to exist independently.
+
 ## Authentication
 
 Set `FEATBIT_ACCESS_TOKEN` in the provider process environment. FeatBit service

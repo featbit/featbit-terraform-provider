@@ -46,6 +46,8 @@ func TestRegistryDocumentationMatchesFrozenSurface(t *testing.T) {
 		"either no path or `/api/v1`",
 		"documented `/api/v1` origin",
 		"configurable origin does not certify",
+		"Segment targeting writes do not create Environment End Users",
+		"built-in `keyId` property",
 		"<project_uuid>",
 		"<project_uuid>/<environment_uuid>",
 		"<environment_uuid>/<exact_key>",
@@ -54,6 +56,17 @@ func TestRegistryDocumentationMatchesFrozenSurface(t *testing.T) {
 	} {
 		if !strings.Contains(index, expected) {
 			t.Errorf("docs/index.md does not contain %q", expected)
+		}
+	}
+
+	readme := normalizedDocumentationText(readDocumentationFile(t, "README.md"))
+	for _, expected := range []string{
+		"Segment targeting writes do not create Environment End Users",
+		"register custom End User Property metadata",
+		"built-in `keyId` property",
+	} {
+		if !strings.Contains(readme, expected) {
+			t.Errorf("README.md does not contain Segment prerequisite boundary %q", expected)
 		}
 	}
 
@@ -74,6 +87,10 @@ func TestRegistryDocumentationMatchesFrozenSurface(t *testing.T) {
 	for _, expected := range []string{
 		"only an `environment-specific` Segment",
 		"Shared Segments are deliberately read-only",
+		"does not create Environment End Users",
+		"register custom End User Property metadata",
+		"built-in `keyId` property",
+		"never deletes Environment End Users",
 		"checks exact Feature Flag references",
 		"archives, permanently deletes",
 	} {
@@ -151,6 +168,26 @@ func TestRegistryExamplesAreCredentialFreeAndComplete(t *testing.T) {
 	environmentExample := readDocumentationFile(t, "examples/resources/featbit_environment/resource.tf")
 	featureFlagExample := readDocumentationFile(t, "examples/resources/featbit_feature_flag/resource.tf")
 	segmentExample := readDocumentationFile(t, "examples/resources/featbit_segment/resource.tf")
+	for _, expected := range []string{
+		`property = "keyId"`,
+		`value    = jsonencode(["checkout-beta-user"])`,
+	} {
+		if !strings.Contains(segmentExample, expected) {
+			t.Errorf("Segment example does not contain safe built-in targeting %q", expected)
+		}
+	}
+	for _, unsupportedPrerequisite := range []string{
+		"included_users",
+		"excluded_users",
+		`property = "country"`,
+	} {
+		if strings.Contains(segmentExample, unsupportedPrerequisite) {
+			t.Errorf(
+				"Segment example contains targeting with an unmanaged prerequisite %q",
+				unsupportedPrerequisite,
+			)
+		}
+	}
 	for path, check := range map[string]struct {
 		contents string
 		want     string

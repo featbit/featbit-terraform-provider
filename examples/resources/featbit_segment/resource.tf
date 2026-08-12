@@ -21,24 +21,21 @@ resource "featbit_environment" "example" {
 
 resource "featbit_segment" "example" {
   environment_id = featbit_environment.example.id
-  name           = "North American beta users"
-  key            = "north-american-beta-users"
-  description    = "Users enrolled in the regional beta"
+  name           = "Checkout beta users"
+  key            = "checkout-beta-users"
+  description    = "Users selected by a built-in key rule"
   scopes = [
     "organization/${var.featbit_organization_key}:project/${local.project_key}:env/${local.environment_key}",
   ]
 
-  included_users = ["beta-user-a", "beta-user-b"]
-  excluded_users = ["beta-user-blocked"]
-
   rules = [
     {
-      name = "Supported countries"
+      name = "Beta user key"
       conditions = [
         {
-          property = "country"
+          property = "keyId"
           operator = "IsOneOf"
-          value    = jsonencode(["CA", "US"])
+          value    = jsonencode(["checkout-beta-user"])
         },
       ]
     },

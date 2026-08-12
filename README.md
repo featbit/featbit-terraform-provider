@@ -132,6 +132,12 @@ or [Segment example](examples/resources/featbit_segment).
 | `featbit_feature_flag` | `data.featbit_feature_flag` | Flag definition and variations; only the name updates in place. |
 | `featbit_segment` | `data.featbit_segment` | Environment-specific Segment metadata, targeting, and tags; shared Segments are read-only. |
 
+Segment targeting writes do not create Environment End Users or register
+custom End User Property metadata. The canonical Segment example therefore
+uses the built-in `keyId` property and leaves direct-target lists empty;
+direct targets and custom-property rules require their Environment
+prerequisites to exist independently.
+
 IAM, flag evaluation, deployments, analytics, audit streams, Portal-private
 APIs, and a generic raw REST resource are outside the initial release.
 

@@ -445,13 +445,45 @@ the corresponding item and explicit maintainer authorization permit it.
 
 ## Phase exit
 
-- [ ] **P5-090 — Close Phase 5 and prepare post-release Phase 6 IAM.**
+- [ ] **P5-090 — Publish the documentation correction and prepare Phase 6 Segment prerequisites.**
 
   Confirm every item above and the README exit gate. Update the master plan
   only with still-current released architecture, compatibility, support, and
-  roadmap facts. Make its next action the first concrete Phase 6 IAM
-  contract-verification task. Delete this completed Phase 5 package and create
-  only a Phase 6 IAM `README.md` and detailed `todo.md`.
+  roadmap facts. Make its next action the first concrete Phase 6 Segment
+  targeting-prerequisite public-API verification task. IAM moves to Phase 7
+  and cannot begin before the Phase 6 gate passes. Delete this completed Phase
+  5 package and create only a Phase 6 Segment targeting prerequisites
+  `README.md` and detailed `todo.md`.
+
+  Before closure, correct the stale canonical Segment example and public
+  guidance so they do not imply that targeting writes create Environment End
+  Users or custom End User Property metadata. Keep the targeting schema and
+  lifecycle tests intact, use only built-in `keyId` targeting in the example,
+  regenerate Registry docs, and freeze this boundary with focused
+  documentation assertions.
+
+  Important files: `examples/resources/featbit_segment/resource.tf`, Segment
+  and provider templates plus generated docs, `README.md`,
+  `documentation_contract_test.go`, and still-current architecture statements.
+
+  Runtime relationship: `canonical HCL example -> documented public Segment
+  targeting endpoint -> built-in keyId rule`, with no Environment-user or
+  property-metadata endpoint call or ownership claim.
+
+  This correction is complete when generated docs are current, examples
+  validate without credentials, focused documentation assertions reject
+  unmanaged-prerequisite targeting in the canonical example, the Go suite
+  passes, and neither runtime schema/state nor another repository changes.
+
+  Correction result (2026-08-12): replaced the canonical Segment's missing
+  direct users and `country` custom property with a built-in `keyId` rule;
+  documented the Environment-user/property-metadata prerequisite and
+  non-deletion boundary in the README, Registry guide, resource template, and
+  generated resource page; and added focused assertions preventing the unsafe
+  example from returning. Registry docs regenerated cleanly, all nine
+  credential-free example sets validated, the focused documentation tests and
+  `go test ./...` passed, and runtime schema, state, client behavior, FeatBit,
+  and the GitOps demo practice directory were not changed.
 
 - [ ] **P5-091 — Declare Phase 5 complete only after the exit gate passes.**
 
@@ -462,4 +494,5 @@ the corresponding item and explicit maintainer authorization permit it.
   secret, unresolved dependency/license/vulnerability issue, failed core
   lifecycle/Import convergence, pending test object, changed unrelated Cloud
   object, credential/runtime-value finding, IAM schema/header/endpoint surface,
-  or absent Phase 6 IAM entry point.
+  absent Phase 6 Segment prerequisite entry point, or a roadmap that permits
+  Phase 7 IAM to start before Phase 6 passes.

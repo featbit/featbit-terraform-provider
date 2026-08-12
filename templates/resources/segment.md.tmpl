@@ -20,6 +20,13 @@ Terraform owns the managed Segment's name, description, included and excluded
 user keys, ordered rules and conditions, and set-valued tags. Rule and
 condition order is significant; user and tag ordering is not.
 
+Segment targeting and its Environment prerequisites are separate. This
+resource writes included and excluded keys and rule payloads, but it does not
+create Environment End Users or register custom End User Property metadata.
+The canonical example therefore leaves direct-target lists empty and uses the
+built-in `keyId` property. Configure direct targets or custom properties only
+when those Environment prerequisites already exist.
+
 ## Example Usage
 
 {{- range .ExampleFiles }}
@@ -35,6 +42,8 @@ an access token or runtime object UUID in configuration.
 
 - `name`, `description`, targeting, and tags update in place through their
   specialized public endpoints.
+- Removing targeting values or destroying the Segment never deletes
+  Environment End Users or End User Property metadata.
 - `environment_id`, `key`, or `scopes` changes require replacement.
 - Create refuses active or archived exact-key collisions. A shared or
   contradictory remote definition is never adopted for mutation.
