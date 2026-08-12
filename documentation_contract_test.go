@@ -19,6 +19,8 @@ import (
 	"testing"
 )
 
+const gitOpsTutorialURL = "https://github.com/featbit/terraform-provider-featbit-gitops-demo"
+
 var (
 	markdownLinkPattern         = regexp.MustCompile(`\[[^\]]*\]\(([^)]+)\)`)
 	htmlLinkPattern             = regexp.MustCompile(`href="([^"]+)"`)
@@ -48,6 +50,7 @@ func TestRegistryDocumentationMatchesFrozenSurface(t *testing.T) {
 		"configurable origin does not certify",
 		"Segment targeting writes do not create Environment End Users",
 		"built-in `keyId` property",
+		gitOpsTutorialURL,
 		"<project_uuid>",
 		"<project_uuid>/<environment_uuid>",
 		"<environment_uuid>/<exact_key>",
@@ -64,9 +67,10 @@ func TestRegistryDocumentationMatchesFrozenSurface(t *testing.T) {
 		"Segment targeting writes do not create Environment End Users",
 		"register custom End User Property metadata",
 		"built-in `keyId` property",
+		gitOpsTutorialURL,
 	} {
 		if !strings.Contains(readme, expected) {
-			t.Errorf("README.md does not contain Segment prerequisite boundary %q", expected)
+			t.Errorf("README.md does not contain required provider guidance %q", expected)
 		}
 	}
 

@@ -18,6 +18,7 @@
 
 <div align="center">
   <a href="#quick-start">Quick Start</a> &middot;
+  <a href="https://github.com/featbit/terraform-provider-featbit-gitops-demo">GitOps Tutorial</a> &middot;
   <a href="docs/index.md">Registry Documentation</a> &middot;
   <a href="examples">Examples</a> &middot;
   <a href="SUPPORT.md">Support</a> &middot;
@@ -56,8 +57,8 @@ terraform init
 terraform plan
 ```
 
-The first Registry release, `v0.1.0`, is not published yet. Registry
-installation will become available after that release.
+The provider is published in the Terraform Registry. The constraint below
+selects compatible patch releases from the initial `0.1` line.
 
 ## Install
 
@@ -160,6 +161,12 @@ The [Registry provider guide](docs/index.md) documents authentication and
 provider configuration. Each [resource](docs/resources) and
 [data source](docs/data-sources) has a complete reference page and example;
 every resource page includes its exact Import form.
+
+For a guided end-to-end workflow, follow the
+[FeatBit Terraform GitOps Tutorial](https://github.com/featbit/terraform-provider-featbit-gitops-demo).
+It builds one Terraform root across Dev, Stage, and Prod, verifies idempotent
+plans, demonstrates promotion and cleanup, and identifies behavior that remains
+FeatBit UI-owned or outside the Provider's current surface.
 
 ## Security and support
 

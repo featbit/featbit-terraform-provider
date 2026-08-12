@@ -20,6 +20,11 @@ custom End User Property metadata. The canonical Segment example uses the
 built-in `keyId` property; direct targets and custom-property rules require
 their Environment prerequisites to exist independently.
 
+For a hands-on workflow across Dev, Stage, and Prod, follow the
+[FeatBit Terraform GitOps Tutorial](https://github.com/featbit/terraform-provider-featbit-gitops-demo).
+It complements this reference with an end-to-end Terraform root, idempotence
+checks, promotion, cleanup, and explicit current capability boundaries.
+
 ## Authentication
 
 Set `FEATBIT_ACCESS_TOKEN` in the provider process environment. FeatBit service
