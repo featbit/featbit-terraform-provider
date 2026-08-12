@@ -3,18 +3,20 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Active work: [Phase 5 — Initial release](plan-execution-phase-5/README.md)
+- Active work: [Phase 6 — Segment targeting prerequisites](plan-execution-phase-6/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-Phase 5 is active. The repository exposes a locally loadable Protocol v6
-provider with five configuration attributes, a shared handwritten HTTP client,
-and registered Project, Environment, Feature Flag, and Segment resources plus
-their four exact single-object data sources. Their lifecycle-owned adapters
-implement exact reads, CRUD, Import, canonical state, authoritative absence
+Phase 6 is active. Stable releases `v0.1.0` and documentation-only `v0.1.1`
+are published through the Terraform Registry. The repository exposes a
+Protocol v6 provider with five configuration attributes, a shared handwritten
+HTTP client, and registered Project, Environment, Feature Flag, and Segment
+resources plus their four exact single-object data sources. Their
+lifecycle-owned adapters implement exact reads, CRUD, Import, canonical state,
+authoritative absence
 composition, replacement-aware stable ID planning, one-shot mutation
 reconciliation, and redaction-safe diagnostics. The Segment resource manages
 only environment-specific metadata, targeting, and tags through specialized
@@ -26,14 +28,16 @@ the documented public API. Closing that targeting prerequisite gap is the
 mandatory post-release Phase 6 before any IAM work begins. All four core
 resource phases passed their local, Protocol, and trusted current-Cloud gates
 with exact cleanup. The initial public release contains only those four core
-resources and their data sources; IAM is deferred until after that release.
+resources and their data sources; IAM remains deferred until Phase 6 passes.
 The core-only release contract is frozen by a checked-in Protocol v6 schema
 snapshot and focused registration, Import, and manifest checks. GoReleaser owns
 tag-derived version injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass
 the existing Protocol gates on credential-free Linux/AMD64, and the
 GoReleaser snapshot still produces the frozen five-platform archive matrix.
-The next action is Phase 5 `P5-090`: publish and verify the documentation-only
-`v0.1.1` correction, then prepare the Phase 6 Segment prerequisite package.
+The next action is Phase 6 `P6-010`: verify whether the documented public API
+provides the exact Environment End User and End User Property contracts needed
+for safe create-missing-only prerequisite registration. If it does not, record
+the minimum upstream public-API requirement and stop Provider implementation.
 
 ## 2. Product boundary
 
@@ -290,17 +294,17 @@ Initial archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
 GoReleaser snapshot. The credential-free Go 1.26.5 snapshot still produces
 exactly those five archives. This archive matrix is a distribution contract,
 not a claim that every target has a separate native-runner qualification. The
-first Registry artifact is the stable non-prerelease SemVer
-release `v0.1.0`; freezing its version does not authorize tag creation or
-publication.
+Registry serves stable non-prerelease releases `v0.1.0` and `v0.1.1`;
+`v0.1.1` changes documentation, examples, and roadmap context only and does
+not change runtime behavior, schema, state, or compatibility.
 The repository contains fork-safe, read-only, credential-free CI with pinned
 actions and quality/supply-chain tools; deterministic five-platform GoReleaser
 packaging; a protected stable-tag workflow that can create only a signed draft;
 and the existing frozen Protocol schema contract. The current release design
 intentionally follows the scaffold without a custom artifact verifier or
-clean-install harness. Release signing identity, protected environment, tag creation,
-draft inspection/finalization, Registry connection, and publication remain
-maintainer-owned Phase 5 gates and do not expand the frozen core schema.
+clean-install harness. Release signing identity, protected environment, tag
+creation, draft inspection/finalization, Registry connection, and publication
+remain maintainer-owned gates and do not expand the frozen core schema.
 
 Every applicable phase gate includes:
 
