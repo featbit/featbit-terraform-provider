@@ -17,6 +17,7 @@ __debug_bin*
 
 # Terraform working directories, plans, state, and crash output.
 .terraform/
+/mypractice/
 *.tfplan
 *.tfstate
 *.tfstate.*

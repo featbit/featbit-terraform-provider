@@ -17,8 +17,7 @@
 </div>
 
 <div align="center">
-  <a href="#quick-start">Quick Start</a> &middot;
-  <a href="https://github.com/featbit/terraform-provider-featbit-gitops-demo">GitOps Tutorial</a> &middot;
+  <a href="GitOpsGettingStarted.md">Getting Started</a> &middot;
   <a href="docs/index.md">Registry Documentation</a> &middot;
   <a href="examples">Examples</a> &middot;
   <a href="SUPPORT.md">Support</a> &middot;
@@ -29,57 +28,25 @@
 
 If your team already uses FeatBit and wants its core configuration reviewed,
 repeated, and dependency-ordered with the rest of its infrastructure, this
-provider gives Terraform exact ownership of that configuration. It uses only
-the documented public FeatBit API and resolves objects by exact identifiers,
-never by the first fuzzy search result.
+provider models Projects, Environments, Feature Flags, and environment-specific
+Segments as one dependency-aware Terraform graph. Existing objects can be
+brought under Terraform through stable Import identifiers and exact object
+lookup. Managed drift is reconciled without silently adopting ambiguous
+objects or overwriting UI-owned Feature Flag targeting and runtime settings.
+The provider uses only the documented public FeatBit API and never selects the
+first fuzzy search result.
 
-## Highlights
+## Getting started
 
-- Models Projects, Environments, Feature Flags, and environment-specific
-  Segments as one dependency-aware Terraform graph.
-- Imports existing objects with stable, documented identifiers and reads each
-  data source by an exact UUID or scoped exact key.
-- Repairs managed drift while preserving canonical server identities and
-  refusing ambiguous mutation outcomes.
-- Leaves Feature Flag targeting, rules, rollouts, enabled state, and tags under
-  FeatBit UI ownership.
-- Keeps access tokens out of configuration examples and accepts them safely
-  from the process environment.
+Start with the
+**[FeatBit Terraform GitOps Tutorial](GitOpsGettingStarted.md)**. It walks
+through provider installation and authentication, then evolves one Terraform
+root across Dev, Stage, and Prod with Projects, Environments, Feature Flags,
+and environment-specific Segments. The workflow verifies empty second plans,
+demonstrates promotion and rollback, and finishes with reviewed cleanup.
 
-## Quick start
-
-Copy [`examples/provider/provider.tf`](examples/provider/provider.tf), set
-`FEATBIT_ACCESS_TOKEN` in the process environment through your normal secret
-manager, then run:
-
-```shell
-terraform init
-terraform plan
-```
-
-The provider is published in the Terraform Registry. The constraint below
-selects compatible patch releases from the initial `0.1` line.
-
-## Install
-
-Declare the provider from the Terraform Registry:
-
-```hcl
-terraform {
-  required_version = ">= 1.0.0"
-
-  required_providers {
-    featbit = {
-      source  = "featbit/featbit"
-      version = "~> 0.1.0"
-    }
-  }
-}
-
-provider "featbit" {}
-```
-
-Terraform 1.0 or later is required.
+The provider supports Terraform 1.0 or later. The tutorial uses Terraform
+`>= 1.5.0, < 2.0.0`.
 
 ## Authentication
 
@@ -103,58 +70,6 @@ an optional port, and either no path or `/api/v1`; the provider normalizes both
 forms to `/api/v1`. User information, query strings, fragments, and other paths
 are rejected.
 
-## Usage
-
-References between managed objects give Terraform their creation and destroy
-order:
-
-```hcl
-resource "featbit_project" "application" {
-  name = "Application"
-  key  = "application"
-}
-
-resource "featbit_environment" "staging" {
-  project_id = featbit_project.application.id
-  name       = "Staging"
-  key        = "staging"
-}
-```
-
-Continue with the complete [Feature Flag example](examples/resources/featbit_feature_flag)
-or [Segment example](examples/resources/featbit_segment).
-
-## Supported surface
-
-| Managed resource | Exact data source | Terraform ownership |
-|---|---|---|
-| `featbit_project` | `data.featbit_project` | Project name and immutable key; child Environments are non-owning observations. |
-| `featbit_environment` | `data.featbit_environment` | Name and description; parent Project and key define replacement identity. |
-| `featbit_feature_flag` | `data.featbit_feature_flag` | Flag definition and variations; only the name updates in place. |
-| `featbit_segment` | `data.featbit_segment` | Environment-specific Segment metadata, targeting, and tags; shared Segments are read-only. |
-
-Segment targeting writes do not create Environment End Users or register
-custom End User Property metadata. The canonical Segment example therefore
-uses the built-in `keyId` property and leaves direct-target lists empty;
-direct targets and custom-property rules require their Environment
-prerequisites to exist independently.
-
-IAM, flag evaluation, deployments, analytics, audit streams, Portal-private
-APIs, and a generic raw REST resource are outside the initial release.
-
-## Ownership and deletion
-
-Changing an identity-defining field produces replacement rather than silently
-adopting another object. Feature Flag and Segment destroy operations archive,
-permanently delete, and prove exact absence; Segment destroy first refuses to
-continue while exact Feature Flag references remain. Project and Environment
-deletion also require authoritative absence before state is removed.
-
-Feature Flag targeting and operational state remain UI-owned. Terraform does
-not toggle flags or rewrite targeting, rules, rollouts, or tags while managing
-the definition. Shared Segments can be observed with
-`data.featbit_segment`, but the resource cannot mutate them.
-
 ## Documentation and examples
 
 The [Registry provider guide](docs/index.md) documents authentication and
@@ -162,11 +77,9 @@ provider configuration. Each [resource](docs/resources) and
 [data source](docs/data-sources) has a complete reference page and example;
 every resource page includes its exact Import form.
 
-For a guided end-to-end workflow, follow the
-[FeatBit Terraform GitOps Tutorial](https://github.com/featbit/terraform-provider-featbit-gitops-demo).
-It builds one Terraform root across Dev, Stage, and Prod, verifies idempotent
-plans, demonstrates promotion and cleanup, and identifies behavior that remains
-FeatBit UI-owned or outside the Provider's current surface.
+For focused HCL examples, use the complete
+[Feature Flag example](examples/resources/featbit_feature_flag) or
+[Segment example](examples/resources/featbit_segment).
 
 ## Security and support
 

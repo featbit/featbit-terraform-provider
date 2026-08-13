@@ -6,17 +6,6 @@ compatible contract. Record only concise current results under the active item.
 Do not begin IAM, publish a release, modify the FeatBit backend, or use a
 Portal-private endpoint without a separate explicit user authorization.
 
-## Documentation navigation
-
-- [x] **P6-005 — Link the official end-to-end GitOps tutorial.**
-
-  Result (2026-08-12): added the public
-  `featbit/terraform-provider-featbit-gitops-demo` tutorial to the Provider
-  README quick links and documentation section, added it to the Registry index
-  template and generated page, removed the stale pre-publication statement,
-  and froze both entry points with the documentation contract test. Runtime,
-  schema, state, examples, FeatBit, and the tutorial repository were unchanged.
-
 ## Public API gate
 
 - [ ] **P6-010 — Verify the documented public prerequisite API.**

@@ -21,7 +21,7 @@ built-in `keyId` property; direct targets and custom-property rules require
 their Environment prerequisites to exist independently.
 
 For a hands-on workflow across Dev, Stage, and Prod, follow the
-[FeatBit Terraform GitOps Tutorial](https://github.com/featbit/terraform-provider-featbit-gitops-demo).
+[FeatBit Terraform GitOps Tutorial](../GitOpsGettingStarted.md).
 It complements this reference with an end-to-end Terraform root, idempotence
 checks, promotion, cleanup, and explicit current capability boundaries.
 
@@ -62,7 +62,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.1.0"
+      version = "~> 0.1.1"
     }
   }
 }

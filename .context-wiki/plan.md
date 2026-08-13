@@ -3,16 +3,16 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Active work: [Phase 6 — Segment targeting prerequisites](plan-execution-phase-6/README.md)
+- Next phase: [Phase 6 — Segment targeting prerequisites](plan-execution-phase-6/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-Phase 6 is active. Stable releases `v0.1.0` and documentation-only `v0.1.1`
-are published through the Terraform Registry. The repository exposes a
-Protocol v6 provider with five configuration attributes, a shared handwritten
+Phase 6 has not started. Stable releases `v0.1.0` and documentation-only
+`v0.1.1` are published through the Terraform Registry. The repository exposes
+a Protocol v6 provider with five configuration attributes, a shared handwritten
 HTTP client, and registered Project, Environment, Feature Flag, and Segment
 resources plus their four exact single-object data sources. Their
 lifecycle-owned adapters implement exact reads, CRUD, Import, canonical state,
@@ -34,10 +34,11 @@ snapshot and focused registration, Import, and manifest checks. GoReleaser owns
 tag-derived version injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass
 the existing Protocol gates on credential-free Linux/AMD64, and the
 GoReleaser snapshot still produces the frozen five-platform archive matrix.
-The next action is Phase 6 `P6-010`: verify whether the documented public API
-provides the exact Environment End User and End User Property contracts needed
-for safe create-missing-only prerequisite registration. If it does not, record
-the minimum upstream public-API requirement and stop Provider implementation.
+When Phase 6 begins, its first action is `P6-010`: verify whether the documented
+public API provides the exact Environment End User and End User Property
+contracts needed for safe create-missing-only prerequisite registration. If it
+does not, record the minimum upstream public-API requirement and stop Provider
+implementation.
 
 ## 2. Product boundary
 
