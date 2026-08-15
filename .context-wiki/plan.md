@@ -3,42 +3,46 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Next phase: [Phase 6 — Segment targeting prerequisites](plan-execution-phase-6/README.md)
+- Next phase: [Phase 6 — IAM and release](plan-execution-phase-6/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-Phase 6 has not started. Stable releases `v0.1.0` and documentation-only
-`v0.1.1` are published through the Terraform Registry. The repository exposes
-a Protocol v6 provider with five configuration attributes, a shared handwritten
-HTTP client, and registered Project, Environment, Feature Flag, and Segment
-resources plus their four exact single-object data sources. Their
-lifecycle-owned adapters implement exact reads, CRUD, Import, canonical state,
-authoritative absence
-composition, replacement-aware stable ID planning, one-shot mutation
-reconciliation, and redaction-safe diagnostics. The Segment resource manages
-only environment-specific metadata, targeting, and tags through specialized
-public endpoints; exact shared Segment reads remain data-source-only, and
-reference-aware destroy proves complete active/archived absence. Segment
-targeting writes do not create Environment End Users or register custom End
-User Property metadata because those prerequisites are not exposed through
-the documented public API. Closing that targeting prerequisite gap is the
-mandatory post-release Phase 6 before any IAM work begins. All four core
-resource phases passed their local, Protocol, and trusted current-Cloud gates
-with exact cleanup. The initial public release contains only those four core
-resources and their data sources; IAM remains deferred until Phase 6 passes.
-The core-only release contract is frozen by a checked-in Protocol v6 schema
-snapshot and focused registration, Import, and manifest checks. GoReleaser owns
-tag-derived version injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass
-the existing Protocol gates on credential-free Linux/AMD64, and the
-GoReleaser snapshot still produces the frozen five-platform archive matrix.
-When Phase 6 begins, its first action is `P6-010`: verify whether the documented
-public API provides the exact Environment End User and End User Property
-contracts needed for safe create-missing-only prerequisite registration. If it
-does not, record the minimum upstream public-API requirement and stop Provider
-implementation.
+Phase 6 IAM requirements alignment is the active next work; runtime
+implementation has not started. The current branch owns only the aligned IAM
+surface and the release that follows it. It must not implement the deferred
+Phase 7 Segment prerequisite work. Stable releases `v0.1.0` and
+documentation-only `v0.1.1` are published through the Terraform Registry. The
+repository exposes a Protocol v6 provider with five configuration attributes,
+a shared handwritten HTTP client, and registered Project, Environment, Feature
+Flag, and Segment resources plus their four exact single-object data sources.
+Their lifecycle-owned adapters implement exact reads, CRUD, Import, canonical
+state, authoritative absence composition, replacement-aware stable ID
+planning, one-shot mutation reconciliation, and redaction-safe diagnostics.
+The Segment resource manages only environment-specific metadata, targeting,
+and tags through specialized public endpoints; exact shared Segment reads
+remain data-source-only, and reference-aware destroy proves complete
+active/archived absence. Segment targeting writes do not create Environment
+End Users or register custom End User Property metadata because those
+prerequisites are not exposed through the documented public API. The required
+public operations are planned for a later FeatBit version, so that unfinished
+Segment work is deferred until Phase 7, after IAM, and must not be implemented
+through Portal-private endpoints in the meantime. All four core resource
+phases passed their local, Protocol, and trusted current-Cloud gates with exact
+cleanup. The initial public release contains only those four core resources
+and their data sources; no IAM surface is released yet. The core-only release
+contract is frozen by a checked-in Protocol v6 schema snapshot and focused
+registration, Import, and manifest checks. GoReleaser owns tag-derived version
+injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass the existing Protocol
+gates on credential-free Linux/AMD64, and the GoReleaser snapshot still
+produces the frozen five-platform archive matrix. Phase 6 starts with
+`P6-010`: incorporate the forthcoming customer IAM feedback and re-freeze the
+supported workflows, ownership boundaries, identities, and exclusions before
+API verification or Provider implementation. After the aligned IAM work passes
+its complete gate, this branch proceeds directly to release qualification and
+separately maintainer-authorized publication.
 
 ## 2. Product boundary
 
@@ -50,14 +54,20 @@ Core v1 manages these environment-scoped customer workflows:
 - `featbit_segment`
 - one exact single-object data source and Import support for each resource
 
-Segment targeting prerequisite closure is the first post-initial-release
-phase. It must establish a documented public API for exact Environment End
-User and End User Property lookup plus create-missing-only registration before
-the Provider depends on those operations. IAM follows only after that gate as
-Phase 7: groups, policies, exact member lookup, and independent
-group/member/policy binding resources. The initial release exposes no IAM
-object, relationship, tenant selector, or context-header contract. Member
-invitation or creation remains external in the later IAM scope.
+IAM is the first post-initial-release phase. Phase 6 begins by aligning the
+customer workflows and then proving the required public API contracts before
+freezing any Provider schema or lifecycle. The existing outline covers groups,
+policies, exact member lookup, and independent group/member/policy binding
+resources, but remains provisional until `P6-010` incorporates the customer
+feedback. The initial release exposes no IAM object, relationship, tenant
+selector, or context-header contract. Member invitation or creation remains
+external unless the requirements alignment and documented public API support
+an explicitly safe contract.
+
+Segment targeting prerequisite closure follows IAM as Phase 7. It must wait
+for a later FeatBit version to expose documented public operations for exact
+Environment End User and End User Property lookup plus create-missing-only
+registration before the Provider depends on those operations.
 
 Core v1 does not evaluate flags, deploy FeatBit, manage analytics/audit streams,
 copy LaunchDarkly's resource model, or expose a generic raw-REST resource. It
@@ -160,11 +170,11 @@ configuration or transport changes.
 | Project | Implemented | UUID identity. Manage verified safe fields; key replaces. Server-created `Dev/dev` and `Prod/prod` environments are Computed. Confirm absence through the complete project collection when direct Read is ambiguous. |
 | Environment | Implemented | Project-scoped UUID identity. Name/description update; project and key replace. Discard secret values from ordinary state. Confirm absence through the parent project's environment collection and preserve UI-owned settings across Update. |
 | Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
-| Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 6 must close that gap without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
+| Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 7 will close that gap after the required public API ships, without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
 | Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
-| IAM member | Deferred until after Phase 6 | Later read-only exact lookup for relationship endpoints. Invitation, creation, profile mutation, team removal, and initial-password handling remain external. |
-| IAM group and custom policy | Deferred until after Phase 6 | Later manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only. |
-| IAM relationship edge | Deferred until after Phase 6 | Each later group-member, group-policy, or direct member-policy resource owns one exact pair, never an entire shared relationship set. |
+| IAM member | Planned for Phase 6; contract provisional | Re-align the customer workflow first. The current outline uses read-only exact lookup for relationship endpoints; invitation, creation, profile mutation, team removal, and initial-password handling remain external unless `P6-010` proves a different safe public contract. |
+| IAM group and custom policy | Planned for Phase 6; contract provisional | Re-align the customer workflow first, then manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only unless explicitly re-scoped with evidence. |
+| IAM relationship edge | Planned for Phase 6; contract provisional | The current outline gives each group-member, group-policy, or direct member-policy resource one exact pair, never an entire shared relationship set; `P6-010` must confirm the required relationships and ownership. |
 
 Common lifecycle rules:
 
@@ -190,8 +200,8 @@ Implemented core Import IDs are stable public contracts:
 | Segment | `<environment_uuid>/<segment_uuid>` |
 
 IAM object and binding Import forms are not part of the initial release. The
-Phase 7 IAM work must freeze tenant scope, exact identities, and
-relationship direction before publishing any such contract.
+Phase 6 IAM work must freeze tenant scope, exact identities, and relationship
+direction before publishing any such contract.
 
 ## 5. Roadmap
 
@@ -230,7 +240,7 @@ resource while the documented public API does not expose those prerequisites.
 
 Gate: lifecycle and Import converge; reference conflicts preserve valid state.
 
-### Phase 5 — Initial release (active)
+### Phase 5 — Initial release (complete)
 
 Add fork-safe credential-free pull-request CI with pinned quality tools, while
 keeping live acceptance jobs separately trusted and scoped. Add Registry
@@ -243,14 +253,40 @@ resources and four data sources; it contains no IAM surface.
 Gate: a clean directory can initialize, plan, apply, destroy, and import using
 the Registry provider; release assets satisfy Registry requirements.
 
-### Phase 6 — Segment targeting prerequisites (post-initial release)
+### Phase 6 — IAM and release
 
-First verify that the official Swagger and OpenAPI authentication expose
-stable, documented operations for exact Environment End User and End User
-Property lookup plus create-missing-only registration. If that contract is
-absent, record the minimum upstream API requirement and stop: the Provider
-must not call Portal-private endpoints, modify the FeatBit backend, or infer
-authority from UI behavior.
+First incorporate the customer IAM feedback and freeze the intended workflows,
+managed/read-only/external boundaries, identities, relationship ownership, and
+acceptance outcomes. The previous outline is input to that alignment, not a
+final contract. Do not add endpoint adapters, schemas, or state models until
+the aligned scope is checked against the documented public API.
+
+After requirements alignment, verify access-token tenant scope, optional
+context-header behavior, complete exact member lookup, and every required IAM
+mutation without exposing initial-password or tenant/member identity data.
+The current candidate surface consists of groups, custom policies, and
+independent group-member, group-policy, and direct member-policy resources;
+member creation and team removal remain external unless the aligned scope and
+public API prove a safe alternative.
+
+Gate: customer workflows and exclusions are explicit; every consumed operation
+is documented and exact; lifecycle and Import identities are frozen before
+publication; bindings are idempotent and never claim an entire shared
+relationship set; current-Cloud verification is redaction-safe; Registry
+documentation and release artifacts describe exactly the implemented IAM
+surface; and the approved IAM release is published. Tag creation, signing,
+draft finalization, and publication remain separately maintainer-authorized.
+
+### Phase 7 — Segment targeting prerequisites (deferred)
+
+Begin only on a separate future branch after the IAM release and after a later
+FeatBit version exposes the required documented public operations. Verify that
+the official Swagger and OpenAPI authentication expose stable operations for
+exact Environment End User and End User Property lookup plus
+create-missing-only registration. If that contract is still absent, record the
+minimum upstream API requirement and stop: the Provider must not call
+Portal-private endpoints, modify the FeatBit backend, or infer authority from
+UI behavior.
 
 Once the public contract exists, choose and freeze the Terraform ownership
 model before implementation. The preferred Segment lifecycle behavior is to
@@ -273,15 +309,6 @@ registration failure instead of false success, and leaves every prerequisite
 intact after targeting removal and Segment destroy. Trusted current-Cloud
 acceptance must query exact Environment users and properties and expose no
 token, Environment ID, user key, property name, or targeting value.
-
-### Phase 7 — IAM
-
-First verify access-token tenant scope, optional context-header behavior, and
-complete exact member lookup without exposing initial-password data. Then add
-groups, custom policies, and independent group-member, group-policy, and direct
-member-policy resources. Keep member creation and team removal external.
-
-Gate: bindings are idempotent and never claim an entire shared relationship set.
 
 ## 6. Global verification
 

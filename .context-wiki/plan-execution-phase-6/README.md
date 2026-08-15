@@ -1,103 +1,95 @@
-# Phase 6 — Segment targeting prerequisites
+# Phase 6 — IAM and release
 
 ## Purpose
 
-Close the Environment-specific Segment prerequisite gap before any IAM work
-begins. A Segment can already persist included/excluded user keys and rule
-properties, but the Provider does not create missing Environment End Users or
-register custom End User Property metadata. Release `v0.1.1` documents that
-boundary without changing runtime behavior.
+Make IAM the next Provider phase, align it to the customer's actual workflows,
+implement only that approved surface, and carry it through the next Provider
+release. The existing roadmap names candidate IAM objects and relationships,
+but no Provider schema, lifecycle, Import identity, or public API dependency is
+frozen yet.
 
-This phase starts with the public API, not with Provider code. The Provider may
-depend only on stable operations documented by FeatBit's official Swagger or
-OpenAPI contract and usable with the existing access-token authentication. UI
-calls, Portal-private controllers, and direct database access are evidence of
-product behavior only; they are not Provider contracts.
+The current branch is limited to IAM plus its release. The unfinished Segment
+targeting prerequisite work is Phase 7 on a separate future branch. It is
+deferred because the required documented public API is planned for a later
+FeatBit version; it is neither a blocker nor an implementation target for this
+phase.
 
 ## Current entry point
 
-Start with [P6-010](todo.md): establish whether the public API supports all of
-these operations with exact Environment scope and redaction-safe failures:
+Start with [P6-010](todo.md) after the customer feedback is supplied. Convert
+that feedback into explicit supported workflows, managed/read-only/external
+boundaries, exact identities, relationship ownership, and measurable
+acceptance outcomes. Reconcile the result with the current roadmap instead of
+treating the existing IAM outline as already approved.
 
-- exact lookup of an End User by Environment and key;
-- idempotent create-missing-only End User registration;
-- exact lookup of End User Property metadata by Environment and property;
-- idempotent create-missing-only custom-property registration.
+Do not add IAM endpoint adapters, Terraform schemas, state models, examples, or
+tests before this alignment is complete. P6-010 must first determine what the
+Provider should own; the documented public API gate follows from that scope.
 
-If any required contract is absent, stop runtime implementation. Record exact
-source evidence and the smallest upstream public API addition needed. Do not
-call an undocumented endpoint and do not modify the FeatBit backend in this
-workspace task.
+## Provisional context to revalidate
 
-## Intended Terraform contract
+The current roadmap carries these candidates forward only as input to
+requirements alignment:
 
-The ownership design is not frozen until P6-010 proves the public API. The
-preferred behavior, if the API can support it safely, is prerequisite ensure
-inside `featbit_segment` Create and Update:
+- exact member lookup for relationship endpoints, without exposing
+  initial-password data;
+- managed groups and custom policies, with built-in policies read-only;
+- independent group-member, group-policy, and direct member-policy edges that
+  own one exact pair rather than an entire shared relationship set;
+- verified access-token tenant scope and optional context-header behavior; and
+- member invitation, creation, profile mutation, and team removal outside
+  Terraform ownership.
 
-```text
-Terraform Segment plan
-  -> canonicalize targeting users and rule properties
-  -> exact Environment prerequisite lookup
-  -> register only values proven missing
-  -> update Segment targeting
-  -> read canonical Segment state
-```
+Customer feedback may narrow, reorder, or replace this candidate surface. Any
+change must still fit the documented public API and the Provider's exact-match,
+state-preservation, one-shot mutation, cancellation, and redaction contracts.
 
-The lifecycle must never overwrite an existing user's name or custom
-properties. It must not treat built-ins such as `keyId` and `name` as custom
-properties. Removing targeting or destroying a Segment must never delete End
-Users or property metadata because those records may be shared by Flags,
-Segments, SDK traffic, and applications.
+## Required alignment outputs
 
-If implicit ensure cannot provide truthful Import, refresh, drift, concurrency,
-and partial-failure behavior, P6-020 must evaluate first-class End User and End
-User Property resources. Such a design is acceptable only with explicit,
-non-destructive ownership and migration semantics; it must not turn shared
-records into destroy-owned Terraform children accidentally.
+P6-010 must leave enough current context to plan implementation without
+guessing:
+
+- the customer actors, workflows, desired outcomes, and explicit exclusions;
+- the IAM objects and relationships that are managed, observed, or external;
+- tenant and organization scope, authentication, and context selection;
+- exact lookup keys, stable IDs, relationship direction, and Import identity;
+- ownership, drift, replacement, deletion, and out-of-band change behavior;
+- secret and identity redaction boundaries;
+- the documented public operations needed for every read and mutation; and
+- local, Protocol, and trusted current-Cloud acceptance outcomes.
+
+After those outputs are agreed, replace the placeholder-only TODO with the
+smallest ordered set of API verification, design, implementation, verification,
+documentation, release qualification, and separately maintainer-authorized
+publication items needed by the aligned scope. The final item on this branch
+must close the IAM release; it must not start Phase 7 implementation.
 
 ## Guardrails
 
-- Work in the Provider repository. The FeatBit main repository is read-only
-  reference unless a separate user request explicitly authorizes upstream work.
-- Use documented public APIs only. Never depend on Portal-private APIs.
-- Do not log or include in diagnostics a token, Environment ID, user key,
-  property name, or targeting value.
-- Use exact Environment identities and exact keys; never accept a fuzzy or
-  first-result lookup.
-- Register only prerequisites proven missing. Preserve all existing user names,
-  custom properties, and metadata.
-- Deduplicate deterministically and define included/excluded conflicts before
-  sending mutations.
-- Complete prerequisites before Segment targeting. A failed prerequisite must
-  not be reported as a fully successful apply.
-- Read, Import, and refresh behavior must not hide drift or introduce
-  surprising mutations.
-- Preserve the current Segment HCL and state shape unless an evidence-backed
-  compatibility change is unavoidable.
-- Do not begin Phase 7 IAM until this phase's exit gate passes.
+- Use documented public APIs only; never depend on Portal-private controllers
+  or direct database access.
+- Use exact IDs or scoped exact keys across complete result sets; never select
+  the first fuzzy match.
+- Never store or expose tokens, passwords, tenant/member identities, request
+  paths, or unsafe response bodies in code, state, fixtures, logs, or
+  diagnostics.
+- Preserve existing user changes and shared relationship data. A resource may
+  claim only the object or edge explicitly represented by its state.
+- Reuse existing transport, escaping, pagination, exact resolution, error
+  classification, cancellation, concurrency, and redaction behavior when the
+  ownership boundary matches.
+- Keep Phase 7 Segment prerequisite implementation out of this phase.
+- Do not create a tag, sign or finalize release assets, or publish a release
+  without explicit maintainer authorization.
 
 ## Exit gate
 
-If the documented public API is insufficient, record the precise minimum
-upstream requirement and leave this phase stopped at that dependency; IAM must
-not begin while the Segment mission remains incomplete.
-
-The phase passes only when the public contract is sufficient and the
-implemented Terraform behavior proves all of the following locally, through
-Protocol tests, and in a trusted current-Cloud acceptance run:
-
-- fresh included and excluded keys become End Users in the exact Environment;
-- existing users remain byte-for-byte semantically unchanged;
-- custom rule properties are registered once and reused;
-- built-in properties cause no property registration;
-- duplicate inputs and concurrent applies remain idempotent;
-- prerequisite failure prevents false-success targeting state;
-- a second plan is empty;
-- targeting removal and Segment destroy preserve every End User and property;
-- Import, refresh, and prerequisite drift follow the frozen ownership model;
-- diagnostics and logs expose none of the protected identifiers or values.
-
-Only after this gate passes should the still-current architecture be folded
-into the master plan, this Phase 6 package be removed, and a Phase 7 IAM
-README/TODO be created.
+The detailed exit gate is intentionally not frozen before customer-feedback
+alignment. P6-010 must rewrite it as measurable outcomes for the approved IAM
+surface. At minimum, no IAM contract may be published until every consumed
+operation is documented and exact, tenant scope and Import identities are
+stable, shared relationships cannot be accidentally claimed or removed, a
+second plan is empty, trusted current-Cloud verification is redaction-safe,
+Registry documentation and release artifacts match the implemented surface,
+and the approved IAM release is published. Passing this gate ends the current
+branch; Phase 7 continues separately.
