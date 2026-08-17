@@ -202,6 +202,87 @@ func TestGetEnvironmentExactParentFallbackOutcomes(t *testing.T) {
 	}
 }
 
+func TestGetEnvironmentByKeyExactParentOutcomes(t *testing.T) {
+	t.Parallel()
+
+	const exactKey = "exact-environment-key"
+	tests := map[string]struct {
+		environments       string
+		wantFound          bool
+		wantName           string
+		wantClassification Classification
+	}{
+		"case-sensitive exact zero ignores fuzzy values": {
+			environments: `[{"id":"` + environmentOne + `","name":"Case",` +
+				`"key":"Exact-Environment-Key"},{"id":"` + environmentTwo + `",` +
+				`"name":"Fuzzy","key":"` + exactKey + `-extra"}]`,
+		},
+		"exact one": {
+			environments: `[{"id":"` + environmentTwo + `","name":"Other","key":"other"},` +
+				`{"id":"` + environmentOne + `","name":"Exact","key":"` + exactKey +
+				`","description":"Exact description"}]`,
+			wantFound: true,
+			wantName:  "Exact",
+		},
+		"duplicate exact keys": {
+			environments: `[{"id":"` + environmentOne + `","name":"First","key":"` +
+				exactKey + `"},{"id":"` + environmentTwo + `","name":"Second","key":"` +
+				exactKey + `"}]`,
+			wantClassification: ClassificationAmbiguous,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					if request.Method != http.MethodGet ||
+						request.URL.EscapedPath() != "/api/v1/projects/"+projectIDOne ||
+						request.URL.RawQuery != "" {
+						t.Fatalf("request = %s %s?%s", request.Method, request.URL.EscapedPath(), request.URL.RawQuery)
+					}
+					return environmentTestResponse(
+						request,
+						http.StatusOK,
+						environmentParentJSON(projectIDOne, test.environments),
+					), nil
+				},
+			))
+
+			environment, found, err := clientUnderTest.GetEnvironmentByKey(
+				context.Background(),
+				projectIDOne,
+				exactKey,
+			)
+			if found != test.wantFound {
+				t.Fatalf("found = %t, want %t", found, test.wantFound)
+			}
+			if test.wantClassification == "" {
+				if err != nil {
+					t.Fatalf("GetEnvironmentByKey() error = %v", err)
+				}
+				if found && (environment.Name != test.wantName || environment.Key != exactKey) {
+					t.Fatalf("GetEnvironmentByKey() = %#v", environment)
+				}
+			} else {
+				requireAPIErrorClassification(t, err, test.wantClassification)
+				if strings.Contains(fmt.Sprint(err), exactKey) {
+					t.Fatal("exact-key ambiguity exposed the configured Environment key")
+				}
+			}
+			if calls.Load() != 1 {
+				t.Fatalf("request count = %d, want 1", calls.Load())
+			}
+		})
+	}
+}
+
 func TestGetEnvironmentWrongParentReturnsExactZero(t *testing.T) {
 	t.Parallel()
 
@@ -265,6 +346,12 @@ func TestGetEnvironmentRejectsInvalidUUIDsBeforeRequest(t *testing.T) {
 		)
 		requireAPIErrorClassification(t, err, ClassificationValidation)
 	}
+	_, _, err := clientUnderTest.GetEnvironmentByKey(
+		context.Background(),
+		"not-a/project",
+		"exact-key",
+	)
+	requireAPIErrorClassification(t, err, ClassificationValidation)
 	if calls.Load() != 0 {
 		t.Fatalf("invalid UUIDs executed %d requests", calls.Load())
 	}

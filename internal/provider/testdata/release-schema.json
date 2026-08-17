@@ -652,7 +652,7 @@
       "version": 0,
       "block": {
         "version": 0,
-        "description": "Reads one FeatBit Environment by its exact parent Project UUID and Environment UUID.",
+        "description": "Reads one FeatBit Environment within an exact parent Project by exact UUID or case-sensitive exact key.",
         "description_kind": "MARKDOWN",
         "deprecated": false,
         "attributes": [
@@ -671,11 +671,11 @@
           {
             "name": "id",
             "type": "string",
-            "description": "Exact Environment UUID.",
+            "description": "Exact Environment UUID. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
-            "required": true,
-            "optional": false,
-            "computed": false,
+            "required": false,
+            "optional": true,
+            "computed": true,
             "sensitive": false,
             "write_only": false,
             "deprecated": false
@@ -683,10 +683,10 @@
           {
             "name": "key",
             "type": "string",
-            "description": "Environment key.",
+            "description": "Case-sensitive exact Environment key within `project_id`. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
             "required": false,
-            "optional": false,
+            "optional": true,
             "computed": true,
             "sensitive": false,
             "write_only": false,
@@ -860,7 +860,7 @@
       "version": 0,
       "block": {
         "version": 0,
-        "description": "Reads one FeatBit Project by its exact UUID.",
+        "description": "Reads one FeatBit Project by exact UUID or organization-scoped case-sensitive exact key.",
         "description_kind": "MARKDOWN",
         "deprecated": false,
         "attributes": [
@@ -931,11 +931,11 @@
           {
             "name": "id",
             "type": "string",
-            "description": "Exact Project UUID.",
+            "description": "Exact Project UUID. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
-            "required": true,
-            "optional": false,
-            "computed": false,
+            "required": false,
+            "optional": true,
+            "computed": true,
             "sensitive": false,
             "write_only": false,
             "deprecated": false
@@ -943,10 +943,10 @@
           {
             "name": "key",
             "type": "string",
-            "description": "Project key.",
+            "description": "Organization-scoped case-sensitive exact Project key. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
             "required": false,
-            "optional": false,
+            "optional": true,
             "computed": true,
             "sensitive": false,
             "write_only": false,

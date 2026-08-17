@@ -130,10 +130,10 @@ func (r *projectResource) Create(
 		)
 		return
 	}
-	matchCount := countProjectsByKey(projects, key.ValueString())
-	if matchCount != 0 {
+	_, matchFound, resolveErr := r.client.ResolveProjectByKey(projects, key.ValueString())
+	if matchFound || resolveErr != nil {
 		detail := "A Project with the configured exact key already exists. Terraform will not adopt it automatically; import the intended Project by UUID or choose another key."
-		if matchCount > 1 {
+		if resolveErr != nil {
 			detail = "Multiple Projects have the configured exact key, so creation is ambiguous. Resolve the duplicates before retrying."
 		}
 		resp.Diagnostics.AddError("FeatBit Project Create Preflight Failed", detail)
@@ -335,31 +335,22 @@ func (r *projectResource) reconcileAmbiguousCreate(
 		return
 	}
 
-	switch countProjectsByKey(projects, key) {
-	case 0:
+	_, matchFound, resolveErr := r.client.ResolveProjectByKey(projects, key)
+	switch {
+	case resolveErr != nil:
 		diagnostics.AddError(
-			"Unable to Create FeatBit Project",
-			"The create result was ambiguous, but the complete Project collection contains no exact-key match. Terraform did not retry the mutation. "+createErr.Error()+".",
+			"FeatBit Project Create Outcome Is Ambiguous",
+			"The create result was ambiguous and multiple Projects now have the configured exact key. Terraform did not retry or adopt any object. Resolve the duplicates before continuing.",
 		)
-	case 1:
+	case matchFound:
 		diagnostics.AddError(
 			"FeatBit Project Create Outcome Requires Recovery",
 			"The create result was ambiguous and exactly one Project now has the configured key. Terraform did not retry or adopt it. Verify that object, then import it by UUID or remove it before retrying.",
 		)
 	default:
 		diagnostics.AddError(
-			"FeatBit Project Create Outcome Is Ambiguous",
-			"The create result was ambiguous and multiple Projects now have the configured exact key. Terraform did not retry or adopt any object. Resolve the duplicates before continuing.",
+			"Unable to Create FeatBit Project",
+			"The create result was ambiguous, but the complete Project collection contains no exact-key match. Terraform did not retry the mutation. "+createErr.Error()+".",
 		)
 	}
-}
-
-func countProjectsByKey(projects []client.Project, key string) int {
-	count := 0
-	for _, project := range projects {
-		if project.Key == key {
-			count++
-		}
-	}
-	return count
 }

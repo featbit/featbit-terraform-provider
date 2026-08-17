@@ -18,7 +18,8 @@ import (
 const (
 	environmentProtocolProjectResourceName = "featbit_project.environment_parent"
 	environmentProtocolResourceName        = "featbit_environment.test"
-	environmentProtocolDataSourceName      = "data.featbit_environment.exact"
+	environmentProtocolDataByIDName        = "data.featbit_environment.exact_by_id"
+	environmentProtocolDataByKeyName       = "data.featbit_environment.exact_by_key"
 )
 
 func TestEnvironmentProtocolLifecycle(t *testing.T) {
@@ -330,9 +331,15 @@ resource "featbit_environment" "test" {
   description = %q
 }
 
-data "featbit_environment" "exact" {
+data "featbit_environment" "exact_by_id" {
   project_id = featbit_environment.test.project_id
   id         = featbit_environment.test.id
+}
+
+data "featbit_environment" "exact_by_key" {
+  project_id = featbit_environment.test.project_id
+  key        = featbit_environment.test.key
+  depends_on = [featbit_environment.test]
 }
 `, apiOrigin, syntheticProviderAccessToken, projectName, projectKey,
 		environmentName, environmentKey, description)
@@ -343,9 +350,12 @@ func environmentProtocolStateChecks(name string, key string, description string)
 		resource.TestCheckResourceAttr(environmentProtocolResourceName, "name", name),
 		resource.TestCheckResourceAttr(environmentProtocolResourceName, "key", key),
 		resource.TestCheckResourceAttr(environmentProtocolResourceName, "description", description),
-		resource.TestCheckResourceAttr(environmentProtocolDataSourceName, "name", name),
-		resource.TestCheckResourceAttr(environmentProtocolDataSourceName, "key", key),
-		resource.TestCheckResourceAttr(environmentProtocolDataSourceName, "description", description),
+		resource.TestCheckResourceAttr(environmentProtocolDataByIDName, "name", name),
+		resource.TestCheckResourceAttr(environmentProtocolDataByIDName, "key", key),
+		resource.TestCheckResourceAttr(environmentProtocolDataByIDName, "description", description),
+		resource.TestCheckResourceAttr(environmentProtocolDataByKeyName, "name", name),
+		resource.TestCheckResourceAttr(environmentProtocolDataByKeyName, "key", key),
+		resource.TestCheckResourceAttr(environmentProtocolDataByKeyName, "description", description),
 		resource.TestCheckResourceAttrPair(
 			environmentProtocolResourceName,
 			"project_id",
@@ -355,13 +365,25 @@ func environmentProtocolStateChecks(name string, key string, description string)
 		resource.TestCheckResourceAttrPair(
 			environmentProtocolResourceName,
 			"project_id",
-			environmentProtocolDataSourceName,
+			environmentProtocolDataByIDName,
 			"project_id",
 		),
 		resource.TestCheckResourceAttrPair(
 			environmentProtocolResourceName,
 			"id",
-			environmentProtocolDataSourceName,
+			environmentProtocolDataByIDName,
+			"id",
+		),
+		resource.TestCheckResourceAttrPair(
+			environmentProtocolResourceName,
+			"project_id",
+			environmentProtocolDataByKeyName,
+			"project_id",
+		),
+		resource.TestCheckResourceAttrPair(
+			environmentProtocolResourceName,
+			"id",
+			environmentProtocolDataByKeyName,
 			"id",
 		),
 	)

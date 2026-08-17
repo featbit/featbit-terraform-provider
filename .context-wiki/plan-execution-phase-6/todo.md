@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-040**.
+only the concise result under the active item. The current item is **P6-050**.
 
 ## Scope and API contract
 
@@ -200,7 +200,7 @@ only the concise result under the active item. The current item is **P6-040**.
 
 ## Provider implementation
 
-- [ ] **P6-040 — Add exact-key Project and Environment lookup.**
+- [x] **P6-040 — Add exact-key Project and Environment lookup.**
 
   Extend the existing data sources to select a Project by exact organization
   key and an Environment by exact key within its Project, while preserving UUID
@@ -211,6 +211,18 @@ only the concise result under the active item. The current item is **P6-040**.
   Runtime: `project_data_source.go` and `environment_data_source.go` → existing
   Project/Environment client adapters. Done when UUID and key selectors both
   pass focused and Protocol tests.
+
+  Result: both data sources now require exactly one Optional+Computed `id` or
+  `key` selector. Project keys resolve case-sensitively across the complete
+  organization Project collection; Environment keys resolve case-sensitively
+  across the exact parent Project's complete nested Environment list. Exact
+  zero returns not found, duplicate exact keys are ambiguous, UUID lookup is
+  preserved, and diagnostics retain the existing identity-redaction boundary.
+  Focused and Protocol v6 tests cover both selector forms and the Protocol
+  schema snapshot is aligned. Existing Feature Flag and Segment data-source
+  state already exposes their exact keys and retains Protocol assertions for
+  those outputs. Repository tests, vet, build, formatting, and module tidy
+  checks pass.
 
 - [ ] **P6-050 — Implement Policy management and lookup.**
 

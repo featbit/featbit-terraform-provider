@@ -201,6 +201,79 @@ func TestGetProjectExactFallbackOutcomes(t *testing.T) {
 	}
 }
 
+func TestGetProjectByKeyExactOutcomes(t *testing.T) {
+	t.Parallel()
+
+	const exactKey = "exact-project-key"
+	tests := map[string]struct {
+		collection         string
+		wantFound          bool
+		wantName           string
+		wantClassification Classification
+	}{
+		"case-sensitive exact zero ignores fuzzy values": {
+			collection: `[` + projectTestJSON(projectIDOne, "Case", "Exact-Project-Key") + `,` +
+				projectTestJSON(projectIDTwo, "Fuzzy", exactKey+"-extra") + `]`,
+		},
+		"exact one": {
+			collection: `[` + projectTestJSON(projectIDTwo, "Other", "other") + `,` +
+				projectTestJSON(projectIDOne, "Exact", exactKey) + `]`,
+			wantFound: true,
+			wantName:  "Exact",
+		},
+		"duplicate exact keys": {
+			collection: `[` + projectTestJSON(projectIDOne, "First", exactKey) + `,` +
+				projectTestJSON(projectIDTwo, "Second", exactKey) + `]`,
+			wantClassification: ClassificationAmbiguous,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					if request.Method != http.MethodGet ||
+						request.URL.EscapedPath() != "/api/v1/projects" ||
+						request.URL.RawQuery != "" {
+						t.Fatalf("request = %s %s?%s", request.Method, request.URL.EscapedPath(), request.URL.RawQuery)
+					}
+					return projectTestResponse(request, http.StatusOK, test.collection), nil
+				},
+			))
+
+			project, found, err := clientUnderTest.GetProjectByKey(
+				context.Background(),
+				exactKey,
+			)
+			if found != test.wantFound {
+				t.Fatalf("found = %t, want %t", found, test.wantFound)
+			}
+			if test.wantClassification == "" {
+				if err != nil {
+					t.Fatalf("GetProjectByKey() error = %v", err)
+				}
+				if found && (project.Name != test.wantName || project.Key != exactKey) {
+					t.Fatalf("GetProjectByKey() = %#v", project)
+				}
+			} else {
+				requireAPIErrorClassification(t, err, test.wantClassification)
+				if strings.Contains(fmt.Sprint(err), exactKey) {
+					t.Fatal("exact-key ambiguity exposed the configured Project key")
+				}
+			}
+			if calls.Load() != 1 {
+				t.Fatalf("request count = %d, want 1", calls.Load())
+			}
+		})
+	}
+}
+
 func TestGetProjectRejectsInvalidUUIDBeforeRequest(t *testing.T) {
 	t.Parallel()
 

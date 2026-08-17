@@ -13,7 +13,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-const projectProtocolResourceName = "featbit_project.test"
+const (
+	projectProtocolResourceName  = "featbit_project.test"
+	projectProtocolDataByIDName  = "data.featbit_project.exact_by_id"
+	projectProtocolDataByKeyName = "data.featbit_project.exact_by_key"
+)
 
 func TestProjectProtocolLifecycle(t *testing.T) {
 	fixture := newProjectProtocolFixture(t)
@@ -154,8 +158,13 @@ resource "featbit_project" "test" {
   key  = %q
 }
 
-data "featbit_project" "exact" {
+data "featbit_project" "exact_by_id" {
   id = featbit_project.test.id
+}
+
+data "featbit_project" "exact_by_key" {
+  key        = featbit_project.test.key
+  depends_on = [featbit_project.test]
 }
 `, apiOrigin, syntheticProviderAccessToken, name, key)
 }
@@ -167,13 +176,22 @@ func projectProtocolStateChecks(name, key string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(projectProtocolResourceName, "environments.#", "2"),
 		resource.TestCheckResourceAttr(projectProtocolResourceName, "environments.0.key", "dev"),
 		resource.TestCheckResourceAttr(projectProtocolResourceName, "environments.1.key", "prod"),
-		resource.TestCheckResourceAttr("data.featbit_project.exact", "name", name),
-		resource.TestCheckResourceAttr("data.featbit_project.exact", "key", key),
-		resource.TestCheckResourceAttr("data.featbit_project.exact", "environments.#", "2"),
+		resource.TestCheckResourceAttr(projectProtocolDataByIDName, "name", name),
+		resource.TestCheckResourceAttr(projectProtocolDataByIDName, "key", key),
+		resource.TestCheckResourceAttr(projectProtocolDataByIDName, "environments.#", "2"),
+		resource.TestCheckResourceAttr(projectProtocolDataByKeyName, "name", name),
+		resource.TestCheckResourceAttr(projectProtocolDataByKeyName, "key", key),
+		resource.TestCheckResourceAttr(projectProtocolDataByKeyName, "environments.#", "2"),
 		resource.TestCheckResourceAttrPair(
 			projectProtocolResourceName,
 			"id",
-			"data.featbit_project.exact",
+			projectProtocolDataByIDName,
+			"id",
+		),
+		resource.TestCheckResourceAttrPair(
+			projectProtocolResourceName,
+			"id",
+			projectProtocolDataByKeyName,
 			"id",
 		),
 	)

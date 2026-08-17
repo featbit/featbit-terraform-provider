@@ -87,6 +87,17 @@ func (c *Client) GetProject(ctx context.Context, projectID string) (Project, boo
 	return resolveProjectByID(projects, projectID, c.redactor)
 }
 
+// GetProjectByKey scans the documented complete Project collection and
+// resolves one case-sensitive exact key. The boolean is true only when exactly
+// one matching Project is confirmed; duplicate exact keys are ambiguous.
+func (c *Client) GetProjectByKey(ctx context.Context, key string) (Project, bool, error) {
+	projects, err := c.ListProjects(ctx)
+	if err != nil {
+		return Project{}, false, err
+	}
+	return c.ResolveProjectByKey(projects, key)
+}
+
 // ListProjects returns the documented complete, unpaginated Project
 // collection. A null or structurally incomplete collection is ambiguous, not
 // authoritative absence.
@@ -298,6 +309,38 @@ func resolveProjectByID(
 			"resolve_project",
 			nil,
 			redactor.With(projectID),
+		)
+	}
+}
+
+// ResolveProjectByKey applies the shared case-sensitive exact zero/one/
+// duplicate contract to a complete, already-validated Project collection.
+// It is reused by lookup and create preflight/reconciliation callers.
+func (c *Client) ResolveProjectByKey(
+	projects []Project,
+	key string,
+) (Project, bool, error) {
+	var match Project
+	matchCount := 0
+	for _, project := range projects {
+		if project.Key == key {
+			match = project
+			matchCount++
+		}
+	}
+
+	switch matchCount {
+	case 0:
+		return Project{}, false, nil
+	case 1:
+		return match, true, nil
+	default:
+		return Project{}, false, newAPIError(
+			ClassificationAmbiguous,
+			0,
+			"resolve_project_by_key",
+			nil,
+			c.redactor.With(key),
 		)
 	}
 }
