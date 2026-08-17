@@ -10,10 +10,11 @@ roadmap.
 
 ## 1. Current position
 
-Phase 6 public IAM API verification is the active next work; runtime
-implementation has not started. The current branch owns only the aligned IAM
-surface and the release that follows it. It must not implement the deferred
-Phase 7 Segment prerequisite work. Stable releases `v0.1.0` and
+The Phase 6 public IAM API gate passed and the IAM Terraform schemas, Import
+identities, ownership, and lifecycle contracts are frozen; runtime IAM
+implementation has not started. The current branch owns only that IAM surface
+and the release that follows it. It must not implement the deferred Phase 7
+Segment prerequisite work. Stable releases `v0.1.0` and
 documentation-only `v0.1.1` are published through the Terraform Registry. The
 repository exposes a Protocol v6 provider with five configuration attributes,
 a shared handwritten HTTP client, and registered Project, Environment, Feature
@@ -37,12 +38,12 @@ contract is frozen by a checked-in Protocol v6 schema snapshot and focused
 registration, Import, and manifest checks. GoReleaser owns tag-derived version
 injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass the existing Protocol
 gates on credential-free Linux/AMD64, and the GoReleaser snapshot still
-produces the frozen five-platform archive matrix. Customer IAM feedback has
-frozen the Phase 6 v1 scope. Phase 6 now starts with `P6-020`: prove the
-documented public IAM operations and current-Cloud behavior before freezing
-schemas or adding Provider code. After the aligned IAM work passes its complete
-gate, this branch proceeds directly to release qualification and separately
-maintainer-authorized publication.
+produces the frozen five-platform archive matrix. Customer IAM feedback and
+the documented current-Cloud API proof have frozen the Phase 6 v1 surface.
+Implementation begins with exact-key Project and Environment lookup, then adds
+only the frozen IAM resources and data sources. After that aligned IAM work
+passes its complete gate, this branch proceeds directly to release
+qualification and separately maintainer-authorized publication.
 
 ## 2. Product boundary
 
@@ -176,9 +177,9 @@ configuration or transport changes.
 | Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
 | Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 7 will close that gap after the required public API ships, without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
 | Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
-| IAM member | Planned for Phase 6; scope aligned | Read an existing Member by exact ID or email. Manage its Group edges and complete direct-Policy set without owning invitation, profile, organization/workspace membership, deletion, or inherited Policies. Never retain `initialPassword`. |
-| IAM group and custom policy | Planned for Phase 6; scope aligned | Manage Group name/description and custom Policy settings/statements. Present Policy creation and statement assignment as one Terraform resource. Statements cover Project, Environment, Feature Flag, and Segment control levels with documented actions and resource selectors. Built-in Policies are read-only and resolvable by exact key. |
-| IAM relationship edge | Planned for Phase 6; scope aligned | Each Group-Member or Group-Policy resource owns one exact pair. The direct-Policy resource is deliberately authoritative only for one Member's direct Policy set so an empty set can enforce group-only access. |
+| IAM member | Frozen for Phase 6; not yet implemented | `featbit_member` reads one existing Member by exact ID or case-insensitive full email and exposes only sensitive ID/email/name. `featbit_member_direct_policies` owns that Member's complete direct Policy set; an empty set and Destroy remove direct Policies only. Invitation, profile, organization/workspace membership, deletion, and inherited Policies remain external, and `initialPassword` is never decoded into the Provider model. |
+| IAM group and custom policy | Frozen for Phase 6; not yet implemented | `featbit_group` owns Group existence and name/description but no relationships. `featbit_policy` owns one custom Policy's settings and complete unordered statement set; its exact-key data source can also observe built-in Policies, but every built-in mutation is structurally forbidden. Statements cover only Project, Environment, Feature Flag, and Segment with exact lower-case types/effects, the frozen action catalogs, and canonical wildcard/exact-key/tag selectors. |
+| IAM relationship edge | Frozen for Phase 6; not yet implemented | `featbit_group_policy_binding` and `featbit_group_member_binding` each own one exact pair and never a complete Group collection. Group and Policy destroy refuse to cascade live relationships. The authoritative direct-Policy resource never reads inherited Policies as owned state or changes Group edges. |
 
 Common lifecycle rules:
 
@@ -203,9 +204,16 @@ Implemented core Import IDs are stable public contracts:
 | Feature flag | `<environment_uuid>/<exact_key>` |
 | Segment | `<environment_uuid>/<segment_uuid>` |
 
-IAM object and binding Import forms are not part of the initial release. The
-Phase 6 IAM work must freeze tenant scope, exact identities, and relationship
-direction before publishing any such contract.
+IAM remains absent from the initial release. Its frozen Phase 6 Import forms,
+to be published only with the qualified IAM release, are:
+
+| Object | Import ID |
+|---|---|
+| Custom Policy | `<policy_uuid>` |
+| Group | `<group_uuid>` |
+| Group-Policy binding | `<group_uuid>/<policy_uuid>` |
+| Group-Member binding | `<group_uuid>/<member_uuid>` |
+| Member direct Policies | `<member_uuid>` |
 
 ## 5. Roadmap
 

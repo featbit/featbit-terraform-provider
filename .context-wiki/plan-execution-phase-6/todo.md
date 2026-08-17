@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-030**.
+only the concise result under the active item. The current item is **P6-040**.
 
 ## Scope and API contract
 
@@ -80,7 +80,7 @@ only the concise result under the active item. The current item is **P6-030**.
   equivalent built-in guard on delete, so the Provider must never invoke any
   built-in mutation.
 
-- [ ] **P6-030 — Freeze Terraform schemas and lifecycle contracts.**
+- [x] **P6-030 — Freeze Terraform schemas and lifecycle contracts.**
 
   Fix resource and data-source names, attributes, canonical ordering, exact
   selectors, replacement rules, Import IDs, drift behavior, and destroy
@@ -91,6 +91,112 @@ only the concise result under the active item. The current item is **P6-030**.
   ones.
 
   Done when each schema maps to proven API calls and has an unambiguous owner.
+
+  Result: the IAM v1 Terraform contract is frozen as follows. `R`, `O`, `C`,
+  and `S` mean Required, Optional, Computed, and Sensitive. Every omitted
+  description canonicalizes to `""`; timestamps, API statement IDs, Member
+  invitation fields, `initialPassword`, and relationship display fields are
+  intentionally absent from state.
+
+  | Terraform type | Frozen attributes | Replacement and Import |
+  |---|---|---|
+  | resource `featbit_policy` | `id` C UUID; `name` R; `key` R; `description` O+C; `type` C and always `CustomerManaged`; `statements` R set | only `key` replaces; `<policy_uuid>` |
+  | resource `featbit_group` | `id` C UUID; `name` R; `description` O+C | all settings update in place; `<group_uuid>` |
+  | resource `featbit_group_policy_binding` | `id` C synthetic pair; `group_id` R UUID; `policy_id` R UUID | either input replaces; `<group_uuid>/<policy_uuid>` |
+  | resource `featbit_group_member_binding` | `id` C+S synthetic pair; `group_id` R UUID; `member_id` R+S UUID | either input replaces; `<group_uuid>/<member_uuid>` |
+  | resource `featbit_member_direct_policies` | `id` C+S and equal to the canonical Member UUID; `member_id` R+S UUID; `policy_ids` R set of UUIDs, including `[]` | `member_id` replaces; `<member_uuid>` |
+  | data source `featbit_policy` | exactly one of `id` O+C UUID or exact case-sensitive `key` O+C; `name`, `description`, `type`, and statement set C | no ownership or Import |
+  | data source `featbit_member` | exactly one of `id` O+C+S UUID or `email` O+C+S; `name` C+S | no ownership or Import |
+  | existing data source `featbit_project` | `id` and `key` become O+C selectors with exactly one configured; existing computed outputs stay unchanged | exact UUID or organization-scoped case-sensitive exact key |
+  | existing data source `featbit_environment` | `project_id` remains R; `id` and `key` become O+C selectors with exactly one configured; existing computed outputs stay unchanged | exact UUID or case-sensitive exact key inside the exact Project |
+
+  Member email selection compares the complete token-scoped collection by
+  case-insensitive full-string equality, never substring search, and rejects
+  duplicate exact matches. State retains the server's canonical spelling.
+  Member adapters decode only `id`, `email`, and `name`; relationship adapters
+  decode only the identifiers, types, and membership booleans needed by their
+  caller. Member values are never interpolated into diagnostics.
+
+  `featbit_policy.statements` is an unordered required set and may be empty.
+  Each element has exactly these required fields:
+
+  | Field | Frozen form |
+  |---|---|
+  | `resource_type` | exact lower-case `project`, `env`, `flag`, or `segment` |
+  | `effect` | exact lower-case `allow` or `deny` |
+  | `actions` | non-empty set of exact case-sensitive actions from the P6-020 catalog for that `resource_type`; `*` is valid only for `flag` and `segment` |
+  | `resources` | non-empty set of selectors whose full shape matches `resource_type` |
+
+  Selector shapes are `project/<project>`,
+  `project/<project>:env/<env>`,
+  `project/<project>:env/<env>:flag/<flag>[;<tag>[,<tag>...]]`, and
+  `project/<project>:env/<env>:segment/<segment>[;<tag>[,<tag>...]]`.
+  Each key position is either one exact case-sensitive key or the whole-token
+  wildcard `*`. IAM v1 rejects a global `*`, partial globs, wrong or missing
+  segments, tags outside the Flag/Segment leaf, empty tokens, whitespace, and
+  reserved RN delimiters inside keys or tags. Tag suffixes use OR semantics.
+
+  Canonicalization preserves exact key and tag case, sorts and deduplicates
+  tags, actions, resources, and UUID sets bytewise, and treats statement order
+  as insignificant. API payloads sort statements by `resource_type`, `effect`,
+  canonical actions, then canonical resources; reads ignore API array order
+  and statement IDs. A custom Policy whose remote statements cannot satisfy
+  this catalog produces a state-preserving diagnostic. The computed Policy
+  data source may still observe system-managed statement shapes such as
+  `resource_type = "*"`; that read-only allowance never widens the managed
+  resource schema.
+
+  Ownership and API call relationships are frozen as follows:
+
+  - `featbit_policy` owns one custom Policy's name, immutable key,
+    description, and complete statement set. Create scans the complete Policy
+    collection for exact-key zero, calls create once, calls complete statement
+    replacement once even for an empty set, then reads the exact canonical
+    Policy. Update calls settings and/or complete-statement replacement once in
+    that order, persisting each confirmed intermediate state. Read first proves
+    token-scoped exact-ID membership and `CustomerManaged` type. Destroy
+    rechecks that type, refuses while any exact Group or direct-Member
+    association remains, calls delete once, and requires complete-list exact
+    absence. Import of a `SysManaged` Policy fails before any mutation; no
+    built-in mutation path exists.
+  - `featbit_group` owns only Group existence, name, and description. It never
+    contains member or Policy IDs. Create uses complete-list exact-name zero,
+    then one create and an exact read; Update is one settings call. Because the
+    public delete cascades relationships, Destroy first requires complete Group
+    Member and Policy collections to be empty, then deletes once and proves
+    complete-list exact absence.
+  - Each binding resource owns only its configured exact pair. Create resolves
+    both IDs through complete token-scoped collections, reads the complete
+    Group relationship collection, deliberately takes ownership without a
+    mutation when that exact pair already exists, or sends one add and verifies
+    the pair. Read removes state only on authoritative exact-pair absence.
+    Destroy sends at most one remove and requires authoritative absence; a
+    confirmed missing endpoint object already proves the pair absent. No other
+    pair is read into state, added, or removed. Built-in Policies are valid
+    Group-Policy binding targets.
+  - `featbit_member_direct_policies` is the sole owner of one existing Member's
+    entire direct Policy set. Create, Update, and drift reconciliation resolve
+    the Member and every desired Policy through complete token-scoped
+    collections, read only `direct-policies`, add missing IDs in canonical order
+    and verify them before removing extra IDs in canonical order, then persist
+    the exact reread set. Each pair mutation executes once and every confirmed
+    intermediate set is recoverable after partial failure. `policy_ids = []`
+    removes every direct Policy. Destroy likewise removes the complete current
+    direct set and then drops state. It never reads as authority from the
+    combined or inherited Policy collections, never removes a Group edge or
+    inherited Policy, and never updates or deletes the Member.
+
+  All IDs and Import components use canonical lower-case 8-4-4-4-12 UUID
+  spelling. Computed IDs stay known only while every replacement input is
+  unchanged; synthetic pair IDs use the corresponding canonical Import form.
+  Every list is consumed through all pages and resolved as exact
+  zero/one/duplicate. Direct object 404 alone is not authoritative absence.
+  Every mutation executes once, is followed by an exact reread, and preserves
+  the last confirmed state when completion or absence is ambiguous. Ambiguous
+  object Create is reconciled by exact identity for recovery diagnostics but
+  is never retried or automatically adopted without a confirmed returned ID.
+  Only the multi-call Policy and per-Member authoritative-set lifecycles require
+  narrow write serialization.
 
 ## Provider implementation
 

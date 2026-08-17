@@ -8,9 +8,10 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 
 ## Current entry point
 
-The public IAM API and current-Cloud behavior gate passed. Start with
-[P6-030](todo.md) to freeze Terraform schemas and lifecycle contracts before
-adding IAM endpoint adapters or production resources.
+The public IAM API gate passed and the Terraform schema and lifecycle contract
+is frozen. Start with [P6-040](todo.md): extend the existing Project and
+Environment data sources with their exact-key selector alternatives before
+adding the new IAM endpoint adapters and resources.
 
 ## IAM v1 scope
 
