@@ -27,12 +27,14 @@ const (
 	releaseProjectID      = "11111111-1111-4111-8111-111111111111"
 	releaseEnvironmentID  = "22222222-2222-4222-8222-222222222222"
 	releaseSegmentID      = "33333333-3333-4333-8333-333333333333"
+	releasePolicyID       = "44444444-4444-4444-8444-444444444444"
 )
 
 var releaseImportForms = map[string]string{
 	"featbit_project":      "<project_uuid>",
 	"featbit_environment":  "<project_uuid>/<environment_uuid>",
 	"featbit_feature_flag": "<environment_uuid>/<exact_key>",
+	"featbit_policy":       "<policy_uuid>",
 	"featbit_segment":      "<environment_uuid>/<segment_uuid>",
 }
 
@@ -185,6 +187,15 @@ func TestInitialReleaseImportForms(t *testing.T) {
 				releaseEnvironmentID,
 				releaseEnvironmentID + "/invalid key",
 				releaseEnvironmentID + "/exact-key/extra",
+			},
+		},
+		"featbit_policy": {
+			validID:  releasePolicyID,
+			identity: map[string]string{"id": releasePolicyID},
+			rejectedForms: []string{
+				"",
+				"not-a-uuid",
+				releasePolicyID + "/extra",
 			},
 		},
 		"featbit_segment": {
@@ -448,6 +459,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 	wantObjects := []string{
 		"featbit_environment",
 		"featbit_feature_flag",
+		"featbit_policy",
 		"featbit_project",
 		"featbit_segment",
 	}

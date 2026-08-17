@@ -286,6 +286,148 @@
         "block_types": []
       }
     },
+    "featbit_policy": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one custom FeatBit Policy and its complete statement set through the documented public API.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Policy description. An omitted value canonicalizes to an empty string.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Policy UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Immutable organization-scoped exact Policy key.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Policy display name.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "statements",
+            "nested_type": {
+              "nesting": "SET",
+              "attributes": [
+                {
+                  "name": "actions",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Non-empty set of exact case-sensitive actions valid for resource_type.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "effect",
+                  "type": "string",
+                  "description": "Exact lowercase effect: allow or deny.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resource_type",
+                  "type": "string",
+                  "description": "Exact lowercase control level: project, env, flag, or segment.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resources",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Non-empty set of wildcard or exact-key selectors matching resource_type.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Complete unordered Policy statement set. An empty set removes every statement. Statement actions and selectors are validated against the managed IAM v1 catalog.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "description": "Policy ownership type. Managed resources are always CustomerManaged.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_project": {
       "version": 0,
       "block": {
@@ -856,6 +998,148 @@
         "block_types": []
       }
     },
+    "featbit_policy": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one custom or built-in FeatBit Policy by exact UUID or organization-scoped case-sensitive exact key.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Policy description, canonicalized to an empty string when absent.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Policy UUID. Configure exactly one of `id` or `key`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Organization-scoped case-sensitive exact Policy key. Configure exactly one of `id` or `key`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Policy display name.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "statements",
+            "nested_type": {
+              "nesting": "SET",
+              "attributes": [
+                {
+                  "name": "actions",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Canonical statement action set.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "effect",
+                  "type": "string",
+                  "description": "Server-reported statement effect.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resource_type",
+                  "type": "string",
+                  "description": "Server-reported statement resource type.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resources",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Canonical statement resource selector set.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Canonical unordered Policy statements. Built-in statement shapes are observed read-only and do not widen the managed Policy schema.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "description": "Policy type: CustomerManaged or SysManaged.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_project": {
       "version": 0,
       "block": {
@@ -1225,6 +1509,7 @@
   "import_forms": {
     "featbit_environment": "<project_uuid>/<environment_uuid>",
     "featbit_feature_flag": "<environment_uuid>/<exact_key>",
+    "featbit_policy": "<policy_uuid>",
     "featbit_project": "<project_uuid>",
     "featbit_segment": "<environment_uuid>/<segment_uuid>"
   }

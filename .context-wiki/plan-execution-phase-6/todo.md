@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-050**.
+only the concise result under the active item. The current item is **P6-060**.
 
 ## Scope and API contract
 
@@ -227,7 +227,7 @@ only the concise result under the active item. The current item is **P6-050**.
   and mutation-reconciliation classification without changing schemas or
   lifecycle behavior.
 
-- [ ] **P6-050 — Implement Policy management and lookup.**
+- [x] **P6-050 — Implement Policy management and lookup.**
 
   Add a custom Policy resource that owns settings and all statements as one
   Terraform object, even though Create uses separate Policy and statement API
@@ -238,6 +238,21 @@ only the concise result under the active item. The current item is **P6-050**.
   Policy endpoints. Done when CRUD, Import, drift, canonical statements,
   partial failure, built-in read-only behavior, and all four control levels
   pass.
+
+  Result: registered `featbit_policy` resource and data source now use the
+  documented paginated Policy, exact read, settings, complete-statements,
+  association, and delete endpoints. The resource owns one custom Policy in a
+  serialized two-step lifecycle with exact-key create preflight, canonical
+  four-level statements, confirmed intermediate-state preservation, Import,
+  drift, association-safe destroy, and complete-list absence proof. The data
+  source resolves an exact UUID or case-sensitive exact key and can observe
+  built-in statement shapes, while every resource path rejects `SysManaged`
+  Policies before mutation. Focused client/resource/data-source tests cover
+  pagination, duplicates, one-shot mutations, empty statements, all control
+  levels, partial failure, invalid remote state preservation, redaction, and
+  built-in no-mutation behavior. The Protocol v6 schema/import snapshot is
+  aligned; repository tests, vet, build, touched-file formatting, module tidy,
+  and module verification pass.
 
 - [ ] **P6-060 — Implement Group management.**
 

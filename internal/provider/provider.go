@@ -150,25 +150,27 @@ func (p *FeatBitProvider) Configure(
 	tflog.Debug(ctx, "Configured FeatBit provider")
 }
 
-// Resources registers the managed Project, Environment, Feature Flag, and
-// environment-specific Segment resources.
+// Resources registers the managed core resources and the implemented IAM
+// resources.
 func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		newProjectResource,
 		newEnvironmentResource,
 		newFeatureFlagResource,
 		newSegmentResource,
+		newPolicyResource,
 	}
 }
 
-// DataSources registers the exact single-object Project, Environment, Feature
-// Flag, and Segment data sources.
+// DataSources registers the exact single-object core and implemented IAM data
+// sources.
 func (p *FeatBitProvider) DataSources(context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		newProjectDataSource,
 		newEnvironmentDataSource,
 		newFeatureFlagDataSource,
 		newSegmentDataSource,
+		newPolicyDataSource,
 	}
 }
 

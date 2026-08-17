@@ -132,8 +132,8 @@ func TestSegmentResourceMetadataSchemaConfigureAndRegistration(t *testing.T) {
 	}
 
 	providerResources := New("test")().Resources(context.Background())
-	if len(providerResources) != 4 {
-		t.Fatalf("registered resource count = %d, want 4", len(providerResources))
+	if len(providerResources) != 5 {
+		t.Fatalf("registered resource count = %d, want 5", len(providerResources))
 	}
 	registered := false
 	for _, factory := range providerResources {
