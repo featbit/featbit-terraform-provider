@@ -5,7 +5,6 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -320,7 +319,7 @@ func (c *Client) GetSegment(
 		environmentID,
 		segmentID,
 	); err != nil {
-		return Segment{}, segmentReadError(
+		return Segment{}, readErrorWithoutDetails(
 			"get_segment",
 			err,
 			c.redactor.With(environmentID, segmentID),
@@ -436,7 +435,7 @@ func (c *Client) CreateSegment(
 		&wire,
 		sensitiveValues...,
 	); err != nil {
-		return Segment{}, segmentReadError(
+		return Segment{}, readErrorWithoutDetails(
 			"create_segment",
 			err,
 			c.redactor.With(sensitiveValues...),
@@ -704,7 +703,7 @@ func (c *Client) mutateSegmentBoolean(
 		&completed,
 		sensitiveValues...,
 	); err != nil {
-		return segmentReadError(
+		return readErrorWithoutDetails(
 			operation,
 			err,
 			c.redactor.With(sensitiveValues...),
@@ -761,7 +760,7 @@ func (c *Client) GetSegmentFlagReferences(
 		environmentID,
 		segmentID,
 	); err != nil {
-		return nil, segmentReadError(
+		return nil, readErrorWithoutDetails(
 			"get_segment_flag_references",
 			err,
 			c.redactor.With(environmentID, segmentID),
@@ -824,8 +823,14 @@ func (c *Client) listSegments(
 	}
 
 	matches := make([]SegmentMatch, 0)
-	seenIDs := make(map[string]struct{})
-	var expectedTotal int64 = -1
+	redactor := c.redactor.With(environmentID)
+	redactor = redactor.With(additionalSensitiveValues...)
+	pages := newCompletePageTracker(
+		"list_segments",
+		segmentPageSize,
+		maxSegmentPageIndex,
+		redactor,
+	)
 
 	for pageIndex := int64(0); ; pageIndex++ {
 		page, statusCode, err := c.listSegmentPage(
@@ -839,39 +844,13 @@ func (c *Client) listSegments(
 			return nil, err
 		}
 
-		redactor := c.redactor.With(environmentID)
-		redactor = redactor.With(additionalSensitiveValues...)
-		if page.TotalCount == nil || *page.TotalCount < 0 || page.Items == nil ||
-			len(page.Items) > segmentPageSize {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_segments",
-				nil,
-				redactor,
-			)
-		}
-
-		if expectedTotal < 0 {
-			expectedTotal = *page.TotalCount
-		} else if *page.TotalCount != expectedTotal {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_segments",
-				nil,
-				redactor,
-			)
-		}
-
-		if len(page.Items) == 0 && int64(len(matches)) < expectedTotal {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_segments",
-				nil,
-				redactor,
-			)
+		if err := pages.validatePage(
+			page.TotalCount,
+			page.Items != nil,
+			len(page.Items),
+			statusCode,
+		); err != nil {
+			return nil, err
 		}
 
 		for _, wire := range page.Items {
@@ -886,40 +865,22 @@ func (c *Client) listSegments(
 				)
 			}
 			canonicalID, _ := CanonicalUUID(match.ID)
-			if _, duplicate := seenIDs[canonicalID]; duplicate {
-				return nil, newAPIError(
-					ClassificationAmbiguous,
-					statusCode,
-					"list_segments",
-					nil,
-					redactor.With(match.ID, match.Key),
-				)
+			if err := pages.recordExactID(
+				canonicalID,
+				statusCode,
+				redactor.With(match.ID, match.Key),
+			); err != nil {
+				return nil, err
 			}
-			seenIDs[canonicalID] = struct{}{}
 			matches = append(matches, match)
 		}
 
-		collected := int64(len(matches))
-		if collected > expectedTotal {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_segments",
-				nil,
-				redactor,
-			)
+		complete, err := pages.pageComplete(pageIndex, statusCode)
+		if err != nil {
+			return nil, err
 		}
-		if collected == expectedTotal {
+		if complete {
 			return matches, nil
-		}
-		if pageIndex == maxSegmentPageIndex {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_segments",
-				nil,
-				redactor,
-			)
 		}
 	}
 }
@@ -956,7 +917,7 @@ func (c *Client) listSegmentPage(
 		&page,
 		sensitiveValues...,
 	); err != nil {
-		return segmentPageWire{}, response.StatusCode, segmentReadError(
+		return segmentPageWire{}, response.StatusCode, readErrorWithoutDetails(
 			"list_segments",
 			err,
 			c.redactor.With(sensitiveValues...),
@@ -1255,23 +1216,4 @@ func resolveSegment(
 		return SegmentMatch{}, SegmentStatusAbsent, nil
 	}
 	return match, status, nil
-}
-
-// segmentReadError retains classification, status, and cancellation sentinels
-// while discarding server details that may contain arbitrary Segment, user,
-// condition, tag, scope, tenant, or Feature Flag reference values.
-func segmentReadError(operation string, err error, redactor *Redactor) error {
-	var apiError *APIError
-	if !errors.As(err, &apiError) {
-		return newTransportError(err)
-	}
-	sanitized := newAPIError(
-		apiError.Classification(),
-		apiError.StatusCode(),
-		operation,
-		nil,
-		redactor,
-	)
-	sanitized.cause = apiError.cause
-	return sanitized
 }

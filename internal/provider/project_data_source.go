@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
@@ -73,14 +72,15 @@ func (d *projectDataSource) ValidateConfig(
 	req datasource.ValidateConfigRequest,
 	resp *datasource.ValidateConfigResponse,
 ) {
-	resp.Diagnostics.Append(validateExactlyOneStringSelector(
+	_, _, diagnostics := readExactlyOneStringSelector(
 		ctx,
 		req.Config,
 		path.Root("id"),
 		path.Root("key"),
 		"Invalid FeatBit Project Selector",
 		projectDataSourceSelectorDetail,
-	)...)
+	)
+	resp.Diagnostics.Append(diagnostics...)
 }
 
 func projectDataSourceEnvironmentsAttribute() schema.ListNestedAttribute {
@@ -124,18 +124,15 @@ func (d *projectDataSource) Read(
 	req datasource.ReadRequest,
 	resp *datasource.ReadResponse,
 ) {
-	var projectID types.String
-	var key types.String
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &projectID)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("key"), &key)...)
-	resp.Diagnostics.Append(validateExactlyOneStringSelector(
+	projectID, key, diagnostics := readExactlyOneStringSelector(
 		ctx,
 		req.Config,
 		path.Root("id"),
 		path.Root("key"),
 		"Invalid FeatBit Project Selector",
 		projectDataSourceSelectorDetail,
-	)...)
+	)
+	resp.Diagnostics.Append(diagnostics...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

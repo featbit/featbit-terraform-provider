@@ -12,25 +12,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// validateExactlyOneStringSelector enforces the shared data-source contract
-// that one of two Optional+Computed string attributes is configured. Unknown
-// values count as configured so references can be resolved by Terraform before
-// Read without requiring both selectors to be known during validation.
-func validateExactlyOneStringSelector(
+// readExactlyOneStringSelector reads and enforces the shared data-source
+// contract that one of two Optional+Computed string attributes is configured.
+// Unknown values count as configured so references can be resolved by
+// Terraform before Read without requiring both selectors to be known during
+// validation.
+func readExactlyOneStringSelector(
 	ctx context.Context,
 	config tfsdk.Config,
 	firstPath path.Path,
 	secondPath path.Path,
 	title string,
 	detail string,
-) diag.Diagnostics {
+) (types.String, types.String, diag.Diagnostics) {
 	var diagnostics diag.Diagnostics
 	var first types.String
 	var second types.String
 	diagnostics.Append(config.GetAttribute(ctx, firstPath, &first)...)
 	diagnostics.Append(config.GetAttribute(ctx, secondPath, &second)...)
 	if diagnostics.HasError() {
-		return diagnostics
+		return first, second, diagnostics
 	}
 
 	configured := 0
@@ -43,5 +44,5 @@ func validateExactlyOneStringSelector(
 	if configured != 1 {
 		diagnostics.AddError(title, detail)
 	}
-	return diagnostics
+	return first, second, diagnostics
 }

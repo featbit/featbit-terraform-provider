@@ -5,7 +5,6 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -229,7 +228,7 @@ func (c *Client) CreateFeatureFlag(
 		&wire,
 		sensitiveValues...,
 	); err != nil {
-		return FeatureFlag{}, featureFlagReadError(
+		return FeatureFlag{}, readErrorWithoutDetails(
 			"create_feature_flag",
 			err,
 			c.redactor.With(sensitiveValues...),
@@ -297,7 +296,7 @@ func (c *Client) UpdateFeatureFlagName(
 		&updatedID,
 		sensitiveValues...,
 	); err != nil {
-		return featureFlagReadError(
+		return readErrorWithoutDetails(
 			"update_feature_flag_name",
 			err,
 			c.redactor.With(sensitiveValues...),
@@ -385,7 +384,7 @@ func (c *Client) mutateFeatureFlagBoolean(
 		environmentID,
 		key,
 	); err != nil {
-		return featureFlagReadError(
+		return readErrorWithoutDetails(
 			operation,
 			err,
 			c.redactor.With(environmentID, key),
@@ -431,8 +430,14 @@ func (c *Client) listFeatureFlags(
 	}
 
 	flags := make([]FeatureFlag, 0)
-	seenIDs := make(map[string]struct{})
-	var expectedTotal int64 = -1
+	redactor := c.redactor.With(environmentID)
+	redactor = redactor.With(additionalSensitiveValues...)
+	pages := newCompletePageTracker(
+		"list_feature_flags",
+		featureFlagPageSize,
+		maxFeatureFlagPageIndex,
+		redactor,
+	)
 
 	for pageIndex := int64(0); ; pageIndex++ {
 		page, statusCode, err := c.listFeatureFlagPage(
@@ -446,39 +451,13 @@ func (c *Client) listFeatureFlags(
 			return nil, err
 		}
 
-		redactor := c.redactor.With(environmentID)
-		redactor = redactor.With(additionalSensitiveValues...)
-		if page.TotalCount == nil || *page.TotalCount < 0 || page.Items == nil ||
-			len(page.Items) > featureFlagPageSize {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_feature_flags",
-				nil,
-				redactor,
-			)
-		}
-
-		if expectedTotal < 0 {
-			expectedTotal = *page.TotalCount
-		} else if *page.TotalCount != expectedTotal {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_feature_flags",
-				nil,
-				redactor,
-			)
-		}
-
-		if len(page.Items) == 0 && int64(len(flags)) < expectedTotal {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_feature_flags",
-				nil,
-				redactor,
-			)
+		if err := pages.validatePage(
+			page.TotalCount,
+			page.Items != nil,
+			len(page.Items),
+			statusCode,
+		); err != nil {
+			return nil, err
 		}
 
 		for _, wire := range page.Items {
@@ -493,40 +472,22 @@ func (c *Client) listFeatureFlags(
 				)
 			}
 			normalizedID, _ := CanonicalUUID(flag.ID)
-			if _, duplicate := seenIDs[normalizedID]; duplicate {
-				return nil, newAPIError(
-					ClassificationAmbiguous,
-					statusCode,
-					"list_feature_flags",
-					nil,
-					redactor.With(flag.ID),
-				)
+			if err := pages.recordExactID(
+				normalizedID,
+				statusCode,
+				redactor.With(flag.ID),
+			); err != nil {
+				return nil, err
 			}
-			seenIDs[normalizedID] = struct{}{}
 			flags = append(flags, flag)
 		}
 
-		collected := int64(len(flags))
-		if collected > expectedTotal {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_feature_flags",
-				nil,
-				redactor,
-			)
+		complete, err := pages.pageComplete(pageIndex, statusCode)
+		if err != nil {
+			return nil, err
 		}
-		if collected == expectedTotal {
+		if complete {
 			return flags, nil
-		}
-		if pageIndex == maxFeatureFlagPageIndex {
-			return nil, newAPIError(
-				ClassificationAmbiguous,
-				statusCode,
-				"list_feature_flags",
-				nil,
-				redactor,
-			)
 		}
 	}
 }
@@ -558,7 +519,7 @@ func (c *Client) getFeatureFlagDirect(
 		environmentID,
 		key,
 	); err != nil {
-		return FeatureFlag{}, FeatureFlagStatusUnknown, featureFlagReadError(
+		return FeatureFlag{}, FeatureFlagStatusUnknown, readErrorWithoutDetails(
 			"get_feature_flag",
 			err,
 			c.redactor.With(environmentID, key),
@@ -617,7 +578,7 @@ func (c *Client) listFeatureFlagPage(
 		&page,
 		sensitiveValues...,
 	); err != nil {
-		return featureFlagPageWire{}, response.StatusCode, featureFlagReadError(
+		return featureFlagPageWire{}, response.StatusCode, readErrorWithoutDetails(
 			"list_feature_flags",
 			err,
 			c.redactor.With(sensitiveValues...),
@@ -772,24 +733,4 @@ func resolveFeatureFlagByKey(
 			redactor,
 		)
 	}
-}
-
-// featureFlagReadError retains the shared classification, status, and safe
-// cancellation sentinel while discarding server detail strings. A Feature
-// Flag read can mention arbitrary variation values or UI-owned targeting data
-// that the caller cannot enumerate for exact redaction.
-func featureFlagReadError(operation string, err error, redactor *Redactor) error {
-	var apiError *APIError
-	if !errors.As(err, &apiError) {
-		return newTransportError(err)
-	}
-	sanitized := newAPIError(
-		apiError.Classification(),
-		apiError.StatusCode(),
-		operation,
-		nil,
-		redactor,
-	)
-	sanitized.cause = apiError.cause
-	return sanitized
 }

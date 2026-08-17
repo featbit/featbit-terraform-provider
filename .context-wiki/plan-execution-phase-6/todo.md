@@ -222,7 +222,10 @@ only the concise result under the active item. The current item is **P6-050**.
   schema snapshot is aligned. Existing Feature Flag and Segment data-source
   state already exposes their exact keys and retains Protocol assertions for
   those outputs. Repository tests, vet, build, formatting, and module tidy
-  checks pass.
+  checks pass. A follow-up reuse pass consolidated selector extraction and
+  validation, complete pagination accounting, safe read-error sanitization,
+  and mutation-reconciliation classification without changing schemas or
+  lifecycle behavior.
 
 - [ ] **P6-050 — Implement Policy management and lookup.**
 

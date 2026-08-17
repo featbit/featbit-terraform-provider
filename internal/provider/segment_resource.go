@@ -276,7 +276,7 @@ func (r *segmentResource) Create(
 			createdID,
 			expandSegmentTargetingRequest(planned),
 		)
-		if mutationErr != nil && !segmentMutationNeedsReconciliation(mutationErr) {
+		if mutationErr != nil && !mutationNeedsReconciliation(mutationErr) {
 			resp.Diagnostics.AddError(
 				"Unable to Initialize FeatBit Segment Targeting",
 				"The specialized targeting initialization did not complete. Terraform preserved the last confirmed server state and did not retry the mutation. "+mutationErr.Error()+".",
@@ -321,7 +321,7 @@ func (r *segmentResource) Create(
 			createdID,
 			client.UpdateSegmentTagsRequest{Tags: append([]string{}, planned.Tags...)},
 		)
-		if mutationErr != nil && !segmentMutationNeedsReconciliation(mutationErr) {
+		if mutationErr != nil && !mutationNeedsReconciliation(mutationErr) {
 			resp.Diagnostics.AddError(
 				"Unable to Initialize FeatBit Segment Tags",
 				"The specialized tag initialization did not complete. Terraform preserved the last confirmed server state and did not retry the mutation. "+mutationErr.Error()+".",
@@ -607,7 +607,7 @@ func (r *segmentResource) Update(
 			}
 			continue
 		}
-		if !segmentMutationNeedsReconciliation(mutationErr) {
+		if !mutationNeedsReconciliation(mutationErr) {
 			resp.Diagnostics.AddError(
 				"Unable to Update FeatBit Segment "+step.name,
 				"The specialized "+strings.ToLower(step.name)+" update did not complete. Terraform preserved the last mutation-confirmed state and did not retry the request. "+mutationErr.Error()+".",
@@ -764,7 +764,7 @@ func (r *segmentResource) Delete(
 	if status == client.SegmentStatusActive {
 		archiveErr := r.client.ArchiveSegment(ctx, prior.EnvironmentID, prior.ID)
 		if archiveErr != nil {
-			if !segmentMutationNeedsReconciliation(archiveErr) {
+			if !mutationNeedsReconciliation(archiveErr) {
 				resp.Diagnostics.AddError(
 					"Unable to Archive FeatBit Segment",
 					"The required archive request failed. Permanent deletion was not attempted, Terraform state was preserved, and the mutation was not retried. "+archiveErr.Error()+".",
@@ -806,7 +806,7 @@ func (r *segmentResource) Delete(
 
 	deleteErr := r.client.DeleteSegment(ctx, prior.EnvironmentID, prior.ID)
 	if deleteErr != nil {
-		if !segmentMutationNeedsReconciliation(deleteErr) {
+		if !mutationNeedsReconciliation(deleteErr) {
 			resp.Diagnostics.AddError(
 				"Unable to Permanently Delete FeatBit Segment",
 				"The permanent delete request failed. Terraform state was preserved and the mutation was not retried. "+deleteErr.Error()+".",
@@ -1247,18 +1247,6 @@ func cloneCanonicalSegmentRules(rules []canonicalSegmentRule) []canonicalSegment
 		}
 	}
 	return cloned
-}
-
-func segmentMutationNeedsReconciliation(err error) bool {
-	if mutationOutcomeAmbiguous(err) {
-		return true
-	}
-	switch client.Classify(0, nil, err) {
-	case client.ClassificationConflict, client.ClassificationNotFoundUnconfirmed:
-		return true
-	default:
-		return false
-	}
 }
 
 func (r *segmentResource) segmentLocks() *keyedLockManager {

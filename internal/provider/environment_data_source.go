@@ -83,14 +83,15 @@ func (d *environmentDataSource) ValidateConfig(
 	req datasource.ValidateConfigRequest,
 	resp *datasource.ValidateConfigResponse,
 ) {
-	resp.Diagnostics.Append(validateExactlyOneStringSelector(
+	_, _, diagnostics := readExactlyOneStringSelector(
 		ctx,
 		req.Config,
 		path.Root("id"),
 		path.Root("key"),
 		"Invalid FeatBit Environment Selector",
 		environmentDataSourceSelectorDetail,
-	)...)
+	)
+	resp.Diagnostics.Append(diagnostics...)
 }
 
 func (d *environmentDataSource) Configure(
@@ -107,19 +108,16 @@ func (d *environmentDataSource) Read(
 	resp *datasource.ReadResponse,
 ) {
 	var projectID types.String
-	var environmentID types.String
-	var key types.String
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("project_id"), &projectID)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &environmentID)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("key"), &key)...)
-	resp.Diagnostics.Append(validateExactlyOneStringSelector(
+	environmentID, key, diagnostics := readExactlyOneStringSelector(
 		ctx,
 		req.Config,
 		path.Root("id"),
 		path.Root("key"),
 		"Invalid FeatBit Environment Selector",
 		environmentDataSourceSelectorDetail,
-	)...)
+	)
+	resp.Diagnostics.Append(diagnostics...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
