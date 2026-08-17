@@ -10,7 +10,7 @@ roadmap.
 
 ## 1. Current position
 
-Phase 6 IAM requirements alignment is the active next work; runtime
+Phase 6 public IAM API verification is the active next work; runtime
 implementation has not started. The current branch owns only the aligned IAM
 surface and the release that follows it. It must not implement the deferred
 Phase 7 Segment prerequisite work. Stable releases `v0.1.0` and
@@ -37,12 +37,12 @@ contract is frozen by a checked-in Protocol v6 schema snapshot and focused
 registration, Import, and manifest checks. GoReleaser owns tag-derived version
 injection. Terraform `1.0.11`, `1.5.7`, and `1.15.8` pass the existing Protocol
 gates on credential-free Linux/AMD64, and the GoReleaser snapshot still
-produces the frozen five-platform archive matrix. Phase 6 starts with
-`P6-010`: incorporate the forthcoming customer IAM feedback and re-freeze the
-supported workflows, ownership boundaries, identities, and exclusions before
-API verification or Provider implementation. After the aligned IAM work passes
-its complete gate, this branch proceeds directly to release qualification and
-separately maintainer-authorized publication.
+produces the frozen five-platform archive matrix. Customer IAM feedback has
+frozen the Phase 6 v1 scope. Phase 6 now starts with `P6-020`: prove the
+documented public IAM operations and current-Cloud behavior before freezing
+schemas or adding Provider code. After the aligned IAM work passes its complete
+gate, this branch proceeds directly to release qualification and separately
+maintainer-authorized publication.
 
 ## 2. Product boundary
 
@@ -54,20 +54,24 @@ Core v1 manages these environment-scoped customer workflows:
 - `featbit_segment`
 - one exact single-object data source and Import support for each resource
 
-IAM is the first post-initial-release phase. Phase 6 begins by aligning the
-customer workflows and then proving the required public API contracts before
-freezing any Provider schema or lifecycle. The existing outline covers groups,
-policies, exact member lookup, and independent group/member/policy binding
-resources, but remains provisional until `P6-010` incorporates the customer
-feedback. The initial release exposes no IAM object, relationship, tenant
-selector, or context-header contract. Member invitation or creation remains
-external unless the requirements alignment and documented public API support
-an explicitly safe contract.
+IAM is the first post-initial-release phase. IAM v1 manages custom Policies and
+their statements as one Terraform resource, including Project, Environment,
+Feature Flag, and Segment control levels; Groups; exact Group-Policy and
+Group-Member bindings; and one existing Member's authoritative direct-Policy
+set. It observes built-in Policies and existing Members, and extends the
+existing Project and Environment data sources with exact-key selection. Member
+invitation, creation, profile mutation, organization/workspace removal, and
+deletion remain external. Service Token management, including Service
+Token-to-Group assignment, is excluded because the required public resource and
+relationship contracts do not exist. The initial release exposes no IAM
+surface.
 
 Segment targeting prerequisite closure follows IAM as Phase 7. It must wait
 for a later FeatBit version to expose documented public operations for exact
 Environment End User and End User Property lookup plus create-missing-only
-registration before the Provider depends on those operations.
+registration before the Provider depends on those operations. Phase 6 Segment
+Policy statements authorize Segment operations only and do not depend on or
+implement those targeting prerequisites.
 
 Core v1 does not evaluate flags, deploy FeatBit, manage analytics/audit streams,
 copy LaunchDarkly's resource model, or expose a generic raw-REST resource. It
@@ -172,9 +176,9 @@ configuration or transport changes.
 | Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
 | Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 7 will close that gap after the required public API ships, without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
 | Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
-| IAM member | Planned for Phase 6; contract provisional | Re-align the customer workflow first. The current outline uses read-only exact lookup for relationship endpoints; invitation, creation, profile mutation, team removal, and initial-password handling remain external unless `P6-010` proves a different safe public contract. |
-| IAM group and custom policy | Planned for Phase 6; contract provisional | Re-align the customer workflow first, then manage only fields and statement semantics verified through the documented public API; built-in policies remain read-only unless explicitly re-scoped with evidence. |
-| IAM relationship edge | Planned for Phase 6; contract provisional | The current outline gives each group-member, group-policy, or direct member-policy resource one exact pair, never an entire shared relationship set; `P6-010` must confirm the required relationships and ownership. |
+| IAM member | Planned for Phase 6; scope aligned | Read an existing Member by exact ID or email. Manage its Group edges and complete direct-Policy set without owning invitation, profile, organization/workspace membership, deletion, or inherited Policies. Never retain `initialPassword`. |
+| IAM group and custom policy | Planned for Phase 6; scope aligned | Manage Group name/description and custom Policy settings/statements. Present Policy creation and statement assignment as one Terraform resource. Statements cover Project, Environment, Feature Flag, and Segment control levels with documented actions and resource selectors. Built-in Policies are read-only and resolvable by exact key. |
+| IAM relationship edge | Planned for Phase 6; scope aligned | Each Group-Member or Group-Policy resource owns one exact pair. The direct-Policy resource is deliberately authoritative only for one Member's direct Policy set so an empty set can enforce group-only access. |
 
 Common lifecycle rules:
 
@@ -255,27 +259,23 @@ the Registry provider; release assets satisfy Registry requirements.
 
 ### Phase 6 — IAM and release
 
-First incorporate the customer IAM feedback and freeze the intended workflows,
-managed/read-only/external boundaries, identities, relationship ownership, and
-acceptance outcomes. The previous outline is input to that alignment, not a
-final contract. Do not add endpoint adapters, schemas, or state models until
-the aligned scope is checked against the documented public API.
+Verify access-token tenant scope, optional context-header behavior, complete
+exact lookup, and every required IAM mutation before freezing schemas. The
+aligned surface consists of custom Policies with statements, Groups, exact
+Group-Member and Group-Policy bindings, an authoritative direct-Policy set for
+one existing Member, exact built-in Policy and Member lookup, and exact-key
+Project/Environment lookup. Policy statements cover Project, Environment,
+Feature Flag, and Segment control levels, including documented wildcard and
+exact-key resource selectors. Member lifecycle and Service Tokens are external.
 
-After requirements alignment, verify access-token tenant scope, optional
-context-header behavior, complete exact member lookup, and every required IAM
-mutation without exposing initial-password or tenant/member identity data.
-The current candidate surface consists of groups, custom policies, and
-independent group-member, group-policy, and direct member-policy resources;
-member creation and team removal remain external unless the aligned scope and
-public API prove a safe alternative.
-
-Gate: customer workflows and exclusions are explicit; every consumed operation
-is documented and exact; lifecycle and Import identities are frozen before
-publication; bindings are idempotent and never claim an entire shared
-relationship set; current-Cloud verification is redaction-safe; Registry
-documentation and release artifacts describe exactly the implemented IAM
-surface; and the approved IAM release is published. Tag creation, signing,
-draft finalization, and publication remain separately maintainer-authorized.
+Gate: every consumed operation is documented and exact; lifecycle and Import
+identities are frozen before publication; exact-pair bindings and the explicit
+per-Member direct-Policy set preserve their ownership boundaries; all four
+Policy control levels round-trip with canonical effects, actions, and resource
+selectors; current-Cloud verification is redaction-safe; Registry documentation
+and release artifacts describe exactly the implemented IAM surface; and the
+approved IAM release is published. Tag creation, signing, draft finalization,
+and publication remain separately maintainer-authorized.
 
 ### Phase 7 — Segment targeting prerequisites (deferred)
 

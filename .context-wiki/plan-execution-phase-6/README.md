@@ -2,94 +2,96 @@
 
 ## Purpose
 
-Make IAM the next Provider phase, align it to the customer's actual workflows,
-implement only that approved surface, and carry it through the next Provider
-release. The existing roadmap names candidate IAM objects and relationships,
-but no Provider schema, lifecycle, Import identity, or public API dependency is
-frozen yet.
-
-The current branch is limited to IAM plus its release. The unfinished Segment
-targeting prerequisite work is Phase 7 on a separate future branch. It is
-deferred because the required documented public API is planned for a later
-FeatBit version; it is neither a blocker nor an implementation target for this
-phase.
+Deliver the customer-requested IAM workflows through the documented public
+API, then publish the next Provider release. This branch contains IAM and its
+release only; deferred Segment prerequisite work remains in Phase 7.
 
 ## Current entry point
 
-Start with [P6-010](todo.md) after the customer feedback is supplied. Convert
-that feedback into explicit supported workflows, managed/read-only/external
-boundaries, exact identities, relationship ownership, and measurable
-acceptance outcomes. Reconcile the result with the current roadmap instead of
-treating the existing IAM outline as already approved.
+The public IAM API and current-Cloud behavior gate passed. Start with
+[P6-030](todo.md) to freeze Terraform schemas and lifecycle contracts before
+adding IAM endpoint adapters or production resources.
 
-Do not add IAM endpoint adapters, Terraform schemas, state models, examples, or
-tests before this alignment is complete. P6-010 must first determine what the
-Provider should own; the documented public API gate follows from that scope.
+## IAM v1 scope
 
-## Provisional context to revalidate
+Managed resources:
 
-The current roadmap carries these candidates forward only as input to
-requirements alignment:
+- a custom Policy whose settings and statements are one Terraform resource;
+  statements cover Project, Environment, Feature Flag, and Segment control
+  levels;
+- a Group whose name and description are managed independently from bindings;
+- one exact Group-to-Policy binding;
+- one exact Group-to-Member binding; and
+- one existing Member's complete direct-Policy set, including an empty set for
+  group-only effective access.
 
-- exact member lookup for relationship endpoints, without exposing
-  initial-password data;
-- managed groups and custom policies, with built-in policies read-only;
-- independent group-member, group-policy, and direct member-policy edges that
-  own one exact pair rather than an entire shared relationship set;
-- verified access-token tenant scope and optional context-header behavior; and
-- member invitation, creation, profile mutation, and team removal outside
-  Terraform ownership.
+Read-only data sources:
 
-Customer feedback may narrow, reorder, or replace this candidate surface. Any
-change must still fit the documented public API and the Provider's exact-match,
-state-preservation, one-shot mutation, cancellation, and redaction contracts.
+- a Policy resolved by exact key, including built-in policies such as Owner;
+- an existing Member resolved by exact ID or email; and
+- Project and Environment lookup by exact key, added to the existing data
+  sources without breaking UUID lookup.
 
-## Required alignment outputs
+Explicit exclusions:
 
-P6-010 must leave enough current context to plan implementation without
-guessing:
+- Member invitation, creation, profile changes, organization/workspace
+  removal, and deletion;
+- Service access-token creation or Group assignment;
+- mutation of built-in Policies;
+- authoritative ownership of a Group's complete member or Policy collection;
+  and
+- all Phase 7 Segment targeting prerequisite work. Phase 6 may authorize
+  Segment operations, but it does not create End Users or property metadata.
 
-- the customer actors, workflows, desired outcomes, and explicit exclusions;
-- the IAM objects and relationships that are managed, observed, or external;
-- tenant and organization scope, authentication, and context selection;
-- exact lookup keys, stable IDs, relationship direction, and Import identity;
-- ownership, drift, replacement, deletion, and out-of-band change behavior;
-- secret and identity redaction boundaries;
-- the documented public operations needed for every read and mutation; and
-- local, Protocol, and trusted current-Cloud acceptance outcomes.
+## Ownership rules
 
-After those outputs are agreed, replace the placeholder-only TODO with the
-smallest ordered set of API verification, design, implementation, verification,
-documentation, release qualification, and separately maintainer-authorized
-publication items needed by the aligned scope. The final item on this branch
-must close the IAM release; it must not start Phase 7 implementation.
+- The custom Policy resource hides the API's create-then-set-statements
+  sequence and always reads back the complete canonical Policy.
+- Policy statements preserve `resource_type`, `effect`, `actions`, and resource
+  selectors. Supported selector levels are `project`, `env`, `flag`, and
+  `segment`, including documented wildcard and exact-key forms.
+- Group-to-Policy and Group-to-Member resources own one exact pair. Destroy
+  removes only that pair.
+- The Member direct-Policy resource is intentionally authoritative for one
+  Member's direct Policy set. It never owns inherited Group Policies or the
+  Member lifecycle.
+- Built-in Policies and existing Members are observed, not adopted as managed
+  objects.
+- Exact lookup scans complete paginated results and rejects zero or duplicate
+  matches; fuzzy search results are never accepted.
 
 ## Guardrails
 
 - Use documented public APIs only; never depend on Portal-private controllers
   or direct database access.
-- Use exact IDs or scoped exact keys across complete result sets; never select
-  the first fuzzy match.
-- Never store or expose tokens, passwords, tenant/member identities, request
-  paths, or unsafe response bodies in code, state, fixtures, logs, or
+- Never store or expose tokens, initial passwords, tenant/member identities,
+  request paths, or unsafe response bodies in state, fixtures, logs, or
   diagnostics.
-- Preserve existing user changes and shared relationship data. A resource may
-  claim only the object or edge explicitly represented by its state.
 - Reuse existing transport, escaping, pagination, exact resolution, error
-  classification, cancellation, concurrency, and redaction behavior when the
-  ownership boundary matches.
-- Keep Phase 7 Segment prerequisite implementation out of this phase.
+  classification, cancellation, concurrency, and redaction contracts.
+- Mutations execute once. Ambiguous results require exact reconciliation and
+  truthful state preservation.
 - Do not create a tag, sign or finalize release assets, or publish a release
   without explicit maintainer authorization.
 
 ## Exit gate
 
-The detailed exit gate is intentionally not frozen before customer-feedback
-alignment. P6-010 must rewrite it as measurable outcomes for the approved IAM
-surface. At minimum, no IAM contract may be published until every consumed
-operation is documented and exact, tenant scope and Import identities are
-stable, shared relationships cannot be accidentally claimed or removed, a
-second plan is empty, trusted current-Cloud verification is redaction-safe,
-Registry documentation and release artifacts match the implemented surface,
-and the approved IAM release is published. Passing this gate ends the current
-branch; Phase 7 continues separately.
+The phase passes only when:
+
+- every consumed IAM operation is documented, tenant-scoped, exact, and usable
+  with Provider access-token authentication;
+- Policy statements round-trip Project, Environment, Feature Flag, and Segment
+  control levels with canonical effects, actions, and wildcard or exact-key
+  selectors;
+- Policy-with-statements, Group, both exact bindings, and authoritative direct
+  Member Policies pass lifecycle, Import, drift, and empty-second-plan tests;
+- built-in Policy, Member, Project-key, and Environment-key lookup reject zero
+  and duplicate exact matches;
+- a trusted current-Cloud run proves the customer workflow without creating or
+  deleting a Member and restores every test-owned relationship;
+- diagnostics, logs, fixtures, and state contain no protected values;
+- Registry documentation and release artifacts expose exactly the approved IAM
+  surface; and
+- the maintainer-authorized IAM release is published.
+
+Passing this gate ends this branch. Phase 7 continues separately.
