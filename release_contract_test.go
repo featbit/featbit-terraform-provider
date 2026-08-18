@@ -35,14 +35,15 @@ const (
 )
 
 var releaseImportForms = map[string]string{
-	"featbit_project":              "<project_uuid>",
-	"featbit_environment":          "<project_uuid>/<environment_uuid>",
-	"featbit_feature_flag":         "<environment_uuid>/<exact_key>",
-	"featbit_group":                "<group_uuid>",
-	"featbit_group_member_binding": "<group_uuid>/<member_uuid>",
-	"featbit_group_policy_binding": "<group_uuid>/<policy_uuid>",
-	"featbit_policy":               "<policy_uuid>",
-	"featbit_segment":              "<environment_uuid>/<segment_uuid>",
+	"featbit_project":                "<project_uuid>",
+	"featbit_environment":            "<project_uuid>/<environment_uuid>",
+	"featbit_feature_flag":           "<environment_uuid>/<exact_key>",
+	"featbit_group":                  "<group_uuid>",
+	"featbit_group_member_binding":   "<group_uuid>/<member_uuid>",
+	"featbit_group_policy_binding":   "<group_uuid>/<policy_uuid>",
+	"featbit_member_direct_policies": "<member_uuid>",
+	"featbit_policy":                 "<policy_uuid>",
+	"featbit_segment":                "<environment_uuid>/<segment_uuid>",
 }
 
 type releaseContractSnapshot struct {
@@ -233,6 +234,18 @@ func TestInitialReleaseImportForms(t *testing.T) {
 				"not-a-uuid/" + releaseMemberID,
 				releaseGroupID + "/not-a-uuid",
 				releaseGroupMemberBindingID + "/extra",
+			},
+		},
+		"featbit_member_direct_policies": {
+			validID: releaseMemberID,
+			identity: map[string]string{
+				"id":        releaseMemberID,
+				"member_id": releaseMemberID,
+			},
+			rejectedForms: []string{
+				"",
+				"not-a-uuid",
+				releaseMemberID + "/extra",
 			},
 		},
 		"featbit_policy": {
@@ -508,6 +521,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		"featbit_group",
 		"featbit_group_member_binding",
 		"featbit_group_policy_binding",
+		"featbit_member_direct_policies",
 		"featbit_policy",
 		"featbit_project",
 		"featbit_segment",

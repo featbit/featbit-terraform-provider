@@ -9,10 +9,9 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 ## Current entry point
 
 The public IAM API gate passed, the Terraform schema and lifecycle contract is
-frozen, and exact-key Project/Environment lookup plus Policy, Group, safe
-existing-Member lookup, and both exact Group binding resources are implemented.
-Start with [P6-090](todo.md): add the authoritative direct-Policy set for one
-existing Member through the proven public IAM endpoints.
+frozen, and the complete frozen IAM provider surface is implemented, including
+the authoritative direct-Policy set for one existing Member. Start with
+[P6-100](todo.md): prove the complete customer-shaped IAM workflow locally.
 
 ## IAM v1 scope
 

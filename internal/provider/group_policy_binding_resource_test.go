@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -529,7 +530,7 @@ func TestGroupPolicyBindingResourceDeleteRemovesOnlyExactPairAndReconciles(t *te
 				t.Fatalf("mutation count = %d, want %d: %v", got, test.wantMutationCount, fixture.mutations())
 			}
 			remaining := fixture.currentPolicyIDs()
-			if !containsExactString(remaining, providerGroupPolicyID) {
+			if !slices.Contains(remaining, providerGroupPolicyID) {
 				t.Fatalf("Delete() removed unrelated binding: %v", remaining)
 			}
 		})
@@ -631,7 +632,7 @@ func (f *groupPolicyBindingFixture) ServeHTTP(response http.ResponseWriter, requ
 			writePolicyProviderEnvelope(f.t, response, http.StatusInternalServerError, nil)
 			return
 		}
-		if f.groupPresent && f.policyPresent && !containsExactString(f.policyIDs, providerPolicyID) {
+		if f.groupPresent && f.policyPresent && !slices.Contains(f.policyIDs, providerPolicyID) {
 			f.policyIDs = append(f.policyIDs, providerPolicyID)
 		}
 		if f.failAddAfterApply {
@@ -684,15 +685,6 @@ func (f *groupPolicyBindingFixture) removePolicyIDLocked(policyID string) {
 			return
 		}
 	}
-}
-
-func containsExactString(values []string, target string) bool {
-	for _, value := range values {
-		if value == target {
-			return true
-		}
-	}
-	return false
 }
 
 type groupPolicyBindingTestModel struct {

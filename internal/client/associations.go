@@ -3,7 +3,11 @@
 
 package client
 
-import "context"
+import (
+	"context"
+	"net/http"
+	"slices"
+)
 
 // exactAssociation is the common safe shape shared by IAM relationship
 // collections after each endpoint maps its differently named membership flag.
@@ -19,8 +23,9 @@ type exactAssociationPage struct {
 
 // listCompleteAssociationIDs consumes a complete paginated relationship
 // collection, requires every returned item to confirm membership, rejects
-// duplicate UUIDs, and returns canonical IDs. Endpoint paths, query names,
-// wire types, and decoding remain with the production caller.
+// duplicate UUIDs, and returns canonical IDs in deterministic bytewise order.
+// Endpoint paths, query names, wire types, and decoding remain with the
+// production caller.
 func listCompleteAssociationIDs(
 	ctx context.Context,
 	operation string,
@@ -85,7 +90,58 @@ func listCompleteAssociationIDs(
 			return nil, err
 		}
 		if complete {
+			slices.Sort(associationIDs)
 			return associationIDs, nil
 		}
 	}
+}
+
+// mutateExactAssociation executes one documented UUID-pair mutation and
+// requires the API's explicit true Boolean confirmation. Endpoint path
+// ownership stays with the caller while validation, one-shot execution,
+// response handling, and redaction remain shared across IAM relationships.
+func (c *Client) mutateExactAssociation(
+	ctx context.Context,
+	parentID string,
+	associationID string,
+	operation string,
+	newRequest func(context.Context) (*http.Request, error),
+) error {
+	if !ValidUUID(parentID) || !ValidUUID(associationID) {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			operation,
+			nil,
+			c.redactor,
+		)
+	}
+	request, err := newRequest(ctx)
+	if err != nil {
+		return newTransportError(err)
+	}
+	response, err := c.Do(request)
+	if err != nil {
+		return err
+	}
+	var changed bool
+	if err := c.DecodeResponse(
+		operation,
+		response,
+		&changed,
+		parentID,
+		associationID,
+	); err != nil {
+		return err
+	}
+	if !changed {
+		return newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			operation,
+			nil,
+			c.redactor.With(parentID, associationID),
+		)
+	}
+	return nil
 }

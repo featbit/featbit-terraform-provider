@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/featbit/terraform-provider-featbit/internal/client"
@@ -71,15 +72,15 @@ func TestCanonicalizeManagedPolicyStatementsCoversAllControlLevels(t *testing.T)
 		}
 	}
 	flag := canonical.Statements[1]
-	if !sameStrings(flag.Actions, []string{"*", "ToggleFlag"}) ||
-		!sameStrings(flag.Resources, []string{
+	if !slices.Equal(flag.Actions, []string{"*", "ToggleFlag"}) ||
+		!slices.Equal(flag.Resources, []string{
 			"project/Project:env/Dev:flag/checkout;Alpha,beta",
 		}) {
 		t.Fatalf("canonical Flag statement = %#v", flag)
 	}
 	segment := canonical.Statements[3]
-	if !sameStrings(segment.Actions, []string{"*", "UpdateSegmentRules"}) ||
-		!sameStrings(segment.Resources, []string{
+	if !slices.Equal(segment.Actions, []string{"*", "UpdateSegmentRules"}) ||
+		!slices.Equal(segment.Resources, []string{
 			"project/*:env/*:segment/*",
 			"project/Project:env/Prod:segment/Checkout;Alpha,zeta",
 		}) {
@@ -196,13 +197,13 @@ func TestFlattenManagedPolicyPreservesEquivalentConfiguredSelectorSpelling(t *te
 		t.Fatalf("flattened statements = %#v/%v", models, err)
 	}
 	resources, err := terraformStringSet(context.Background(), models[0].Resources)
-	if err != nil || !sameStrings(resources, []string{
+	if err != nil || !slices.Equal(resources, []string{
 		"project/P:env/E:flag/F;Alpha,zeta",
 		"project/P:env/E:flag/F;zeta,Alpha,zeta",
 	}) {
 		t.Fatalf("flattened resources = %v/%v", resources, err)
 	}
-	if !sameStrings(planned.Statements[0].Resources, []string{
+	if !slices.Equal(planned.Statements[0].Resources, []string{
 		"project/P:env/E:flag/F;Alpha,zeta",
 	}) {
 		t.Fatalf("canonical resources = %v", planned.Statements[0].Resources)

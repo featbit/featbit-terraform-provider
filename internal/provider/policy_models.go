@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -441,8 +442,8 @@ func samePolicyStatements(left []canonicalPolicyStatement, right []canonicalPoli
 	for index := range left {
 		if left[index].ResourceType != right[index].ResourceType ||
 			left[index].Effect != right[index].Effect ||
-			!sameStrings(left[index].Actions, right[index].Actions) ||
-			!sameStrings(left[index].Resources, right[index].Resources) {
+			!slices.Equal(left[index].Actions, right[index].Actions) ||
+			!slices.Equal(left[index].Resources, right[index].Resources) {
 			return false
 		}
 	}
@@ -453,18 +454,6 @@ func samePolicyDefinition(left canonicalPolicy, right canonicalPolicy) bool {
 	return left.Key == right.Key && left.Type == right.Type &&
 		samePolicySettings(left, right) &&
 		samePolicyStatements(left.Statements, right.Statements)
-}
-
-func sameStrings(left []string, right []string) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	for index := range left {
-		if left[index] != right[index] {
-			return false
-		}
-	}
-	return true
 }
 
 func sortCanonicalPolicyStatements(statements []canonicalPolicyStatement) {

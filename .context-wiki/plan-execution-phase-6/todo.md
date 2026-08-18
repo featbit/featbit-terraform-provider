@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-090**.
+only the concise result under the active item. The current item is **P6-100**.
 
 ## Scope and API contract
 
@@ -374,7 +374,7 @@ only the concise result under the active item. The current item is **P6-090**.
   repository tests, client/provider coverage, vet, build, formatting, module
   tidy, and module verification pass.
 
-- [ ] **P6-090 — Implement authoritative direct Member Policies.**
+- [x] **P6-090 — Implement authoritative direct Member Policies.**
 
   Add one resource that reconciles only the complete direct Policy set of one
   existing Member. An empty set removes direct Policies; Group-inherited
@@ -383,6 +383,42 @@ only the concise result under the active item. The current item is **P6-090**.
   Runtime: direct-Policy resource → Member client adapter → direct-Policy list,
   add, and remove endpoints. Done when empty-set enforcement, Import, drift,
   partial failure, reread, and destroy follow P6-030.
+
+  Result: registered `featbit_member_direct_policies` now owns one existing
+  Member's complete direct Policy UUID set, uses the canonical sensitive
+  Member UUID as its ID and Import form, and treats an empty set or Destroy as
+  removal of direct Policies only. The Member adapter consumes every page of
+  `direct-policies`, decodes only canonical relationship IDs and the direct
+  membership flag, and shares the established one-shot Boolean association
+  mutation contract. Create and Update resolve the exact Member and every
+  desired custom or built-in Policy through complete token-scoped collections,
+  add missing IDs before removing extras in canonical order, reread after every
+  mutation, and persist each confirmed intermediate set. Per-Member write
+  serialization, ambiguous-outcome reconciliation, final exact rereads, drift,
+  external Member absence, and partial add/remove failure preserve truthful
+  state without reading or changing inherited Policies or Group edges. Focused
+  client/resource tests cover pagination, invalid collections, empty-set
+  enforcement, idempotence, Import, replacement planning, redaction, drift,
+  partial failure, and Destroy isolation. A whole-repository reuse and test
+  audit made the shared IAM association paginator return deterministically
+  sorted canonical IDs, moved generic Terraform string-set conversion out of
+  Segment ownership, and replaced handwritten equality, containment, sorting,
+  and deduplication with Go `slices` operations. It removed two forwarding-only
+  production methods, two redundant production collection helpers, and one
+  cross-file test helper; existing dependencies already cover the reusable
+  behavior, so no new third-party dependency is justified. Focused coverage
+  additionally proves unsorted remote pagination, built-in Policy targets,
+  Import refresh, non-authoritative direct 404, successful mutation no-ops,
+  ambiguous remove reconciliation, add-before-remove safety, cancellation, and
+  canonical per-Member locking. One duplicate Import subcase was folded into
+  the Import-refresh path; every remaining test owns a distinct contract. The
+  Protocol v6 schema/Import snapshot is aligned; repository tests,
+  client/provider coverage (87.3%/77.8%), vet, build, touched-file formatting,
+  module tidy/verification, and production/test-inclusive reachability checks
+  pass. Production reachability reports only deliberate dynamic
+  `fmt.Formatter` redaction hooks, while test-inclusive reachability is clean.
+  The local Windows race run still cannot start because CGO is disabled; race
+  qualification remains in P6-130/CI.
 
 ## Verification and release
 

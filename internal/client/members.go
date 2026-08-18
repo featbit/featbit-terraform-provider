@@ -38,6 +38,16 @@ type memberPageWire struct {
 	Items      []Member `json:"items"`
 }
 
+type memberPolicyAssociationWire struct {
+	ID             string `json:"id"`
+	IsMemberPolicy *bool  `json:"isMemberPolicy"`
+}
+
+type memberPolicyAssociationPageWire struct {
+	TotalCount *int64                        `json:"totalCount"`
+	Items      []memberPolicyAssociationWire `json:"items"`
+}
+
 // ListMembers consumes every explicit zero-based page and refuses partial,
 // duplicate-ID, or structurally incomplete collections. No server-side fuzzy
 // search is used for exact Member selection.
@@ -204,6 +214,58 @@ func (c *Client) ResolveMemberByEmail(
 	)
 }
 
+// ListMemberDirectPolicyIDs consumes the complete direct-Policy collection
+// for one Member and returns canonical Policy UUIDs only. It deliberately
+// never reads the combined or inherited Policy endpoints as owned state.
+func (c *Client) ListMemberDirectPolicyIDs(
+	ctx context.Context,
+	memberID string,
+) ([]string, error) {
+	return listCompleteAssociationIDs(
+		ctx,
+		"list_member_direct_policies",
+		memberID,
+		memberPageSize,
+		maxMemberPageIndex,
+		c.redactor,
+		func(ctx context.Context, pageIndex int64) (exactAssociationPage, int, error) {
+			return c.listMemberDirectPolicyPage(ctx, memberID, pageIndex)
+		},
+	)
+}
+
+// AddMemberDirectPolicy executes one documented direct-Policy mutation. The
+// lifecycle caller validates endpoint membership and performs the exact
+// authoritative reread because the API accepts missing IDs as no-ops.
+func (c *Client) AddMemberDirectPolicy(
+	ctx context.Context,
+	memberID string,
+	policyID string,
+) error {
+	return c.mutateMemberDirectPolicy(
+		ctx,
+		memberID,
+		policyID,
+		"add-policy",
+		"add_member_direct_policy",
+	)
+}
+
+// RemoveMemberDirectPolicy executes one documented direct-Policy removal.
+func (c *Client) RemoveMemberDirectPolicy(
+	ctx context.Context,
+	memberID string,
+	policyID string,
+) error {
+	return c.mutateMemberDirectPolicy(
+		ctx,
+		memberID,
+		policyID,
+		"remove-policy",
+		"remove_member_direct_policy",
+	)
+}
+
 func (c *Client) getMemberDirect(ctx context.Context, memberID string) (Member, error) {
 	request, err := c.newMemberRequest(ctx, http.MethodGet, []string{memberID})
 	if err != nil {
@@ -250,6 +312,80 @@ func (c *Client) listMemberPage(
 		)
 	}
 	return page, response.StatusCode, nil
+}
+
+func (c *Client) listMemberDirectPolicyPage(
+	ctx context.Context,
+	memberID string,
+	pageIndex int64,
+) (exactAssociationPage, int, error) {
+	request, err := c.newMemberRequest(
+		ctx,
+		http.MethodGet,
+		[]string{memberID, "direct-policies"},
+	)
+	if err != nil {
+		return exactAssociationPage{}, 0, newTransportError(err)
+	}
+	query := request.URL.Query()
+	query.Set("GetAllPolicies", "false")
+	query.Set("PageIndex", strconv.FormatInt(pageIndex, 10))
+	query.Set("PageSize", strconv.Itoa(memberPageSize))
+	request.URL.RawQuery = query.Encode()
+
+	response, err := c.Do(request)
+	if err != nil {
+		return exactAssociationPage{}, 0, err
+	}
+	var page memberPolicyAssociationPageWire
+	if err := c.DecodeResponse(
+		"list_member_direct_policies",
+		response,
+		&page,
+		memberID,
+	); err != nil {
+		return exactAssociationPage{}, response.StatusCode, readErrorWithoutDetails(
+			"list_member_direct_policies",
+			err,
+			c.redactor.With(memberID),
+		)
+	}
+	var items []exactAssociation
+	if page.Items != nil {
+		items = make([]exactAssociation, 0, len(page.Items))
+		for _, association := range page.Items {
+			items = append(items, exactAssociation{
+				ID:      association.ID,
+				Present: association.IsMemberPolicy,
+			})
+		}
+	}
+	return exactAssociationPage{
+		TotalCount: page.TotalCount,
+		Items:      items,
+	}, response.StatusCode, nil
+}
+
+func (c *Client) mutateMemberDirectPolicy(
+	ctx context.Context,
+	memberID string,
+	policyID string,
+	pathSegment string,
+	operation string,
+) error {
+	return c.mutateExactAssociation(
+		ctx,
+		memberID,
+		policyID,
+		operation,
+		func(ctx context.Context) (*http.Request, error) {
+			return c.newMemberRequest(
+				ctx,
+				http.MethodPut,
+				[]string{memberID, pathSegment, policyID},
+			)
+		},
+	)
 }
 
 func (c *Client) newMemberRequest(

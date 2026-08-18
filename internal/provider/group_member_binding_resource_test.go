@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -391,7 +392,7 @@ func TestGroupMemberBindingResourceDeleteRemovesOnlyExactPairAndReconciles(t *te
 				t.Fatalf("mutations = %v, want %v", got, test.wantMutations)
 			}
 			remaining := fixture.currentMemberIDs()
-			if !containsExactString(remaining, providerMemberIDTwo) {
+			if !slices.Contains(remaining, providerMemberIDTwo) {
 				t.Fatalf("Delete() removed unrelated binding: %v", remaining)
 			}
 		})
@@ -493,7 +494,7 @@ func (f *groupMemberBindingFixture) ServeHTTP(response http.ResponseWriter, requ
 	case request.Method == http.MethodPut &&
 		request.URL.EscapedPath() == groupPath+"/add-member/"+providerMemberID:
 		f.mutationNames = append(f.mutationNames, "add")
-		if f.groupPresent && f.memberPresent && !containsExactString(f.memberIDs, providerMemberID) {
+		if f.groupPresent && f.memberPresent && !slices.Contains(f.memberIDs, providerMemberID) {
 			f.memberIDs = append(f.memberIDs, providerMemberID)
 		}
 		writePolicyProviderEnvelope(f.t, response, http.StatusOK, true)

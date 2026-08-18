@@ -162,6 +162,7 @@ func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource 
 		newGroupResource,
 		newGroupPolicyBindingResource,
 		newGroupMemberBindingResource,
+		newMemberDirectPoliciesResource,
 	}
 }
 

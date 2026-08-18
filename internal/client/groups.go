@@ -494,47 +494,19 @@ func (c *Client) mutateGroupAssociation(
 	pathSegment string,
 	operation string,
 ) error {
-	if !ValidUUID(groupID) || !ValidUUID(associationID) {
-		return newAPIError(
-			ClassificationValidation,
-			0,
-			operation,
-			nil,
-			c.redactor,
-		)
-	}
-	request, err := c.newGroupRequest(
+	return c.mutateExactAssociation(
 		ctx,
-		http.MethodPut,
-		[]string{groupID, pathSegment, associationID},
-	)
-	if err != nil {
-		return newTransportError(err)
-	}
-	response, err := c.Do(request)
-	if err != nil {
-		return err
-	}
-	var changed bool
-	if err := c.DecodeResponse(
-		operation,
-		response,
-		&changed,
 		groupID,
 		associationID,
-	); err != nil {
-		return err
-	}
-	if !changed {
-		return newAPIError(
-			ClassificationAmbiguous,
-			response.StatusCode,
-			operation,
-			nil,
-			c.redactor.With(groupID, associationID),
-		)
-	}
-	return nil
+		operation,
+		func(ctx context.Context) (*http.Request, error) {
+			return c.newGroupRequest(
+				ctx,
+				http.MethodPut,
+				[]string{groupID, pathSegment, associationID},
+			)
+		},
+	)
 }
 
 func (c *Client) getGroupDirect(ctx context.Context, groupID string) (Group, error) {
