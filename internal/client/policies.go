@@ -249,28 +249,12 @@ func (c *Client) ResolvePolicyByID(
 	policies []Policy,
 	policyID string,
 ) (Policy, bool, error) {
-	var match Policy
-	count := 0
-	for _, policy := range policies {
-		if EqualUUID(policy.ID, policyID) {
-			match = policy
-			count++
-		}
-	}
-	switch count {
-	case 0:
-		return Policy{}, false, nil
-	case 1:
-		return match, true, nil
-	default:
-		return Policy{}, false, newAPIError(
-			ClassificationAmbiguous,
-			0,
-			"resolve_policy",
-			nil,
-			c.redactor.With(policyID),
-		)
-	}
+	return resolveExactOne(
+		policies,
+		func(policy Policy) bool { return EqualUUID(policy.ID, policyID) },
+		"resolve_policy",
+		c.redactor.With(policyID),
+	)
 }
 
 // ResolvePolicyByKey applies case-sensitive exact matching and rejects
@@ -279,28 +263,12 @@ func (c *Client) ResolvePolicyByKey(
 	policies []Policy,
 	key string,
 ) (Policy, bool, error) {
-	var match Policy
-	count := 0
-	for _, policy := range policies {
-		if policy.Key == key {
-			match = policy
-			count++
-		}
-	}
-	switch count {
-	case 0:
-		return Policy{}, false, nil
-	case 1:
-		return match, true, nil
-	default:
-		return Policy{}, false, newAPIError(
-			ClassificationAmbiguous,
-			0,
-			"resolve_policy_by_key",
-			nil,
-			c.redactor.With(key),
-		)
-	}
+	return resolveExactOne(
+		policies,
+		func(policy Policy) bool { return policy.Key == key },
+		"resolve_policy_by_key",
+		c.redactor.With(key),
+	)
 }
 
 // CreatePolicy executes the settings mutation exactly once. Statement
@@ -532,72 +500,18 @@ func (c *Client) countPolicyAssociations(
 	policyID string,
 	kind policyAssociationKind,
 ) (int, error) {
-	if !ValidUUID(policyID) {
-		return 0, newAPIError(
-			ClassificationValidation,
-			0,
-			kind.operation,
-			nil,
-			c.redactor,
-		)
-	}
-	pages := newCompletePageTracker(
+	associationIDs, err := listCompleteAssociationIDs(
+		ctx,
 		kind.operation,
+		policyID,
 		policyPageSize,
 		maxPolicyPageIndex,
-		c.redactor.With(policyID),
+		c.redactor,
+		func(ctx context.Context, pageIndex int64) (exactAssociationPage, int, error) {
+			return c.listPolicyAssociationPage(ctx, policyID, kind, pageIndex)
+		},
 	)
-	count := 0
-	for pageIndex := int64(0); ; pageIndex++ {
-		page, statusCode, err := c.listPolicyAssociationPage(
-			ctx,
-			policyID,
-			kind,
-			pageIndex,
-		)
-		if err != nil {
-			return 0, err
-		}
-		if err := pages.validatePage(
-			page.TotalCount,
-			page.Items != nil,
-			len(page.Items),
-			statusCode,
-		); err != nil {
-			return 0, err
-		}
-		for _, association := range page.Items {
-			membership := association.IsPolicyGroup
-			if kind.isMember {
-				membership = association.IsPolicyMember
-			}
-			canonicalID, valid := CanonicalUUID(association.ID)
-			if !valid || membership == nil || !*membership {
-				return 0, newAPIError(
-					ClassificationAmbiguous,
-					statusCode,
-					kind.operation,
-					nil,
-					c.redactor.With(policyID, association.ID),
-				)
-			}
-			if err := pages.recordExactID(
-				canonicalID,
-				statusCode,
-				c.redactor.With(policyID, association.ID),
-			); err != nil {
-				return 0, err
-			}
-			count++
-		}
-		complete, err := pages.pageComplete(pageIndex, statusCode)
-		if err != nil {
-			return 0, err
-		}
-		if complete {
-			return count, nil
-		}
-	}
+	return len(associationIDs), err
 }
 
 func (c *Client) getPolicyDirect(ctx context.Context, policyID string) (Policy, error) {
@@ -653,14 +567,14 @@ func (c *Client) listPolicyAssociationPage(
 	policyID string,
 	kind policyAssociationKind,
 	pageIndex int64,
-) (policyAssociationPageWire, int, error) {
+) (exactAssociationPage, int, error) {
 	request, err := c.newPolicyRequest(
 		ctx,
 		http.MethodGet,
 		[]string{policyID, kind.pathSegment},
 	)
 	if err != nil {
-		return policyAssociationPageWire{}, 0, newTransportError(err)
+		return exactAssociationPage{}, 0, newTransportError(err)
 	}
 	query := request.URL.Query()
 	query.Set(kind.queryName, "false")
@@ -670,17 +584,34 @@ func (c *Client) listPolicyAssociationPage(
 
 	response, err := c.Do(request)
 	if err != nil {
-		return policyAssociationPageWire{}, 0, err
+		return exactAssociationPage{}, 0, err
 	}
 	var page policyAssociationPageWire
 	if err := c.DecodeResponse(kind.operation, response, &page, policyID); err != nil {
-		return policyAssociationPageWire{}, response.StatusCode, readErrorWithoutDetails(
+		return exactAssociationPage{}, response.StatusCode, readErrorWithoutDetails(
 			kind.operation,
 			err,
 			c.redactor.With(policyID),
 		)
 	}
-	return page, response.StatusCode, nil
+	var items []exactAssociation
+	if page.Items != nil {
+		items = make([]exactAssociation, 0, len(page.Items))
+		for _, association := range page.Items {
+			membership := association.IsPolicyGroup
+			if kind.isMember {
+				membership = association.IsPolicyMember
+			}
+			items = append(items, exactAssociation{
+				ID:      association.ID,
+				Present: membership,
+			})
+		}
+	}
+	return exactAssociationPage{
+		TotalCount: page.TotalCount,
+		Items:      items,
+	}, response.StatusCode, nil
 }
 
 func (c *Client) newPolicyRequest(

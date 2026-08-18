@@ -445,29 +445,18 @@ func resolveEnvironmentByID(
 	environmentID string,
 	redactor *Redactor,
 ) (Environment, bool, error) {
-	var match ProjectEnvironment
-	matchCount := 0
-	for _, environment := range environments {
-		if EqualUUID(environment.ID, environmentID) {
-			match = environment
-			matchCount++
-		}
+	match, found, err := resolveExactOne(
+		environments,
+		func(environment ProjectEnvironment) bool {
+			return EqualUUID(environment.ID, environmentID)
+		},
+		"resolve_environment",
+		redactor.With(environmentID),
+	)
+	if err != nil || !found {
+		return Environment{}, found, err
 	}
-
-	switch matchCount {
-	case 0:
-		return Environment{}, false, nil
-	case 1:
-		return environmentFromProject(match), true, nil
-	default:
-		return Environment{}, false, newAPIError(
-			ClassificationAmbiguous,
-			0,
-			"resolve_environment",
-			nil,
-			redactor.With(environmentID),
-		)
-	}
+	return environmentFromProject(match), true, nil
 }
 
 // ResolveEnvironmentByKey applies the shared case-sensitive exact zero/one/
@@ -478,29 +467,16 @@ func (c *Client) ResolveEnvironmentByKey(
 	environments []ProjectEnvironment,
 	key string,
 ) (Environment, bool, error) {
-	var match ProjectEnvironment
-	matchCount := 0
-	for _, environment := range environments {
-		if environment.Key == key {
-			match = environment
-			matchCount++
-		}
+	match, found, err := resolveExactOne(
+		environments,
+		func(environment ProjectEnvironment) bool { return environment.Key == key },
+		"resolve_environment_by_key",
+		c.redactor.With(key),
+	)
+	if err != nil || !found {
+		return Environment{}, found, err
 	}
-
-	switch matchCount {
-	case 0:
-		return Environment{}, false, nil
-	case 1:
-		return environmentFromProject(match), true, nil
-	default:
-		return Environment{}, false, newAPIError(
-			ClassificationAmbiguous,
-			0,
-			"resolve_environment_by_key",
-			nil,
-			c.redactor.With(key),
-		)
-	}
+	return environmentFromProject(match), true, nil
 }
 
 func environmentFromProject(environment ProjectEnvironment) Environment {

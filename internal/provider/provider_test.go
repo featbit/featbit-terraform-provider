@@ -87,11 +87,11 @@ func TestProviderRegistrations(t *testing.T) {
 
 	providerUnderTest := New("test")()
 
-	if got := len(providerUnderTest.Resources(context.Background())); got != 5 {
-		t.Fatalf("expected four core resources and Policy, got %d", got)
+	if got := len(providerUnderTest.Resources(context.Background())); got != 6 {
+		t.Fatalf("expected four core resources, Policy, and Group, got %d", got)
 	}
-	if got := len(providerUnderTest.DataSources(context.Background())); got != 5 {
-		t.Fatalf("expected four core data sources and Policy, got %d", got)
+	if got := len(providerUnderTest.DataSources(context.Background())); got != 6 {
+		t.Fatalf("expected four core data sources, Policy, and Group, got %d", got)
 	}
 }
 

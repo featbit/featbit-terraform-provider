@@ -9,9 +9,9 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 ## Current entry point
 
 The public IAM API gate passed, the Terraform schema and lifecycle contract is
-frozen, and exact-key Project/Environment lookup plus Policy management and
-lookup are implemented. Start with [P6-060](todo.md): add Group CRUD and
-Import for name and description only through the proven public IAM endpoints.
+frozen, and exact-key Project/Environment lookup plus Policy and Group
+management and lookup are implemented. Start with [P6-070](todo.md): add one
+exact Group-Policy binding resource through the proven public IAM endpoints.
 
 ## IAM v1 scope
 
@@ -29,6 +29,8 @@ Managed resources:
 Read-only data sources:
 
 - a Policy resolved by exact key, including built-in policies such as Owner;
+- an existing organization-wide Group resolved by exact ID or case-sensitive
+  exact name;
 - an existing Member resolved by exact ID or email; and
 - Project and Environment lookup by exact key, added to the existing data
   sources without breaking UUID lookup.
@@ -53,11 +55,13 @@ Explicit exclusions:
   `segment`, including documented wildcard and exact-key forms.
 - Group-to-Policy and Group-to-Member resources own one exact pair. Destroy
   removes only that pair.
+- The Group data source observes an existing Group without adopting its
+  lifecycle or relationships; its ID can feed either binding resource.
 - The Member direct-Policy resource is intentionally authoritative for one
   Member's direct Policy set. It never owns inherited Group Policies or the
   Member lifecycle.
-- Built-in Policies and existing Members are observed, not adopted as managed
-  objects.
+- Built-in Policies, Groups selected through the data source, and existing
+  Members are observed, not adopted as managed objects.
 - Exact lookup scans complete paginated results and rejects zero or duplicate
   matches; fuzzy search results are never accepted.
 
@@ -86,8 +90,8 @@ The phase passes only when:
   selectors;
 - Policy-with-statements, Group, both exact bindings, and authoritative direct
   Member Policies pass lifecycle, Import, drift, and empty-second-plan tests;
-- built-in Policy, Member, Project-key, and Environment-key lookup reject zero
-  and duplicate exact matches;
+- built-in Policy, Group-name, Member, Project-key, and Environment-key lookup
+  reject zero and duplicate exact matches;
 - a trusted current-Cloud run proves the customer workflow without creating or
   deleting a Member and restores every test-owned relationship;
 - diagnostics, logs, fixtures, and state contain no protected values;

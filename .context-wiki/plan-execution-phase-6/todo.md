@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-060**.
+only the concise result under the active item. The current item is **P6-070**.
 
 ## Scope and API contract
 
@@ -10,10 +10,10 @@ only the concise result under the active item. The current item is **P6-060**.
 
   IAM v1 manages custom Policies with statements, Groups, Group-Policy and
   Group-Member bindings, and an existing Member's direct Policy set. It adds
-  exact Policy, Member, Project-key, and Environment-key lookup. Policy
-  statements cover Project, Environment, Feature Flag, and Segment control
-  levels. Member CRUD, Service Tokens, built-in Policy mutation, and Phase 7
-  Segment targeting prerequisites are excluded.
+  exact Policy, existing Group, Member, Project-key, and Environment-key
+  lookup. Policy statements cover Project, Environment, Feature Flag, and
+  Segment control levels. Member CRUD, Service Tokens, built-in Policy
+  mutation, and Phase 7 Segment targeting prerequisites are excluded.
 
 - [x] **P6-020 — Prove the documented public IAM API.**
 
@@ -106,13 +106,15 @@ only the concise result under the active item. The current item is **P6-060**.
   | resource `featbit_group_member_binding` | `id` C+S synthetic pair; `group_id` R UUID; `member_id` R+S UUID | either input replaces; `<group_uuid>/<member_uuid>` |
   | resource `featbit_member_direct_policies` | `id` C+S and equal to the canonical Member UUID; `member_id` R+S UUID; `policy_ids` R set of UUIDs, including `[]` | `member_id` replaces; `<member_uuid>` |
   | data source `featbit_policy` | exactly one of `id` O+C UUID or exact case-sensitive `key` O+C; `name`, `description`, `type`, and statement set C | no ownership or Import |
+  | data source `featbit_group` | exactly one of `id` O+C UUID or organization-scoped exact case-sensitive `name` O+C; `description` C | no ownership or Import |
   | data source `featbit_member` | exactly one of `id` O+C+S UUID or `email` O+C+S; `name` C+S | no ownership or Import |
   | existing data source `featbit_project` | `id` and `key` become O+C selectors with exactly one configured; existing computed outputs stay unchanged | exact UUID or organization-scoped case-sensitive exact key |
   | existing data source `featbit_environment` | `project_id` remains R; `id` and `key` become O+C selectors with exactly one configured; existing computed outputs stay unchanged | exact UUID or case-sensitive exact key inside the exact Project |
 
-  Member email selection compares the complete token-scoped collection by
-  case-insensitive full-string equality, never substring search, and rejects
-  duplicate exact matches. State retains the server's canonical spelling.
+  Group name and Member email selection compare the complete token-scoped
+  collection by full-string equality, never substring search, and reject
+  duplicate exact matches. Group names are case-sensitive; Member emails are
+  case-insensitive. State retains the server's canonical spelling.
   Member adapters decode only `id`, `email`, and `name`; relationship adapters
   decode only the identifiers, types, and membership booleans needed by their
   caller. Member values are never interpolated into diagnostics.
@@ -159,12 +161,14 @@ only the concise result under the active item. The current item is **P6-060**.
     association remains, calls delete once, and requires complete-list exact
     absence. Import of a `SysManaged` Policy fails before any mutation; no
     built-in mutation path exists.
-  - `featbit_group` owns only Group existence, name, and description. It never
-    contains member or Policy IDs. Create uses complete-list exact-name zero,
-    then one create and an exact read; Update is one settings call. Because the
-    public delete cascades relationships, Destroy first requires complete Group
-    Member and Policy collections to be empty, then deletes once and proves
-    complete-list exact absence.
+  - The `featbit_group` resource owns only Group existence, name, and
+    description. It never contains member or Policy IDs. Create uses
+    complete-list exact-name zero, then one create and an exact read; Update is
+    one settings call. Because the public delete cascades relationships,
+    Destroy first requires complete Group Member and Policy collections to be
+    empty, then deletes once and proves complete-list exact absence. The
+    `featbit_group` data source selects an existing Group by exact ID or exact
+    name and adopts neither its lifecycle nor its relationships.
   - Each binding resource owns only its configured exact pair. Create resolves
     both IDs through complete token-scoped collections, reads the complete
     Group relationship collection, deliberately takes ownership without a
@@ -254,23 +258,53 @@ only the concise result under the active item. The current item is **P6-060**.
   aligned; repository tests, vet, build, touched-file formatting, module tidy,
   and module verification pass.
 
-- [ ] **P6-060 — Implement Group management.**
+- [x] **P6-060 — Implement Group management.**
 
-  Add Group CRUD and Import for name and description only. Do not place member
-  IDs or Policy IDs in the Group resource.
+  Add Group CRUD and Import for name and description only, plus exact read-only
+  lookup of an existing Group by ID or organization-scoped name. Do not place
+  member IDs or Policy IDs in the Group resource or data source.
 
-  Runtime: Group resource → `internal/client/groups.go` → public Group
-  endpoints. Done when lifecycle, exact absence, drift, and ambiguous mutation
-  handling pass.
+  Runtime: Group resource/data source → `internal/client/groups.go` → public
+  Group endpoints. Done when lifecycle, exact lookup and absence, drift, and
+  ambiguous mutation handling pass.
+
+  Result: the registered `featbit_group` resource owns only canonical UUID,
+  name, and description, while its data source observes an existing Group by
+  exact UUID or organization-scoped, case-sensitive exact name without taking
+  ownership. Both use the documented complete paginated list and exact read;
+  the resource additionally uses create, update, delete, and minimal Group
+  Member/Policy collection reads. The lifecycle enforces exact-name create
+  zero, one-shot mutation
+  reconciliation, canonical drift and out-of-band absence, empty-association
+  destroy preflight, complete-list deletion proof, and canonical UUID Import.
+  Focused client/resource/data-source tests cover pagination, duplicate and
+  missing selectors, redaction, association refusal, and ambiguous mutations
+  before or after remote apply. Protocol schema/Import, repository tests, vet,
+  build, formatting, module
+  tidy, and module verification pass. The local Windows race suite could not
+  start because CGO has no installed C compiler; race qualification remains in
+  P6-130/CI. A follow-up production reuse/dead-code pass removed the duplicate
+  canonical Group type, centralized exact zero/one/duplicate resolution across
+  Project, Environment, Policy, and Group, and centralized complete IAM
+  association-ID pagination for Policy and Group. Go `x/tools/deadcode`
+  confirms every business method is reachable; only deliberate
+  `fmt.Formatter` redaction hooks remain reported as statically unreachable.
 
 - [ ] **P6-070 — Implement Group-Policy bindings.**
 
   Add a resource for one exact Group/Policy pair. Read through the complete
   Group Policy collection; Create and Destroy add or remove only that pair.
 
+  Reuse the existing complete association-ID pagination in `groups.go`:
+  refactor the current count-only path into one narrow ID-returning helper,
+  expose the Group Policy IDs needed by the binding, and derive the existing
+  Group association counts with `len`. Do not add a second pagination,
+  membership-validation, UUID-canonicalization, or redaction path.
+
   Runtime: binding resource → Group client adapter → public Group Policy
-  endpoints. Done when Import, repeated apply, pre-existing binding, drift, and
-  out-of-band removal pass.
+  endpoints. Done when Import, repeated apply, pre-existing binding, drift,
+  out-of-band removal, and reuse of the single complete association-ID path
+  pass.
 
 - [ ] **P6-080 — Implement Member lookup and Group-Member bindings.**
 
@@ -306,9 +340,10 @@ only the concise result under the active item. The current item is **P6-060**.
 
   Across the workflow and focused variants, cover all four statement levels,
   wildcard and exact-resource selectors, Allow/Deny, and action subsets. Prove
-  Import, drift, redaction, cleanup, and an empty second plan. Removing one
-  binding must remove only its exact pair and preserve the other Policy and
-  Member bindings.
+  existing Group lookup by exact UUID and name, Import, drift, redaction,
+  cleanup, and an empty second plan. A binding must accept the looked-up Group
+  ID. Removing one binding must remove only its exact pair and preserve the
+  other Policy and Member bindings.
 
 - [ ] **P6-110 — Pass trusted current-Cloud acceptance.**
 

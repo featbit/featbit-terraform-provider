@@ -30,14 +30,14 @@ func policyResourceSchema() resourceschema.Schema {
 				Required:            true,
 				MarkdownDescription: "Policy display name.",
 				Validators: []validator.String{
-					policyNonEmptyStringValidator{field: "name"},
+					nonEmptyStringValidator{object: "Policy", field: "name"},
 				},
 			},
 			"key": resourceschema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "Immutable organization-scoped exact Policy key.",
 				Validators: []validator.String{
-					policyNonEmptyStringValidator{field: "key"},
+					nonEmptyStringValidator{object: "Policy", field: "key"},
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -100,37 +100,6 @@ func policyResourceStatementsAttribute() resourceschema.SetNestedAttribute {
 				},
 			},
 		},
-	}
-}
-
-type policyNonEmptyStringValidator struct {
-	field string
-}
-
-var _ validator.String = policyNonEmptyStringValidator{}
-
-func (v policyNonEmptyStringValidator) Description(context.Context) string {
-	return "must be non-empty"
-}
-
-func (v policyNonEmptyStringValidator) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-func (v policyNonEmptyStringValidator) ValidateString(
-	_ context.Context,
-	req validator.StringRequest,
-	resp *validator.StringResponse,
-) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-	if req.ConfigValue.ValueString() == "" {
-		resp.Diagnostics.AddAttributeError(
-			req.Path,
-			"Invalid FeatBit Policy "+v.field,
-			"The Policy "+v.field+" must be non-empty.",
-		)
 	}
 }
 

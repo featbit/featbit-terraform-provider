@@ -5,7 +5,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -49,12 +48,12 @@ func TestListPoliciesConsumesEveryPage(t *testing.T) {
 			}
 			switch page {
 			case "0":
-				return policyTestResponse(request, http.StatusOK, map[string]any{
+				return iamTestResponse(request, http.StatusOK, map[string]any{
 					"totalCount": len(policies),
 					"items":      policies[:policyPageSize],
 				}), nil
 			case "1":
-				return policyTestResponse(request, http.StatusOK, map[string]any{
+				return iamTestResponse(request, http.StatusOK, map[string]any{
 					"totalCount": len(policies),
 					"items":      policies[policyPageSize:],
 				}), nil
@@ -101,7 +100,7 @@ func TestListPoliciesRejectsIncompleteAndDuplicateCollections(t *testing.T) {
 			t.Parallel()
 			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
 				func(request *http.Request) (*http.Response, error) {
-					return policyTestResponse(request, http.StatusOK, page), nil
+					return iamTestResponse(request, http.StatusOK, page), nil
 				},
 			))
 			_, err := clientUnderTest.ListPolicies(context.Background())
@@ -124,7 +123,7 @@ func TestGetPolicyProvesMembershipBeforeExactRead(t *testing.T) {
 				if request.URL.EscapedPath() != "/api/v1/policies" {
 					t.Fatalf("membership request path = %s", request.URL.EscapedPath())
 				}
-				return policyTestResponse(request, http.StatusOK, map[string]any{
+				return iamTestResponse(request, http.StatusOK, map[string]any{
 					"totalCount": 1,
 					"items":      []Policy{listed},
 				}), nil
@@ -133,7 +132,7 @@ func TestGetPolicyProvesMembershipBeforeExactRead(t *testing.T) {
 					request.URL.RawQuery != "" {
 					t.Fatalf("exact request = %s?%s", request.URL.EscapedPath(), request.URL.RawQuery)
 				}
-				return policyTestResponse(request, http.StatusOK, direct), nil
+				return iamTestResponse(request, http.StatusOK, direct), nil
 			default:
 				t.Fatal("GetPolicy() made an unexpected request")
 				return nil, nil
@@ -154,7 +153,7 @@ func TestGetPolicyCollectionAbsenceSkipsDirectRead(t *testing.T) {
 	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
 		func(request *http.Request) (*http.Response, error) {
 			calls.Add(1)
-			return policyTestResponse(request, http.StatusOK, map[string]any{
+			return iamTestResponse(request, http.StatusOK, map[string]any{
 				"totalCount": 0,
 				"items":      []Policy{},
 			}), nil
@@ -229,7 +228,7 @@ func TestPolicyMutationContracts(t *testing.T) {
 				created := base
 				created.Name = "Managed"
 				created.Description = "Description"
-				return policyTestResponse(request, http.StatusOK, created), nil
+				return iamTestResponse(request, http.StatusOK, created), nil
 			case 2:
 				if request.Method != http.MethodPut ||
 					request.URL.EscapedPath() != "/api/v1/policies/"+clientPolicyIDOne+"/settings" ||
@@ -239,7 +238,7 @@ func TestPolicyMutationContracts(t *testing.T) {
 				updated := base
 				updated.Name = "Renamed"
 				updated.Description = "Updated"
-				return policyTestResponse(request, http.StatusOK, updated), nil
+				return iamTestResponse(request, http.StatusOK, updated), nil
 			case 3:
 				if request.Method != http.MethodPut ||
 					request.URL.EscapedPath() != "/api/v1/policies/"+clientPolicyIDOne+"/statements" ||
@@ -248,13 +247,13 @@ func TestPolicyMutationContracts(t *testing.T) {
 				}
 				updated := base
 				updated.Statements = []PolicyStatement{statement}
-				return policyTestResponse(request, http.StatusOK, updated), nil
+				return iamTestResponse(request, http.StatusOK, updated), nil
 			case 4:
 				if request.Method != http.MethodDelete ||
 					request.URL.EscapedPath() != "/api/v1/policies/"+clientPolicyIDOne || body != "" {
 					t.Fatalf("delete request = %s %s %s", request.Method, request.URL.EscapedPath(), body)
 				}
-				return policyTestResponse(request, http.StatusOK, true), nil
+				return iamTestResponse(request, http.StatusOK, true), nil
 			default:
 				t.Fatal("unexpected Policy mutation request")
 				return nil, nil
@@ -331,7 +330,7 @@ func TestPolicyMutationsExecuteOnce(t *testing.T) {
 			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
 				func(request *http.Request) (*http.Response, error) {
 					calls.Add(1)
-					return policyTestResponse(request, http.StatusInternalServerError, nil), nil
+					return iamTestResponse(request, http.StatusInternalServerError, nil), nil
 				},
 			))
 			err := invoke(clientUnderTest)
@@ -359,7 +358,7 @@ func TestPolicyAssociationCountsUseMinimalExactCollections(t *testing.T) {
 					request.URL.Query().Get("GetAllGroups") != "false" {
 					t.Fatalf("Group association request = %s?%s", request.URL.EscapedPath(), request.URL.RawQuery)
 				}
-				return policyTestResponse(request, http.StatusOK, map[string]any{
+				return iamTestResponse(request, http.StatusOK, map[string]any{
 					"totalCount": 1,
 					"items": []map[string]any{{
 						"id":            clientGroupID,
@@ -372,7 +371,7 @@ func TestPolicyAssociationCountsUseMinimalExactCollections(t *testing.T) {
 					request.URL.Query().Get("GetAllMembers") != "false" {
 					t.Fatalf("Member association request = %s?%s", request.URL.EscapedPath(), request.URL.RawQuery)
 				}
-				return policyTestResponse(request, http.StatusOK, map[string]any{
+				return iamTestResponse(request, http.StatusOK, map[string]any{
 					"totalCount": 1,
 					"items": []map[string]any{{
 						"id":              clientMemberID,
@@ -405,7 +404,7 @@ func TestPolicyErrorsRedactRuntimeDefinitionValues(t *testing.T) {
 	const runtimeSelector = "project/runtime-project:env/runtime-env:flag/runtime-flag;runtime-tag"
 	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
 		func(request *http.Request) (*http.Response, error) {
-			return policyTestResponse(request, http.StatusUnprocessableEntity, map[string]any{
+			return iamTestResponse(request, http.StatusUnprocessableEntity, map[string]any{
 				"message": runtimeKey + runtimeSelector,
 			}), nil
 		},
@@ -448,25 +447,4 @@ func clientPolicy(
 		Description: "",
 		Statements:  statements,
 	}
-}
-
-func policyTestResponse(request *http.Request, status int, data any) *http.Response {
-	success := status >= 200 && status < 300
-	payload := map[string]any{
-		"success": success,
-		"data":    data,
-		"errors":  []string{},
-	}
-	if !success {
-		payload["errors"] = []string{"synthetic policy failure"}
-	}
-	encoded, err := json.Marshal(payload)
-	if err != nil {
-		panic(err)
-	}
-	return syntheticResponse(
-		request,
-		status,
-		io.NopCloser(strings.NewReader(string(encoded))),
-	)
 }

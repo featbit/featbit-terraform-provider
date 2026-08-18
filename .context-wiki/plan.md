@@ -59,8 +59,9 @@ IAM is the first post-initial-release phase. IAM v1 manages custom Policies and
 their statements as one Terraform resource, including Project, Environment,
 Feature Flag, and Segment control levels; Groups; exact Group-Policy and
 Group-Member bindings; and one existing Member's authoritative direct-Policy
-set. It observes built-in Policies and existing Members, and extends the
-existing Project and Environment data sources with exact-key selection. Member
+set. It observes built-in Policies, existing organization-wide Groups, and
+existing Members, and extends the existing Project and Environment data
+sources with exact-key selection. Member
 invitation, creation, profile mutation, organization/workspace removal, and
 deletion remain external. Service Token management, including Service
 Token-to-Group assignment, is excluded because the required public resource and
@@ -178,13 +179,13 @@ configuration or transport changes.
 | Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 7 will close that gap after the required public API ships, without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
 | Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
 | IAM member | Frozen for Phase 6; not yet implemented | `featbit_member` reads one existing Member by exact ID or case-insensitive full email and exposes only sensitive ID/email/name. `featbit_member_direct_policies` owns that Member's complete direct Policy set; an empty set and Destroy remove direct Policies only. Invitation, profile, organization/workspace membership, deletion, and inherited Policies remain external, and `initialPassword` is never decoded into the Provider model. |
-| IAM group and custom policy | Frozen for Phase 6; not yet implemented | `featbit_group` owns Group existence and name/description but no relationships. `featbit_policy` owns one custom Policy's settings and complete unordered statement set; its exact-key data source can also observe built-in Policies, but every built-in mutation is structurally forbidden. Statements cover only Project, Environment, Feature Flag, and Segment with exact lower-case types/effects, the frozen action catalogs, and canonical wildcard/exact-key/tag selectors. |
+| IAM group and custom policy | Frozen for Phase 6; not yet implemented | The `featbit_group` resource owns Group existence and name/description but no relationships; its data source observes an existing Group by exact ID or organization-scoped, case-sensitive exact name without adopting it. `featbit_policy` owns one custom Policy's settings and complete unordered statement set; its exact-key data source can also observe built-in Policies, but every built-in mutation is structurally forbidden. Statements cover only Project, Environment, Feature Flag, and Segment with exact lower-case types/effects, the frozen action catalogs, and canonical wildcard/exact-key/tag selectors. |
 | IAM relationship edge | Frozen for Phase 6; not yet implemented | `featbit_group_policy_binding` and `featbit_group_member_binding` each own one exact pair and never a complete Group collection. Group and Policy destroy refuse to cascade live relationships. The authoritative direct-Policy resource never reads inherited Policies as owned state or changes Group edges. |
 
 Common lifecycle rules:
 
-- Match exact IDs or parent-scoped exact keys across every page; never select
-  the first fuzzy search result.
+- Match exact IDs, parent-scoped exact keys, or organization-scoped exact names
+  across every page; never select the first fuzzy search result.
 - Before Create, require exact zero. After an ambiguous mutation, reconcile by
   exact identity instead of retrying blindly or adopting an unrelated object.
 - Read after each logical write and persist the canonical server form.
@@ -271,8 +272,8 @@ Verify access-token tenant scope, optional context-header behavior, complete
 exact lookup, and every required IAM mutation before freezing schemas. The
 aligned surface consists of custom Policies with statements, Groups, exact
 Group-Member and Group-Policy bindings, an authoritative direct-Policy set for
-one existing Member, exact built-in Policy and Member lookup, and exact-key
-Project/Environment lookup. Policy statements cover Project, Environment,
+one existing Member, exact built-in Policy, existing Group, and Member lookup,
+and exact-key Project/Environment lookup. Policy statements cover Project, Environment,
 Feature Flag, and Segment control levels, including documented wildcard and
 exact-key resource selectors. Member lifecycle and Service Tokens are external.
 

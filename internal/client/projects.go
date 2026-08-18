@@ -288,29 +288,12 @@ func resolveProjectByID(
 	projectID string,
 	redactor *Redactor,
 ) (Project, bool, error) {
-	var match Project
-	matchCount := 0
-	for _, project := range projects {
-		if EqualUUID(project.ID, projectID) {
-			match = project
-			matchCount++
-		}
-	}
-
-	switch matchCount {
-	case 0:
-		return Project{}, false, nil
-	case 1:
-		return match, true, nil
-	default:
-		return Project{}, false, newAPIError(
-			ClassificationAmbiguous,
-			0,
-			"resolve_project",
-			nil,
-			redactor.With(projectID),
-		)
-	}
+	return resolveExactOne(
+		projects,
+		func(project Project) bool { return EqualUUID(project.ID, projectID) },
+		"resolve_project",
+		redactor.With(projectID),
+	)
 }
 
 // ResolveProjectByKey applies the shared case-sensitive exact zero/one/
@@ -320,29 +303,12 @@ func (c *Client) ResolveProjectByKey(
 	projects []Project,
 	key string,
 ) (Project, bool, error) {
-	var match Project
-	matchCount := 0
-	for _, project := range projects {
-		if project.Key == key {
-			match = project
-			matchCount++
-		}
-	}
-
-	switch matchCount {
-	case 0:
-		return Project{}, false, nil
-	case 1:
-		return match, true, nil
-	default:
-		return Project{}, false, newAPIError(
-			ClassificationAmbiguous,
-			0,
-			"resolve_project_by_key",
-			nil,
-			c.redactor.With(key),
-		)
-	}
+	return resolveExactOne(
+		projects,
+		func(project Project) bool { return project.Key == key },
+		"resolve_project_by_key",
+		c.redactor.With(key),
+	)
 }
 
 func validProject(project Project) bool {

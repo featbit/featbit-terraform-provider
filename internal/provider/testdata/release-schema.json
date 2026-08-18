@@ -286,6 +286,54 @@
         "block_types": []
       }
     },
+    "featbit_group": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one FeatBit Group's settings through the documented public API. Group members and Policies are managed by separate binding resources.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Group description. An omitted value canonicalizes to an empty string.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Group UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Group display name.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_policy": {
       "version": 0,
       "block": {
@@ -998,6 +1046,54 @@
         "block_types": []
       }
     },
+    "featbit_group": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one existing FeatBit Group by exact UUID or organization-scoped case-sensitive exact name without adopting its lifecycle or relationships.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Group description, canonicalized to an empty string when absent.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Group UUID. Configure exactly one of `id` or `name`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Organization-scoped case-sensitive exact Group name. Configure exactly one of `id` or `name`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_policy": {
       "version": 0,
       "block": {
@@ -1507,10 +1603,11 @@
   "actions": [],
   "state_stores": [],
   "import_forms": {
-    "featbit_environment": "<project_uuid>/<environment_uuid>",
-    "featbit_feature_flag": "<environment_uuid>/<exact_key>",
-    "featbit_policy": "<policy_uuid>",
-    "featbit_project": "<project_uuid>",
-    "featbit_segment": "<environment_uuid>/<segment_uuid>"
+    "featbit_environment": "\u003cproject_uuid\u003e/\u003cenvironment_uuid\u003e",
+    "featbit_feature_flag": "\u003cenvironment_uuid\u003e/\u003cexact_key\u003e",
+    "featbit_group": "\u003cgroup_uuid\u003e",
+    "featbit_policy": "\u003cpolicy_uuid\u003e",
+    "featbit_project": "\u003cproject_uuid\u003e",
+    "featbit_segment": "\u003cenvironment_uuid\u003e/\u003csegment_uuid\u003e"
   }
 }

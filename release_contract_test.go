@@ -28,12 +28,14 @@ const (
 	releaseEnvironmentID  = "22222222-2222-4222-8222-222222222222"
 	releaseSegmentID      = "33333333-3333-4333-8333-333333333333"
 	releasePolicyID       = "44444444-4444-4444-8444-444444444444"
+	releaseGroupID        = "55555555-5555-4555-8555-555555555555"
 )
 
 var releaseImportForms = map[string]string{
 	"featbit_project":      "<project_uuid>",
 	"featbit_environment":  "<project_uuid>/<environment_uuid>",
 	"featbit_feature_flag": "<environment_uuid>/<exact_key>",
+	"featbit_group":        "<group_uuid>",
 	"featbit_policy":       "<policy_uuid>",
 	"featbit_segment":      "<environment_uuid>/<segment_uuid>",
 }
@@ -187,6 +189,15 @@ func TestInitialReleaseImportForms(t *testing.T) {
 				releaseEnvironmentID,
 				releaseEnvironmentID + "/invalid key",
 				releaseEnvironmentID + "/exact-key/extra",
+			},
+		},
+		"featbit_group": {
+			validID:  releaseGroupID,
+			identity: map[string]string{"id": releaseGroupID},
+			rejectedForms: []string{
+				"",
+				"not-a-uuid",
+				releaseGroupID + "/extra",
 			},
 		},
 		"featbit_policy": {
@@ -456,9 +467,18 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		"max_concurrency",
 		"max_retries",
 	}
-	wantObjects := []string{
+	wantResources := []string{
 		"featbit_environment",
 		"featbit_feature_flag",
+		"featbit_group",
+		"featbit_policy",
+		"featbit_project",
+		"featbit_segment",
+	}
+	wantDataSources := []string{
+		"featbit_environment",
+		"featbit_feature_flag",
+		"featbit_group",
 		"featbit_policy",
 		"featbit_project",
 		"featbit_segment",
@@ -468,8 +488,8 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		want []string
 	}{
 		"provider attributes": {got: providerAttributes, want: wantProviderAttributes},
-		"resources":           {got: sortedReleaseKeys(response.ResourceSchemas), want: wantObjects},
-		"data sources":        {got: sortedReleaseKeys(response.DataSourceSchemas), want: wantObjects},
+		"resources":           {got: sortedReleaseKeys(response.ResourceSchemas), want: wantResources},
+		"data sources":        {got: sortedReleaseKeys(response.DataSourceSchemas), want: wantDataSources},
 		"functions":           {got: sortedReleaseKeys(response.Functions), want: []string{}},
 		"ephemeral resources": {got: sortedReleaseKeys(response.EphemeralResourceSchemas), want: []string{}},
 		"list resources":      {got: sortedReleaseKeys(response.ListResourceSchemas), want: []string{}},

@@ -340,11 +340,11 @@ func TestSegmentProtocolDataSourceSchemaAndUUIDValidation(t *testing.T) {
 	if err != nil || protocolHasError(productionSchema.Diagnostics) {
 		t.Fatalf("production GetProviderSchema() failed: %v / %v", err, productionSchema.Diagnostics)
 	}
-	if len(productionSchema.ResourceSchemas) != 5 {
-		t.Fatalf("production resource schema count = %d, want 5", len(productionSchema.ResourceSchemas))
+	if len(productionSchema.ResourceSchemas) != 6 {
+		t.Fatalf("production resource schema count = %d, want 6", len(productionSchema.ResourceSchemas))
 	}
-	if len(productionSchema.DataSourceSchemas) != 5 {
-		t.Fatalf("production data source schema count = %d, want 5", len(productionSchema.DataSourceSchemas))
+	if len(productionSchema.DataSourceSchemas) != 6 {
+		t.Fatalf("production data source schema count = %d, want 6", len(productionSchema.DataSourceSchemas))
 	}
 	if productionSchema.ResourceSchemas["featbit_segment"] == nil {
 		t.Fatal("Protocol schema omitted registered featbit_segment resource")
