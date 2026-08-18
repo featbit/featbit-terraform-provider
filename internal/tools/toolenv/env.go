@@ -13,13 +13,18 @@ var blockedNames = map[string]struct{}{
 	"FEATBIT_ACCESS_TOKEN":          {},
 	"FEATBIT_API_URL":               {},
 	"FEATBIT_HTTP_TIMEOUT_SECONDS":  {},
+	"FEATBIT_MCP_TOKEN":             {},
 	"FEATBIT_MAX_CONCURRENCY":       {},
 	"FEATBIT_MAX_RETRIES":           {},
+	"FEATBIT_TEST_MEMBER_ID":        {},
+	"FEATBIT_TEST_MEMBER_TOKEN":     {},
 	"FEATBIT_TEST_ORGANIZATION_KEY": {},
+	"FEATBIT_TEST_SERVICE_TOKEN":    {},
 	"TF_ACC":                        {},
 	"TF_CLI_CONFIG_FILE":            {},
 	"TF_PLUGIN_CACHE_DIR":           {},
 	"TF_REATTACH_PROVIDERS":         {},
+	"TF_VAR_FEATBIT_TEST_MEMBER_ID": {},
 }
 
 // Sanitized returns the current process environment without FeatBit, live

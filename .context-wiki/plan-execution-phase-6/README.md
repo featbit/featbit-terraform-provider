@@ -8,11 +8,10 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 
 ## Current entry point
 
-The public IAM API gate passed, the Terraform schema and lifecycle contract is
-frozen, and the complete frozen IAM provider surface plus its customer-shaped
-local Protocol workflow proof is implemented. Start with [P6-110](todo.md):
-pass trusted current-Cloud acceptance and restore every pre-authorized Member
-relationship after the run.
+The public IAM API, Terraform schema/lifecycle, local Protocol workflow, and
+trusted current-Cloud customer workflow have passed. Start with
+[P6-120](todo.md): publish the supported IAM resources, data sources,
+examples, and explicit exclusions.
 
 ## IAM v1 scope
 

@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-110**.
+only the concise result under the active item. The current item is **P6-120**.
 
 ## Scope and API contract
 
@@ -467,7 +467,7 @@ only the concise result under the active item. The current item is **P6-110**.
   compatibility per-package ceilings are now 180 seconds for the expanded
   serial Protocol suite; version-matrix and race qualification remain P6-130.
 
-- [ ] **P6-110 — Pass trusted current-Cloud acceptance.**
+- [x] **P6-110 — Pass trusted current-Cloud acceptance.**
 
   Run the same customer-shaped graph with a unique test-owned Project, its
   default dev/prod Environments, three Feature Flags, a Segment, two custom
@@ -487,6 +487,17 @@ only the concise result under the active item. The current item is **P6-110**.
   Service Token. Never retain the Member credential. Restore the Member's
   original direct Policies and remove every test-owned object and edge,
   including after a failed assertion.
+
+  Result: **passed on current Cloud on 2026-08-18.** The full five-step run
+  round-tripped the four statement levels, produced empty plans, proved exact
+  Project/Environment reads, reversible allowed Flag and Segment writes, the
+  sibling prod Flag 403, and loss then restoration of access across the exact
+  developer Member edge. Mutations remained one-shot; successful revision-ID
+  responses were accepted only after exact object reconciliation. Independent
+  final inventory found zero test Projects, Policies, and Groups, restored the
+  original one-Policy direct baseline with zero Group/inherited Policies, and
+  confirmed the exact built-in `owner` remained system-managed. Credentials
+  and the runtime-only Member identity were not retained.
 
 - [ ] **P6-120 — Publish the supported IAM surface in documentation.**
 
