@@ -44,7 +44,7 @@ one catalog change, then remove it from all three through Terraform.
 Terraform owns the Project, Stage, Flag definitions, and
 Environment-specific Segments. FeatBit creates Dev and Prod with the Project.
 Use the FeatBit UI for Flag enabled state, targeting, and rollouts that
-Provider `v0.1.1` cannot express.
+Provider `v0.2.0` cannot express.
 
 <a id="getting-started"></a>
 
@@ -118,7 +118,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.1.1"
+      version = "~> 0.2.0"
     }
   }
 }
@@ -126,7 +126,7 @@ terraform {
 provider "featbit" {}
 ```
 
-If this practice root was already initialized with Provider `v0.1.0`, update
+If this practice root was already initialized with a Provider `v0.1.x`, update
 the constraint above and refresh the dependency lock selection before
 continuing:
 
@@ -375,7 +375,7 @@ resource "featbit_segment" "checkout_beta_users" {
 }
 ```
 
-Provider `v0.1.1` can store included or excluded keys and rule payloads in
+Provider `v0.2.0` can store included or excluded keys and rule payloads in
 Segment targeting, including custom-property rules. It cannot use the
 documented public API to create missing Environment End Users or register
 missing custom-property metadata. Those targeting forms therefore require
@@ -565,9 +565,8 @@ payment-copy change.
 
 ## Step 5: Promote runtime settings through Stage to Prod
 
-Provider `v0.1.1` does not automate cross-Environment settings promotion. A
-future release may add this for Segment settings; Feature Flag settings
-promotion is not currently planned and remains a FeatBit UI workflow.
+Provider `v0.2.0` does not automate cross-Environment settings promotion.
+Feature Flag and Segment settings promotion remain FeatBit UI workflows.
 
 Terraform has already created matching Flag definitions and an empty Segment
 in all three Environments. The Segments are topology examples and do not take
@@ -733,7 +732,7 @@ Plan: 0 to add, 0 to change, 3 to destroy.
 ```
 
 Applying this plan permanently deletes the Flag from Dev, Stage, and Prod.
-Provider `v0.1.1` cannot keep a Terraform-managed Flag archived. The
+Provider `v0.2.0` cannot keep a Terraform-managed Flag archived. The
 verification plan must report `No changes`.
 
 <a id="cleanup"></a>

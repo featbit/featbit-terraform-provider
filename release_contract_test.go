@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	initialReleaseVersion       = "0.1.0"
+	iamReleaseVersion           = "0.2.0"
 	releaseSchemaPath           = "internal/provider/testdata/release-schema.json"
 	releaseProjectID            = "11111111-1111-4111-8111-111111111111"
 	releaseEnvironmentID        = "22222222-2222-4222-8222-222222222222"
@@ -105,10 +105,10 @@ type releaseNestedBlockSnapshot struct {
 	Block    releaseBlockSnapshot `json:"block"`
 }
 
-func TestInitialReleaseProtocolSchemaSnapshot(t *testing.T) {
+func TestIAMReleaseProtocolSchemaSnapshot(t *testing.T) {
 	t.Parallel()
 
-	server := providerserver.NewProtocol6(featbitprovider.New(initialReleaseVersion)())()
+	server := providerserver.NewProtocol6(featbitprovider.New(iamReleaseVersion)())()
 	response, err := server.GetProviderSchema(
 		context.Background(),
 		&tfprotov6.GetProviderSchemaRequest{},
@@ -146,10 +146,10 @@ func TestInitialReleaseProtocolSchemaSnapshot(t *testing.T) {
 	t.Fatal("Protocol v6 release schema differs from internal/provider/testdata/release-schema.json")
 }
 
-func TestInitialReleaseImportForms(t *testing.T) {
+func TestIAMReleaseImportForms(t *testing.T) {
 	t.Parallel()
 
-	server := providerserver.NewProtocol6(featbitprovider.New(initialReleaseVersion)())()
+	server := providerserver.NewProtocol6(featbitprovider.New(iamReleaseVersion)())()
 	schemaResponse, err := server.GetProviderSchema(
 		context.Background(),
 		&tfprotov6.GetProviderSchemaRequest{},
@@ -310,17 +310,17 @@ func TestInitialReleaseImportForms(t *testing.T) {
 	}
 }
 
-func TestInitialReleaseMetadataAndManifest(t *testing.T) {
+func TestIAMReleaseMetadataAndManifest(t *testing.T) {
 	t.Parallel()
 
-	providerUnderTest := featbitprovider.New(initialReleaseVersion)()
+	providerUnderTest := featbitprovider.New(iamReleaseVersion)()
 	var metadata frameworkprovider.MetadataResponse
 	providerUnderTest.Metadata(
 		context.Background(),
 		frameworkprovider.MetadataRequest{},
 		&metadata,
 	)
-	if metadata.TypeName != "featbit" || metadata.Version != initialReleaseVersion {
+	if metadata.TypeName != "featbit" || metadata.Version != iamReleaseVersion {
 		t.Fatalf("provider metadata = %q/%q", metadata.TypeName, metadata.Version)
 	}
 	if providerAddress != "registry.terraform.io/featbit/featbit" {
@@ -500,7 +500,7 @@ func sortedReleaseKeys[T any](values map[string]T) []string {
 func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSchemaResponse) {
 	t.Helper()
 	if response.Provider == nil || response.Provider.Block == nil {
-		t.Fatal("initial release provider schema is nil")
+		t.Fatal("IAM release provider schema is nil")
 	}
 
 	providerAttributes := make([]string, 0, len(response.Provider.Block.Attributes))
@@ -550,7 +550,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 	}
 	for name, check := range checks {
 		if !slices.Equal(check.got, check.want) {
-			t.Fatalf("initial release %s = %v, want %v", name, check.got, check.want)
+			t.Fatalf("IAM release %s = %v, want %v", name, check.got, check.want)
 		}
 	}
 }

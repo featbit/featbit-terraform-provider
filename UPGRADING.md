@@ -30,7 +30,7 @@ an explicit, tested schema-version migration. A change that removes or renames
 an attribute or object, changes its type/default/ownership, rejects previously
 valid configuration, or reinterprets identity, state, or Import is breaking.
 
-The initial Import contracts are:
+The core Import contracts introduced in `0.1.x` are:
 
 | Resource | Import ID |
 |---|---|
@@ -39,25 +39,36 @@ The initial Import contracts are:
 | Feature Flag | `<environment_uuid>/<exact_key>` |
 | Segment | `<environment_uuid>/<segment_uuid>` |
 
-An additional Import spelling may be additive, but these forms are not removed
-or reinterpreted in a compatible release.
+The IAM Import contracts introduced in `0.2.x` are:
+
+| Resource | Import ID |
+|---|---|
+| Custom Policy | `<policy_uuid>` |
+| Group | `<group_uuid>` |
+| Group-Policy binding | `<group_uuid>/<policy_uuid>` |
+| Group-Member binding | `<group_uuid>/<member_uuid>` |
+| Member direct Policies | `<member_uuid>` |
+
+An additional Import spelling may be additive, but none of these forms are
+removed or reinterpreted in a compatible release.
 
 ## Pin the intended release line
 
-For the initial `0.1.x` line, use a three-component pessimistic constraint so
-Terraform cannot select a potentially breaking `0.2.0` automatically:
+Use a three-component pessimistic constraint so Terraform cannot cross a
+pre-1.0 minor boundary automatically. For the IAM-enabled `0.2.x` line:
 
 ```hcl
 terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.1.0"
+      version = "~> 0.2.0"
     }
   }
 }
 ```
 
+Core-only roots that intentionally remain on `0.1.x` can retain `~> 0.1.0`.
 Commit `.terraform.lock.hcl` for deployed root configurations. Change the
 minor or major constraint only after reviewing that release's notes and any
 migration instructions.

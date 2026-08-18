@@ -3,17 +3,18 @@
 page_title: "featbit_project Data Source - FeatBit"
 subcategory: "Core"
 description: |-
-  Reads one FeatBit Project by its exact UUID.
+  Reads one FeatBit Project by exact UUID or organization-scoped key.
 ---
 
 # featbit_project (Data Source)
 
 {{ .Description | trimspace }}
 
-The lookup scans the complete Project collection for the exact UUID. It fails
-when no exact match exists and never selects a fuzzy or first result. Returned
-Environments are canonical, non-owning observations; secret values and UI
-settings are not exposed.
+Configure exactly one selector: `id` for a UUID or `key` for an
+organization-scoped, case-sensitive exact key. Key lookup scans the complete
+Project collection and rejects zero or duplicate exact matches; it never
+selects a fuzzy or first result. Returned Environments are canonical,
+non-owning observations; secret values and UI settings are not exposed.
 
 ## Example Usage
 

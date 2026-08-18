@@ -8,10 +8,11 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 
 ## Current entry point
 
-The public IAM API, Terraform schema/lifecycle, local Protocol workflow, and
-trusted current-Cloud customer workflow have passed. Start with
-[P6-120](todo.md): publish the supported IAM resources, data sources,
-examples, and explicit exclusions.
+The public IAM API, Terraform schema/lifecycle, runtime implementation, local
+Protocol workflow, trusted current-Cloud customer workflow, and Registry
+documentation have passed. Start with [P6-130](todo.md): qualify the complete
+IAM release through the frozen credential-free, Protocol, race, redaction, and
+packaging gates.
 
 ## IAM v1 scope
 

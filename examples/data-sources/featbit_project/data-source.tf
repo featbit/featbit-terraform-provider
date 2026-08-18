@@ -1,8 +1,8 @@
-variable "project_id" {
-  description = "Exact FeatBit Project UUID."
+variable "project_key" {
+  description = "Organization-scoped, case-sensitive exact FeatBit Project key."
   type        = string
 }
 
 data "featbit_project" "exact" {
-  id = var.project_id
+  key = var.project_key
 }

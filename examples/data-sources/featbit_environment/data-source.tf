@@ -1,14 +1,18 @@
-variable "project_id" {
-  description = "Exact parent FeatBit Project UUID."
+variable "project_key" {
+  description = "Organization-scoped, case-sensitive exact FeatBit Project key."
   type        = string
 }
 
-variable "environment_id" {
-  description = "Exact FeatBit Environment UUID."
+variable "environment_key" {
+  description = "Case-sensitive exact Environment key within the selected Project."
   type        = string
+}
+
+data "featbit_project" "parent" {
+  key = var.project_key
 }
 
 data "featbit_environment" "exact" {
-  project_id = var.project_id
-  id         = var.environment_id
+  project_id = data.featbit_project.parent.id
+  key        = var.environment_key
 }

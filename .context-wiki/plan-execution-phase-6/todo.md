@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-120**.
+only the concise result under the active item. The current item is **P6-130**.
 
 ## Scope and API contract
 
@@ -499,13 +499,27 @@ only the concise result under the active item. The current item is **P6-120**.
   confirmed the exact built-in `owner` remained system-managed. Credentials
   and the runtime-only Member identity were not retained.
 
-- [ ] **P6-120 — Publish the supported IAM surface in documentation.**
+- [x] **P6-120 — Publish the supported IAM surface in documentation.**
 
   Add resource/data-source pages and runnable examples, regenerate Registry
   docs, and update README and schema assertions. Show the required parent
   Project/Environment access alongside Feature Flag and Segment permissions.
   State clearly that Member CRUD, Service Token management, and Phase 7 Segment
   prerequisites are unsupported.
+
+  Result: Registry templates, generated pages, and independently validatable
+  examples now cover all five IAM resources and three IAM data sources, while
+  the existing Project and Environment data-source pages demonstrate exact-key
+  lookup. The Policy reference publishes the frozen four-level action catalog,
+  selector grammar, and required parent Project/Environment access alongside
+  Flag and Segment permissions. Group pair ownership, authoritative direct
+  Member Policies, Sensitive Member state, built-in Policy immutability,
+  Member lifecycle exclusion, external Service Token management, and deferred
+  Segment End User/property prerequisites are explicit. Public guides and the
+  release assertions now target the additive `0.2.x` IAM line. The generated
+  9-resource/7-data-source document surface is byte-current; all 17
+  credential-free example sets validate, and repository tests, vet, build,
+  module tidy/verification, formatting, and diff checks pass.
 
 - [ ] **P6-130 — Qualify the IAM release.**
 
