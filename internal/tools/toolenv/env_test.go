@@ -10,7 +10,6 @@ import (
 
 func TestSanitized(t *testing.T) {
 	t.Setenv("FEATBIT_ACCESS_TOKEN", "must-not-escape")
-	t.Setenv("FEATBIT_MCP_TOKEN", "must-not-escape")
 	t.Setenv("FEATBIT_TEST_SERVICE_TOKEN", "must-not-escape")
 	t.Setenv("FEATBIT_TEST_MEMBER_ID", "must-not-escape")
 	t.Setenv("FEATBIT_TEST_MEMBER_TOKEN", "must-not-escape")
@@ -39,7 +38,6 @@ func TestSanitized(t *testing.T) {
 		present bool
 	}{
 		{name: "FeatBit credential removed", key: "FEATBIT_ACCESS_TOKEN"},
-		{name: "FeatBit MCP credential removed", key: "FEATBIT_MCP_TOKEN"},
 		{name: "FeatBit acceptance credential removed", key: "FEATBIT_TEST_SERVICE_TOKEN"},
 		{name: "FeatBit acceptance identity removed", key: "FEATBIT_TEST_MEMBER_ID"},
 		{name: "FeatBit Member credential removed", key: "FEATBIT_TEST_MEMBER_TOKEN"},

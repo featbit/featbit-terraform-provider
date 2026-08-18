@@ -13,7 +13,6 @@ var blockedNames = map[string]struct{}{
 	"FEATBIT_ACCESS_TOKEN":          {},
 	"FEATBIT_API_URL":               {},
 	"FEATBIT_HTTP_TIMEOUT_SECONDS":  {},
-	"FEATBIT_MCP_TOKEN":             {},
 	"FEATBIT_MAX_CONCURRENCY":       {},
 	"FEATBIT_MAX_RETRIES":           {},
 	"FEATBIT_TEST_MEMBER_ID":        {},
