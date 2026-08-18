@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-070**.
+only the concise result under the active item. The current item is **P6-080**.
 
 ## Scope and API contract
 
@@ -290,7 +290,7 @@ only the concise result under the active item. The current item is **P6-070**.
   confirms every business method is reachable; only deliberate
   `fmt.Formatter` redaction hooks remain reported as statically unreachable.
 
-- [ ] **P6-070 — Implement Group-Policy bindings.**
+- [x] **P6-070 — Implement Group-Policy bindings.**
 
   Add a resource for one exact Group/Policy pair. Read through the complete
   Group Policy collection; Create and Destroy add or remove only that pair.
@@ -305,6 +305,32 @@ only the concise result under the active item. The current item is **P6-070**.
   endpoints. Done when Import, repeated apply, pre-existing binding, drift,
   out-of-band removal, and reuse of the single complete association-ID path
   pass.
+
+  Result: registered `featbit_group_policy_binding` now owns only one canonical
+  Group/Policy pair, uses replacement-aware synthetic ID and Import form
+  `<group_uuid>/<policy_uuid>`, accepts custom or built-in Policies, and adopts
+  an already-existing exact pair without mutation. Create and Destroy resolve
+  both endpoint IDs through their complete token-scoped collections, execute
+  at most one documented add/remove call, and require an exact complete
+  relationship reread; Read removes state only on authoritative pair absence,
+  including a confirmed missing endpoint, while ambiguous reads preserve
+  state. The Group client exposes canonical Policy IDs through the existing
+  single complete association paginator, and both prior Group association
+  counts now derive from that same ID-returning path. Focused client/resource
+  tests cover pagination, Member/Policy membership validation, duplicate IDs,
+  one-shot mutations, pre-existing and built-in bindings, repeated refresh,
+  drift, exact out-of-band removal, unrelated-pair preservation, ambiguous
+  preflight and mutation reconciliation, the read-only Update safety path,
+  replacement planning, inconsistent synthetic state, redaction, and canonical
+  Import. A whole-repository reuse/reachability/test audit retained the shared
+  association paginator and narrow Group mutation helpers without introducing
+  a cross-resource binding abstraction; no unused production business method
+  remains. It removed one unused test method and one overwritten test
+  assignment and simplified one redundant nil/length check. Go
+  `x/tools/deadcode` now reports only deliberate dynamic `fmt.Formatter`
+  redaction hooks, and targeted Staticcheck is clean. The Protocol v6
+  schema/Import snapshot is aligned; repository tests, vet, build, formatting,
+  module tidy, and module verification pass.
 
 - [ ] **P6-080 — Implement Member lookup and Group-Member bindings.**
 

@@ -497,8 +497,8 @@ func TestFeatureFlagProtocolSchemasAndValidation(t *testing.T) {
 	if err != nil || protocolHasError(productionSchema.Diagnostics) {
 		t.Fatalf("production GetProviderSchema() failed: %v / %v", err, productionSchema.Diagnostics)
 	}
-	if len(productionSchema.ResourceSchemas) != 6 {
-		t.Fatalf("production resource schema count = %d, want 6", len(productionSchema.ResourceSchemas))
+	if len(productionSchema.ResourceSchemas) != 7 {
+		t.Fatalf("production resource schema count = %d, want 7", len(productionSchema.ResourceSchemas))
 	}
 	if len(productionSchema.DataSourceSchemas) != 6 {
 		t.Fatalf("production data source schema count = %d, want 6", len(productionSchema.DataSourceSchemas))

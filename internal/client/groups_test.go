@@ -332,6 +332,61 @@ func TestGroupMutationContracts(t *testing.T) {
 	}
 }
 
+func TestGroupPolicyMutationContracts(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		path   string
+		invoke func(*Client) error
+	}{
+		"add": {
+			path: "/api/v1/groups/" + clientGroupID + "/add-policy/" + clientPolicyIDOne,
+			invoke: func(apiClient *Client) error {
+				return apiClient.AddGroupPolicy(context.Background(), clientGroupID, clientPolicyIDOne)
+			},
+		},
+		"remove": {
+			path: "/api/v1/groups/" + clientGroupID + "/remove-policy/" + clientPolicyIDOne,
+			invoke: func(apiClient *Client) error {
+				return apiClient.RemoveGroupPolicy(context.Background(), clientGroupID, clientPolicyIDOne)
+			},
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			var calls atomic.Int32
+			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+				func(request *http.Request) (*http.Response, error) {
+					calls.Add(1)
+					body := ""
+					if request.Body != nil && request.Body != http.NoBody {
+						contents, err := io.ReadAll(request.Body)
+						if err != nil {
+							t.Fatalf("read mutation body: %v", err)
+						}
+						body = string(contents)
+					}
+					if request.Method != http.MethodPut || request.URL.EscapedPath() != test.path || body != "" {
+						t.Fatalf("request = %s %s %q", request.Method, request.URL.EscapedPath(), body)
+					}
+					return iamTestResponse(request, http.StatusOK, true), nil
+				},
+			))
+
+			if err := test.invoke(clientUnderTest); err != nil {
+				t.Fatalf("mutation error = %v", err)
+			}
+			if calls.Load() != 1 {
+				t.Fatalf("mutation calls = %d, want 1", calls.Load())
+			}
+		})
+	}
+}
+
 func TestGroupMutationsExecuteOnce(t *testing.T) {
 	t.Parallel()
 
@@ -353,6 +408,12 @@ func TestGroupMutationsExecuteOnce(t *testing.T) {
 		},
 		"delete": func(apiClient *Client) error {
 			return apiClient.DeleteGroup(context.Background(), clientGroupID)
+		},
+		"add Policy": func(apiClient *Client) error {
+			return apiClient.AddGroupPolicy(context.Background(), clientGroupID, clientPolicyIDOne)
+		},
+		"remove Policy": func(apiClient *Client) error {
+			return apiClient.RemoveGroupPolicy(context.Background(), clientGroupID, clientPolicyIDOne)
 		},
 	}
 
@@ -377,7 +438,7 @@ func TestGroupMutationsExecuteOnce(t *testing.T) {
 	}
 }
 
-func TestGroupAssociationCountsUseMinimalExactCollections(t *testing.T) {
+func TestGroupAssociationIDsUseMinimalExactCollections(t *testing.T) {
 	t.Parallel()
 
 	var calls atomic.Int32
@@ -427,43 +488,201 @@ func TestGroupAssociationCountsUseMinimalExactCollections(t *testing.T) {
 	if err != nil || members != 1 {
 		t.Fatalf("CountGroupMembers() = %d/%v", members, err)
 	}
-	policies, err := clientUnderTest.CountGroupPolicies(context.Background(), clientGroupID)
-	if err != nil || policies != 1 {
-		t.Fatalf("CountGroupPolicies() = %d/%v", policies, err)
+	policyIDs, err := clientUnderTest.ListGroupPolicyIDs(context.Background(), clientGroupID)
+	if err != nil || len(policyIDs) != 1 || policyIDs[0] != clientPolicyIDOne {
+		t.Fatalf("ListGroupPolicyIDs() = %v/%v", policyIDs, err)
 	}
 }
 
-func TestGroupAssociationCountsRejectUnconfirmedMembership(t *testing.T) {
+func TestListGroupPolicyIDsConsumesEveryPageAndCanonicalizes(t *testing.T) {
 	t.Parallel()
 
-	tests := map[string]map[string]any{
-		"missing membership": {
-			"id": clientMemberID,
+	policyIDs := make([]string, 0, groupPageSize+1)
+	for index := 0; index < groupPageSize+1; index++ {
+		policyIDs = append(policyIDs, fmt.Sprintf("00000000-0000-4000-8000-%012x", index+1))
+	}
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			if request.Method != http.MethodGet ||
+				request.URL.EscapedPath() != "/api/v1/groups/"+clientGroupID+"/policies" ||
+				request.URL.Query().Get("GetAllPolicies") != "false" ||
+				request.URL.Query().Get("PageSize") != "100" {
+				t.Fatalf("request = %s %s?%s", request.Method, request.URL.EscapedPath(), request.URL.RawQuery)
+			}
+			var pageIDs []string
+			switch pageIndex := request.URL.Query().Get("PageIndex"); pageIndex {
+			case "0":
+				pageIDs = policyIDs[:groupPageSize]
+			case "1":
+				pageIDs = policyIDs[groupPageSize:]
+			default:
+				t.Fatalf("unexpected PageIndex = %q", pageIndex)
+			}
+			calls.Add(1)
+			items := make([]map[string]any, 0, len(pageIDs))
+			for _, policyID := range pageIDs {
+				items = append(items, map[string]any{
+					"id":            strings.ToUpper(policyID),
+					"isGroupPolicy": true,
+				})
+			}
+			return iamTestResponse(request, http.StatusOK, map[string]any{
+				"totalCount": len(policyIDs),
+				"items":      items,
+			}), nil
 		},
-		"false membership": {
-			"id":            clientMemberID,
-			"isGroupMember": false,
+	))
+
+	got, err := clientUnderTest.ListGroupPolicyIDs(context.Background(), clientGroupID)
+	if err != nil {
+		t.Fatalf("ListGroupPolicyIDs() error = %v", err)
+	}
+	if fmt.Sprint(got) != fmt.Sprint(policyIDs) {
+		t.Fatalf("ListGroupPolicyIDs() = %v, want canonical IDs", got)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("page calls = %d, want 2", calls.Load())
+	}
+
+	countClient := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			return iamTestResponse(request, http.StatusOK, map[string]any{
+				"totalCount": 1,
+				"items": []map[string]any{{
+					"id": clientPolicyIDOne, "isGroupPolicy": true,
+				}},
+			}), nil
 		},
-		"invalid UUID": {
-			"id":            "not-a-uuid",
-			"isGroupMember": true,
+	))
+	count, err := countClient.CountGroupPolicies(context.Background(), clientGroupID)
+	if err != nil || count != 1 {
+		t.Fatalf("CountGroupPolicies() = %d/%v", count, err)
+	}
+}
+
+func TestGroupPolicyMutationsRejectInvalidOrUnconfirmedPairs(t *testing.T) {
+	t.Parallel()
+
+	var calls atomic.Int32
+	clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
+		func(request *http.Request) (*http.Response, error) {
+			calls.Add(1)
+			return iamTestResponse(request, http.StatusOK, false), nil
+		},
+	))
+
+	tests := map[string]error{
+		"invalid Group": clientUnderTest.AddGroupPolicy(
+			context.Background(), "not-a-uuid", clientPolicyIDOne,
+		),
+		"invalid Policy": clientUnderTest.RemoveGroupPolicy(
+			context.Background(), clientGroupID, "not-a-uuid",
+		),
+	}
+	for name, err := range tests {
+		requireAPIErrorClassification(t, err, ClassificationValidation)
+		if strings.Contains(fmt.Sprint(err), "not-a-uuid") {
+			t.Fatalf("%s error exposed rejected identity", name)
+		}
+	}
+	if calls.Load() != 0 {
+		t.Fatalf("invalid mutations reached transport %d times", calls.Load())
+	}
+
+	err := clientUnderTest.AddGroupPolicy(
+		context.Background(), clientGroupID, clientPolicyIDOne,
+	)
+	requireAPIErrorClassification(t, err, ClassificationAmbiguous)
+	formatted := fmt.Sprint(err)
+	for _, unsafe := range []string{clientGroupID, clientPolicyIDOne, "/api/v1/groups"} {
+		if strings.Contains(formatted, unsafe) {
+			t.Fatalf("unconfirmed mutation error exposed runtime value %q: %s", unsafe, formatted)
+		}
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("unconfirmed mutation calls = %d, want 1", calls.Load())
+	}
+}
+
+func TestGroupAssociationIDsRejectUnconfirmedMembership(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		items  []map[string]any
+		invoke func(*Client) error
+	}{
+		"Member missing membership": {
+			items: []map[string]any{{"id": clientMemberID}},
+			invoke: func(apiClient *Client) error {
+				_, err := apiClient.CountGroupMembers(context.Background(), clientGroupID)
+				return err
+			},
+		},
+		"Member false membership": {
+			items: []map[string]any{{"id": clientMemberID, "isGroupMember": false}},
+			invoke: func(apiClient *Client) error {
+				_, err := apiClient.CountGroupMembers(context.Background(), clientGroupID)
+				return err
+			},
+		},
+		"Member invalid UUID": {
+			items: []map[string]any{{"id": "not-a-uuid", "isGroupMember": true}},
+			invoke: func(apiClient *Client) error {
+				_, err := apiClient.CountGroupMembers(context.Background(), clientGroupID)
+				return err
+			},
+		},
+		"Policy missing membership": {
+			items: []map[string]any{{"id": clientPolicyIDOne}},
+			invoke: func(apiClient *Client) error {
+				_, err := apiClient.ListGroupPolicyIDs(context.Background(), clientGroupID)
+				return err
+			},
+		},
+		"Policy false membership": {
+			items: []map[string]any{{"id": clientPolicyIDOne, "isGroupPolicy": false}},
+			invoke: func(apiClient *Client) error {
+				_, err := apiClient.ListGroupPolicyIDs(context.Background(), clientGroupID)
+				return err
+			},
+		},
+		"Policy invalid UUID": {
+			items: []map[string]any{{"id": "not-a-uuid", "isGroupPolicy": true}},
+			invoke: func(apiClient *Client) error {
+				_, err := apiClient.ListGroupPolicyIDs(context.Background(), clientGroupID)
+				return err
+			},
+		},
+		"Policy duplicate UUID": {
+			items: []map[string]any{
+				{"id": clientPolicyIDOne, "isGroupPolicy": true},
+				{"id": strings.ToUpper(clientPolicyIDOne), "isGroupPolicy": true},
+			},
+			invoke: func(apiClient *Client) error {
+				_, err := apiClient.ListGroupPolicyIDs(context.Background(), clientGroupID)
+				return err
+			},
 		},
 	}
-	for name, item := range tests {
+	for name, test := range tests {
 		name := name
-		item := item
+		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			clientUnderTest := newTestClientWithTransport(t, defaultTestOptions(), roundTripFunc(
 				func(request *http.Request) (*http.Response, error) {
 					return iamTestResponse(request, http.StatusOK, map[string]any{
-						"totalCount": 1,
-						"items":      []map[string]any{item},
+						"totalCount": len(test.items),
+						"items":      test.items,
 					}), nil
 				},
 			))
-			_, err := clientUnderTest.CountGroupMembers(context.Background(), clientGroupID)
+			err := test.invoke(clientUnderTest)
 			requireAPIErrorClassification(t, err, ClassificationAmbiguous)
+			if strings.Contains(fmt.Sprint(err), "not-a-uuid") {
+				t.Fatal("association error exposed an invalid runtime identity")
+			}
 		})
 	}
 }

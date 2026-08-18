@@ -1035,7 +1035,7 @@ func validSegmentTaxonomy(
 	scopes []string,
 	isEnvironmentSpecific *bool,
 ) bool {
-	if scopes == nil || len(scopes) == 0 {
+	if len(scopes) == 0 {
 		return false
 	}
 	kinds := make([]SegmentScopeKind, len(scopes))

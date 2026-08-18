@@ -22,22 +22,24 @@ import (
 )
 
 const (
-	initialReleaseVersion = "0.1.0"
-	releaseSchemaPath     = "internal/provider/testdata/release-schema.json"
-	releaseProjectID      = "11111111-1111-4111-8111-111111111111"
-	releaseEnvironmentID  = "22222222-2222-4222-8222-222222222222"
-	releaseSegmentID      = "33333333-3333-4333-8333-333333333333"
-	releasePolicyID       = "44444444-4444-4444-8444-444444444444"
-	releaseGroupID        = "55555555-5555-4555-8555-555555555555"
+	initialReleaseVersion       = "0.1.0"
+	releaseSchemaPath           = "internal/provider/testdata/release-schema.json"
+	releaseProjectID            = "11111111-1111-4111-8111-111111111111"
+	releaseEnvironmentID        = "22222222-2222-4222-8222-222222222222"
+	releaseSegmentID            = "33333333-3333-4333-8333-333333333333"
+	releasePolicyID             = "44444444-4444-4444-8444-444444444444"
+	releaseGroupID              = "55555555-5555-4555-8555-555555555555"
+	releaseGroupPolicyBindingID = releaseGroupID + "/" + releasePolicyID
 )
 
 var releaseImportForms = map[string]string{
-	"featbit_project":      "<project_uuid>",
-	"featbit_environment":  "<project_uuid>/<environment_uuid>",
-	"featbit_feature_flag": "<environment_uuid>/<exact_key>",
-	"featbit_group":        "<group_uuid>",
-	"featbit_policy":       "<policy_uuid>",
-	"featbit_segment":      "<environment_uuid>/<segment_uuid>",
+	"featbit_project":              "<project_uuid>",
+	"featbit_environment":          "<project_uuid>/<environment_uuid>",
+	"featbit_feature_flag":         "<environment_uuid>/<exact_key>",
+	"featbit_group":                "<group_uuid>",
+	"featbit_group_policy_binding": "<group_uuid>/<policy_uuid>",
+	"featbit_policy":               "<policy_uuid>",
+	"featbit_segment":              "<environment_uuid>/<segment_uuid>",
 }
 
 type releaseContractSnapshot struct {
@@ -198,6 +200,21 @@ func TestInitialReleaseImportForms(t *testing.T) {
 				"",
 				"not-a-uuid",
 				releaseGroupID + "/extra",
+			},
+		},
+		"featbit_group_policy_binding": {
+			validID: releaseGroupPolicyBindingID,
+			identity: map[string]string{
+				"id":        releaseGroupPolicyBindingID,
+				"group_id":  releaseGroupID,
+				"policy_id": releasePolicyID,
+			},
+			rejectedForms: []string{
+				"",
+				releaseGroupID,
+				"not-a-uuid/" + releasePolicyID,
+				releaseGroupID + "/not-a-uuid",
+				releaseGroupPolicyBindingID + "/extra",
 			},
 		},
 		"featbit_policy": {
@@ -471,6 +488,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		"featbit_environment",
 		"featbit_feature_flag",
 		"featbit_group",
+		"featbit_group_policy_binding",
 		"featbit_policy",
 		"featbit_project",
 		"featbit_segment",

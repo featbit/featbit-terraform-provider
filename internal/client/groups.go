@@ -396,21 +396,42 @@ func (c *Client) DeleteGroup(ctx context.Context, groupID string) error {
 // CountGroupMembers consumes the complete exact Group member collection while
 // decoding only UUID and membership status.
 func (c *Client) CountGroupMembers(ctx context.Context, groupID string) (int, error) {
-	return c.countGroupAssociations(ctx, groupID, groupMemberAssociation)
+	associationIDs, err := c.listGroupAssociationIDs(ctx, groupID, groupMemberAssociation)
+	return len(associationIDs), err
 }
 
-// CountGroupPolicies consumes the complete exact Group Policy collection
-// without retaining Policy names, descriptions, or ownership types.
+// ListGroupPolicyIDs consumes the complete exact Group Policy collection and
+// returns only canonical Policy UUIDs. Policy display fields and ownership
+// types are deliberately not decoded by this relationship adapter.
+func (c *Client) ListGroupPolicyIDs(ctx context.Context, groupID string) ([]string, error) {
+	return c.listGroupAssociationIDs(ctx, groupID, groupPolicyAssociation)
+}
+
+// CountGroupPolicies derives the association count from the same complete ID
+// collection used by exact-pair binding resources.
 func (c *Client) CountGroupPolicies(ctx context.Context, groupID string) (int, error) {
-	return c.countGroupAssociations(ctx, groupID, groupPolicyAssociation)
+	associationIDs, err := c.ListGroupPolicyIDs(ctx, groupID)
+	return len(associationIDs), err
 }
 
-func (c *Client) countGroupAssociations(
+// AddGroupPolicy executes the documented exact-pair mutation once. Endpoint
+// existence validation and authoritative relationship rereads belong to the
+// Terraform lifecycle caller because the API accepts missing IDs as no-ops.
+func (c *Client) AddGroupPolicy(ctx context.Context, groupID string, policyID string) error {
+	return c.mutateGroupPolicy(ctx, groupID, policyID, "add-policy", "add_group_policy")
+}
+
+// RemoveGroupPolicy executes the documented exact-pair removal once.
+func (c *Client) RemoveGroupPolicy(ctx context.Context, groupID string, policyID string) error {
+	return c.mutateGroupPolicy(ctx, groupID, policyID, "remove-policy", "remove_group_policy")
+}
+
+func (c *Client) listGroupAssociationIDs(
 	ctx context.Context,
 	groupID string,
 	kind groupAssociationKind,
-) (int, error) {
-	associationIDs, err := listCompleteAssociationIDs(
+) ([]string, error) {
+	return listCompleteAssociationIDs(
 		ctx,
 		kind.operation,
 		groupID,
@@ -421,7 +442,56 @@ func (c *Client) countGroupAssociations(
 			return c.listGroupAssociationPage(ctx, groupID, kind, pageIndex)
 		},
 	)
-	return len(associationIDs), err
+}
+
+func (c *Client) mutateGroupPolicy(
+	ctx context.Context,
+	groupID string,
+	policyID string,
+	pathSegment string,
+	operation string,
+) error {
+	if !ValidUUID(groupID) || !ValidUUID(policyID) {
+		return newAPIError(
+			ClassificationValidation,
+			0,
+			operation,
+			nil,
+			c.redactor,
+		)
+	}
+	request, err := c.newGroupRequest(
+		ctx,
+		http.MethodPut,
+		[]string{groupID, pathSegment, policyID},
+	)
+	if err != nil {
+		return newTransportError(err)
+	}
+	response, err := c.Do(request)
+	if err != nil {
+		return err
+	}
+	var changed bool
+	if err := c.DecodeResponse(
+		operation,
+		response,
+		&changed,
+		groupID,
+		policyID,
+	); err != nil {
+		return err
+	}
+	if !changed {
+		return newAPIError(
+			ClassificationAmbiguous,
+			response.StatusCode,
+			operation,
+			nil,
+			c.redactor.With(groupID, policyID),
+		)
+	}
+	return nil
 }
 
 func (c *Client) getGroupDirect(ctx context.Context, groupID string) (Group, error) {

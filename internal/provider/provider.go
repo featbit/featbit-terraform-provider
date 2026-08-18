@@ -160,6 +160,7 @@ func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource 
 		newSegmentResource,
 		newPolicyResource,
 		newGroupResource,
+		newGroupPolicyBindingResource,
 	}
 }
 

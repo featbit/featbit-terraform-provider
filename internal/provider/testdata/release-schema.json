@@ -334,6 +334,54 @@
         "block_types": []
       }
     },
+    "featbit_group_policy_binding": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one exact FeatBit Group-to-Policy binding through the documented public API. It owns only the configured pair, not either endpoint or the Group's complete Policy collection.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "group_id",
+            "type": "string",
+            "description": "Exact Group UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Canonical synthetic binding ID in `\u003cgroup_uuid\u003e/\u003cpolicy_uuid\u003e` form.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "policy_id",
+            "type": "string",
+            "description": "Exact custom or built-in Policy UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_policy": {
       "version": 0,
       "block": {
@@ -1606,6 +1654,7 @@
     "featbit_environment": "\u003cproject_uuid\u003e/\u003cenvironment_uuid\u003e",
     "featbit_feature_flag": "\u003cenvironment_uuid\u003e/\u003cexact_key\u003e",
     "featbit_group": "\u003cgroup_uuid\u003e",
+    "featbit_group_policy_binding": "\u003cgroup_uuid\u003e/\u003cpolicy_uuid\u003e",
     "featbit_policy": "\u003cpolicy_uuid\u003e",
     "featbit_project": "\u003cproject_uuid\u003e",
     "featbit_segment": "\u003cenvironment_uuid\u003e/\u003csegment_uuid\u003e"
