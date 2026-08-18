@@ -393,10 +393,17 @@ func (c *Client) DeleteGroup(ctx context.Context, groupID string) error {
 	return nil
 }
 
-// CountGroupMembers consumes the complete exact Group member collection while
-// decoding only UUID and membership status.
+// ListGroupMemberIDs consumes the complete exact Group Member collection and
+// returns only canonical Member UUIDs. Member profile and invitation fields
+// are deliberately not decoded by this relationship adapter.
+func (c *Client) ListGroupMemberIDs(ctx context.Context, groupID string) ([]string, error) {
+	return c.listGroupAssociationIDs(ctx, groupID, groupMemberAssociation)
+}
+
+// CountGroupMembers derives the association count from the same complete ID
+// collection used by exact-pair binding resources.
 func (c *Client) CountGroupMembers(ctx context.Context, groupID string) (int, error) {
-	associationIDs, err := c.listGroupAssociationIDs(ctx, groupID, groupMemberAssociation)
+	associationIDs, err := c.ListGroupMemberIDs(ctx, groupID)
 	return len(associationIDs), err
 }
 
@@ -414,16 +421,52 @@ func (c *Client) CountGroupPolicies(ctx context.Context, groupID string) (int, e
 	return len(associationIDs), err
 }
 
+// AddGroupMember executes the documented exact-pair mutation once. Endpoint
+// existence validation and authoritative relationship rereads belong to the
+// Terraform lifecycle caller because the API accepts missing IDs as no-ops.
+func (c *Client) AddGroupMember(ctx context.Context, groupID string, memberID string) error {
+	return c.mutateGroupAssociation(
+		ctx,
+		groupID,
+		memberID,
+		"add-member",
+		"add_group_member",
+	)
+}
+
+// RemoveGroupMember executes the documented exact-pair removal once.
+func (c *Client) RemoveGroupMember(ctx context.Context, groupID string, memberID string) error {
+	return c.mutateGroupAssociation(
+		ctx,
+		groupID,
+		memberID,
+		"remove-member",
+		"remove_group_member",
+	)
+}
+
 // AddGroupPolicy executes the documented exact-pair mutation once. Endpoint
 // existence validation and authoritative relationship rereads belong to the
 // Terraform lifecycle caller because the API accepts missing IDs as no-ops.
 func (c *Client) AddGroupPolicy(ctx context.Context, groupID string, policyID string) error {
-	return c.mutateGroupPolicy(ctx, groupID, policyID, "add-policy", "add_group_policy")
+	return c.mutateGroupAssociation(
+		ctx,
+		groupID,
+		policyID,
+		"add-policy",
+		"add_group_policy",
+	)
 }
 
 // RemoveGroupPolicy executes the documented exact-pair removal once.
 func (c *Client) RemoveGroupPolicy(ctx context.Context, groupID string, policyID string) error {
-	return c.mutateGroupPolicy(ctx, groupID, policyID, "remove-policy", "remove_group_policy")
+	return c.mutateGroupAssociation(
+		ctx,
+		groupID,
+		policyID,
+		"remove-policy",
+		"remove_group_policy",
+	)
 }
 
 func (c *Client) listGroupAssociationIDs(
@@ -444,14 +487,14 @@ func (c *Client) listGroupAssociationIDs(
 	)
 }
 
-func (c *Client) mutateGroupPolicy(
+func (c *Client) mutateGroupAssociation(
 	ctx context.Context,
 	groupID string,
-	policyID string,
+	associationID string,
 	pathSegment string,
 	operation string,
 ) error {
-	if !ValidUUID(groupID) || !ValidUUID(policyID) {
+	if !ValidUUID(groupID) || !ValidUUID(associationID) {
 		return newAPIError(
 			ClassificationValidation,
 			0,
@@ -463,7 +506,7 @@ func (c *Client) mutateGroupPolicy(
 	request, err := c.newGroupRequest(
 		ctx,
 		http.MethodPut,
-		[]string{groupID, pathSegment, policyID},
+		[]string{groupID, pathSegment, associationID},
 	)
 	if err != nil {
 		return newTransportError(err)
@@ -478,7 +521,7 @@ func (c *Client) mutateGroupPolicy(
 		response,
 		&changed,
 		groupID,
-		policyID,
+		associationID,
 	); err != nil {
 		return err
 	}
@@ -488,7 +531,7 @@ func (c *Client) mutateGroupPolicy(
 			response.StatusCode,
 			operation,
 			nil,
-			c.redactor.With(groupID, policyID),
+			c.redactor.With(groupID, associationID),
 		)
 	}
 	return nil

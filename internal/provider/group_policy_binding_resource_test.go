@@ -22,7 +22,7 @@ import (
 func TestGroupPolicyBindingResourceMetadataConfigureSchemaAndImport(t *testing.T) {
 	t.Parallel()
 
-	resourceUnderTest := &groupPolicyBindingResource{}
+	resourceUnderTest := newGroupPolicyBindingTestResource(nil)
 	var metadata frameworkresource.MetadataResponse
 	resourceUnderTest.Metadata(
 		context.Background(),
@@ -155,25 +155,21 @@ func TestGroupPolicyBindingResourceMetadataConfigureSchemaAndImport(t *testing.T
 func TestGroupPolicyBindingModelsRejectInconsistentStateAndRedactFormatting(t *testing.T) {
 	t.Parallel()
 
-	identity := groupPolicyBindingIdentity{
+	identity := groupBindingIdentity{
 		GroupID:  providerGroupID,
-		PolicyID: providerPolicyID,
+		TargetID: providerPolicyID,
 	}
-	model := flattenGroupPolicyBinding(identity)
-	model.ID = types.StringValue(providerGroupID + "/" + providerGroupPolicyID)
-	if _, err := canonicalizeGroupPolicyBindingStateModel(model); err == nil {
+	if _, err := canonicalizeGroupBindingStateValues(
+		types.StringValue(providerGroupID+"/"+providerGroupPolicyID),
+		types.StringValue(identity.GroupID),
+		types.StringValue(identity.TargetID),
+	); err == nil {
 		t.Fatal("inconsistent synthetic binding ID was accepted as state")
 	}
 
-	model = flattenGroupPolicyBinding(identity)
 	formatted := fmt.Sprintf(
-		"%v|%+v|%#v|%v|%+v|%#v",
-		model,
-		model,
-		model,
-		identity,
-		identity,
-		identity,
+		"%v|%+v|%#v",
+		identity, identity, identity,
 	)
 	for _, runtimeID := range []string{providerGroupID, providerPolicyID} {
 		if strings.Contains(formatted, runtimeID) {
@@ -236,7 +232,7 @@ func TestGroupPolicyBindingResourceCreateAdoptsOrReconcilesExactPair(t *testing.
 			response := frameworkresource.CreateResponse{
 				State: emptyGroupPolicyBindingResourceState(t, bindingSchema),
 			}
-			(&groupPolicyBindingResource{client: apiClient}).Create(
+			newGroupPolicyBindingTestResource(apiClient).Create(
 				context.Background(),
 				frameworkresource.CreateRequest{Plan: groupPolicyBindingResourceTestPlan(
 					t, bindingSchema, providerGroupID, providerPolicyID,
@@ -257,7 +253,7 @@ func TestGroupPolicyBindingResourceCreateAdoptsOrReconcilesExactPair(t *testing.
 				assertGroupPolicyBindingState(t, response.State, providerGroupID, providerPolicyID)
 				for iteration := 0; iteration < 2; iteration++ {
 					var readResponse frameworkresource.ReadResponse
-					(&groupPolicyBindingResource{client: apiClient}).Read(
+					newGroupPolicyBindingTestResource(apiClient).Read(
 						context.Background(),
 						frameworkresource.ReadRequest{State: response.State},
 						&readResponse,
@@ -302,7 +298,7 @@ func TestGroupPolicyBindingResourceCreateRequiresExactEndpointsAndReadableCollec
 			response := frameworkresource.CreateResponse{
 				State: emptyGroupPolicyBindingResourceState(t, bindingSchema),
 			}
-			(&groupPolicyBindingResource{client: apiClient}).Create(
+			newGroupPolicyBindingTestResource(apiClient).Create(
 				context.Background(),
 				frameworkresource.CreateRequest{Plan: groupPolicyBindingResourceTestPlan(
 					t, bindingSchema, providerGroupID, providerPolicyID,
@@ -328,7 +324,7 @@ func TestGroupPolicyBindingResourceReadTracksExactPairDriftAndAbsence(t *testing
 	state := groupPolicyBindingResourceTestState(t, bindingSchema, providerGroupID, providerPolicyID)
 
 	var presentResponse frameworkresource.ReadResponse
-	(&groupPolicyBindingResource{client: apiClient}).Read(
+	newGroupPolicyBindingTestResource(apiClient).Read(
 		context.Background(),
 		frameworkresource.ReadRequest{State: state},
 		&presentResponse,
@@ -339,7 +335,7 @@ func TestGroupPolicyBindingResourceReadTracksExactPairDriftAndAbsence(t *testing
 
 	fixture.removePolicyID(providerPolicyID)
 	var driftResponse frameworkresource.ReadResponse
-	(&groupPolicyBindingResource{client: apiClient}).Read(
+	newGroupPolicyBindingTestResource(apiClient).Read(
 		context.Background(),
 		frameworkresource.ReadRequest{State: presentResponse.State},
 		&driftResponse,
@@ -383,7 +379,7 @@ func TestGroupPolicyBindingResourceReadPreservesAmbiguityButAcceptsMissingEndpoi
 			bindingSchema := groupPolicyBindingResourceTestSchema(t)
 			state := groupPolicyBindingResourceTestState(t, bindingSchema, providerGroupID, providerPolicyID)
 			var response frameworkresource.ReadResponse
-			(&groupPolicyBindingResource{client: apiClient}).Read(
+			newGroupPolicyBindingTestResource(apiClient).Read(
 				context.Background(),
 				frameworkresource.ReadRequest{State: state},
 				&response,
@@ -437,7 +433,7 @@ func TestGroupPolicyBindingResourceUpdateIsReadOnlySafetyPath(t *testing.T) {
 				t, bindingSchema, providerGroupID, providerPolicyID,
 			)
 			var response frameworkresource.UpdateResponse
-			(&groupPolicyBindingResource{client: apiClient}).Update(
+			newGroupPolicyBindingTestResource(apiClient).Update(
 				context.Background(),
 				frameworkresource.UpdateRequest{
 					State: state,
@@ -518,7 +514,7 @@ func TestGroupPolicyBindingResourceDeleteRemovesOnlyExactPairAndReconciles(t *te
 			bindingSchema := groupPolicyBindingResourceTestSchema(t)
 			state := groupPolicyBindingResourceTestState(t, bindingSchema, providerGroupID, providerPolicyID)
 			var response frameworkresource.DeleteResponse
-			(&groupPolicyBindingResource{client: apiClient}).Delete(
+			newGroupPolicyBindingTestResource(apiClient).Delete(
 				context.Background(),
 				frameworkresource.DeleteRequest{State: state},
 				&response,
@@ -699,10 +695,20 @@ func containsExactString(values []string, target string) bool {
 	return false
 }
 
+type groupPolicyBindingTestModel struct {
+	ID       types.String `tfsdk:"id"`
+	GroupID  types.String `tfsdk:"group_id"`
+	PolicyID types.String `tfsdk:"policy_id"`
+}
+
+func newGroupPolicyBindingTestResource(apiClient *client.Client) *groupBindingResource {
+	return &groupBindingResource{client: apiClient, kind: groupPolicyBindingKind}
+}
+
 func groupPolicyBindingResourceTestSchema(t *testing.T) resourceschema.Schema {
 	t.Helper()
 	var response frameworkresource.SchemaResponse
-	(&groupPolicyBindingResource{}).Schema(
+	newGroupPolicyBindingTestResource(nil).Schema(
 		context.Background(), frameworkresource.SchemaRequest{}, &response,
 	)
 	if response.Diagnostics.HasError() {
@@ -719,7 +725,7 @@ func groupPolicyBindingResourceTestPlan(
 ) tfsdk.Plan {
 	t.Helper()
 	plan := tfsdk.Plan{Schema: bindingSchema}
-	model := groupPolicyBindingModel{
+	model := groupPolicyBindingTestModel{
 		ID: types.StringUnknown(), GroupID: types.StringValue(groupID),
 		PolicyID: types.StringValue(policyID),
 	}
@@ -737,13 +743,18 @@ func groupPolicyBindingResourceTestState(
 ) tfsdk.State {
 	t.Helper()
 	state := tfsdk.State{Schema: bindingSchema}
-	identity, err := canonicalizeGroupPolicyBindingPlanModel(groupPolicyBindingModel{
-		GroupID: types.StringValue(groupID), PolicyID: types.StringValue(policyID),
-	})
+	identity, err := canonicalizeGroupBindingPlanValues(
+		types.StringValue(groupID),
+		types.StringValue(policyID),
+	)
 	if err != nil {
 		t.Fatalf("canonicalize binding test identity: %v", err)
 	}
-	model := flattenGroupPolicyBinding(identity)
+	model := groupPolicyBindingTestModel{
+		ID:       types.StringValue(identity.syntheticID()),
+		GroupID:  types.StringValue(identity.GroupID),
+		PolicyID: types.StringValue(identity.TargetID),
+	}
 	if diagnostics := state.Set(context.Background(), &model); diagnostics.HasError() {
 		t.Fatalf("initialize binding state: %v", diagnostics)
 	}
@@ -756,7 +767,7 @@ func emptyGroupPolicyBindingResourceState(
 ) tfsdk.State {
 	t.Helper()
 	state := tfsdk.State{Schema: bindingSchema}
-	model := groupPolicyBindingModel{
+	model := groupPolicyBindingTestModel{
 		ID: types.StringNull(), GroupID: types.StringNull(), PolicyID: types.StringNull(),
 	}
 	if diagnostics := state.Set(context.Background(), &model); diagnostics.HasError() {
@@ -765,9 +776,9 @@ func emptyGroupPolicyBindingResourceState(
 	return state
 }
 
-func groupPolicyBindingStateModel(t *testing.T, state tfsdk.State) groupPolicyBindingModel {
+func groupPolicyBindingStateModel(t *testing.T, state tfsdk.State) groupPolicyBindingTestModel {
 	t.Helper()
-	var model groupPolicyBindingModel
+	var model groupPolicyBindingTestModel
 	if diagnostics := state.Get(context.Background(), &model); diagnostics.HasError() {
 		t.Fatalf("read binding state: %v", diagnostics)
 	}

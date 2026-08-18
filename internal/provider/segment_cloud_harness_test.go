@@ -425,10 +425,6 @@ type cloudFeatureFlagReferenceSnapshot struct {
 	fingerprint   cloudSettingsFingerprint
 }
 
-func (cloudFeatureFlagReferenceSnapshot) Format(state fmt.State, _ rune) {
-	_, _ = io.WriteString(state, "provider.cloudFeatureFlagReferenceSnapshot{redacted}")
-}
-
 type cloudFeatureFlagReferenceRule struct {
 	ID             string                          `json:"id"`
 	Name           string                          `json:"name"`

@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-080**.
+only the concise result under the active item. The current item is **P6-090**.
 
 ## Scope and API contract
 
@@ -332,7 +332,7 @@ only the concise result under the active item. The current item is **P6-080**.
   schema/Import snapshot is aligned; repository tests, vet, build, formatting,
   module tidy, and module verification pass.
 
-- [ ] **P6-080 — Implement Member lookup and Group-Member bindings.**
+- [x] **P6-080 — Implement Member lookup and Group-Member bindings.**
 
   Add exact existing-Member lookup by ID or email and a resource for one exact
   Group/Member pair. Decode only safe Member fields; never create, invite,
@@ -341,6 +341,38 @@ only the concise result under the active item. The current item is **P6-080**.
   Runtime: Member data source and binding resource → Member/Group client
   adapters → public Member and Group-member endpoints. Done when exact lookup,
   Import, repeated apply, drift, and identity redaction pass.
+
+  Result: registered `featbit_member` now reads one existing Member by exact
+  UUID or organization-scoped case-insensitive full email across every page,
+  rejects duplicate exact matches, retains canonical server spelling, and
+  exposes only Sensitive `id`, `email`, and `name`. Its client adapter is an
+  explicit three-field allowlist, so invitation, Group, and
+  `initialPassword` response fields never enter Provider models. Registered
+  `featbit_group_member_binding` owns only one canonical Group/Member pair,
+  marks its synthetic ID and Member ID Sensitive, supports
+  `<group_uuid>/<member_uuid>` Import, adopts an
+  already-present edge, tracks exact drift and authoritative endpoint absence,
+  and reconciles each one-shot add/remove without changing unrelated edges.
+  Group Member IDs and counts reuse the existing complete association
+  paginator, while Member and Policy pair mutations share one narrow Group
+  mutation helper. A whole-repository follow-up audit consolidated the
+  Group-Policy and Group-Member production resources into one narrow
+  kind-parameterized lifecycle engine while preserving distinct schemas,
+  sensitivity, endpoints, diagnostics, and Import forms; direct Client method
+  expressions also replaced forwarding-only adapters. Existing
+  `google/uuid`, Terraform Framework, and standard-library primitives already
+  own the reusable generic behavior, so no additional dependency was
+  justified for endpoint-specific pagination, exact matching, reconciliation,
+  or redaction. The complete Group-Policy suite now owns the shared lifecycle
+  matrix, while the smaller Member suite verifies only its sensitive schema
+  and endpoint wiring. Focused coverage additionally proves target-ID
+  replacement, non-authoritative direct 404, and confirmed-missing-Member
+  deletion; redundant duplicate lifecycle and global registration-count tests
+  were removed. Production dead-code analysis reports only deliberate dynamic
+  `fmt.Formatter` redaction hooks, and test-inclusive analysis is clean after
+  removing one unreachable legacy test formatter. Protocol v6 schema/Import,
+  repository tests, client/provider coverage, vet, build, formatting, module
+  tidy, and module verification pass.
 
 - [ ] **P6-090 — Implement authoritative direct Member Policies.**
 

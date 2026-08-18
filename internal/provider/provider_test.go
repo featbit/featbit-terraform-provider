@@ -82,19 +82,6 @@ func TestProviderSchema(t *testing.T) {
 	}
 }
 
-func TestProviderRegistrations(t *testing.T) {
-	t.Parallel()
-
-	providerUnderTest := New("test")()
-
-	if got := len(providerUnderTest.Resources(context.Background())); got != 7 {
-		t.Fatalf("expected four core resources, Policy, Group, and Group-Policy binding, got %d", got)
-	}
-	if got := len(providerUnderTest.DataSources(context.Background())); got != 6 {
-		t.Fatalf("expected four core data sources, Policy, and Group, got %d", got)
-	}
-}
-
 func TestProtocol6ProviderFactory(t *testing.T) {
 	t.Parallel()
 

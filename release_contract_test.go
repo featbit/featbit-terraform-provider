@@ -29,7 +29,9 @@ const (
 	releaseSegmentID            = "33333333-3333-4333-8333-333333333333"
 	releasePolicyID             = "44444444-4444-4444-8444-444444444444"
 	releaseGroupID              = "55555555-5555-4555-8555-555555555555"
+	releaseMemberID             = "66666666-6666-4666-8666-666666666666"
 	releaseGroupPolicyBindingID = releaseGroupID + "/" + releasePolicyID
+	releaseGroupMemberBindingID = releaseGroupID + "/" + releaseMemberID
 )
 
 var releaseImportForms = map[string]string{
@@ -37,6 +39,7 @@ var releaseImportForms = map[string]string{
 	"featbit_environment":          "<project_uuid>/<environment_uuid>",
 	"featbit_feature_flag":         "<environment_uuid>/<exact_key>",
 	"featbit_group":                "<group_uuid>",
+	"featbit_group_member_binding": "<group_uuid>/<member_uuid>",
 	"featbit_group_policy_binding": "<group_uuid>/<policy_uuid>",
 	"featbit_policy":               "<policy_uuid>",
 	"featbit_segment":              "<environment_uuid>/<segment_uuid>",
@@ -215,6 +218,21 @@ func TestInitialReleaseImportForms(t *testing.T) {
 				"not-a-uuid/" + releasePolicyID,
 				releaseGroupID + "/not-a-uuid",
 				releaseGroupPolicyBindingID + "/extra",
+			},
+		},
+		"featbit_group_member_binding": {
+			validID: releaseGroupMemberBindingID,
+			identity: map[string]string{
+				"id":        releaseGroupMemberBindingID,
+				"group_id":  releaseGroupID,
+				"member_id": releaseMemberID,
+			},
+			rejectedForms: []string{
+				"",
+				releaseGroupID,
+				"not-a-uuid/" + releaseMemberID,
+				releaseGroupID + "/not-a-uuid",
+				releaseGroupMemberBindingID + "/extra",
 			},
 		},
 		"featbit_policy": {
@@ -488,6 +506,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		"featbit_environment",
 		"featbit_feature_flag",
 		"featbit_group",
+		"featbit_group_member_binding",
 		"featbit_group_policy_binding",
 		"featbit_policy",
 		"featbit_project",
@@ -497,6 +516,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		"featbit_environment",
 		"featbit_feature_flag",
 		"featbit_group",
+		"featbit_member",
 		"featbit_policy",
 		"featbit_project",
 		"featbit_segment",

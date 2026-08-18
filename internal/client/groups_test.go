@@ -484,9 +484,9 @@ func TestGroupAssociationIDsUseMinimalExactCollections(t *testing.T) {
 		},
 	))
 
-	members, err := clientUnderTest.CountGroupMembers(context.Background(), clientGroupID)
-	if err != nil || members != 1 {
-		t.Fatalf("CountGroupMembers() = %d/%v", members, err)
+	memberIDs, err := clientUnderTest.ListGroupMemberIDs(context.Background(), clientGroupID)
+	if err != nil || len(memberIDs) != 1 || memberIDs[0] != clientMemberID {
+		t.Fatalf("ListGroupMemberIDs() = %v/%v", memberIDs, err)
 	}
 	policyIDs, err := clientUnderTest.ListGroupPolicyIDs(context.Background(), clientGroupID)
 	if err != nil || len(policyIDs) != 1 || policyIDs[0] != clientPolicyIDOne {

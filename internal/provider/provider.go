@@ -161,6 +161,7 @@ func (p *FeatBitProvider) Resources(context.Context) []func() resource.Resource 
 		newPolicyResource,
 		newGroupResource,
 		newGroupPolicyBindingResource,
+		newGroupMemberBindingResource,
 	}
 }
 
@@ -174,6 +175,7 @@ func (p *FeatBitProvider) DataSources(context.Context) []func() datasource.DataS
 		newSegmentDataSource,
 		newPolicyDataSource,
 		newGroupDataSource,
+		newMemberDataSource,
 	}
 }
 
