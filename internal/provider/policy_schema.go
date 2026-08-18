@@ -236,6 +236,17 @@ func (policyStatementsValidator) ValidateSet(
 		if !knownPolicyStatementModel(model) {
 			return
 		}
+		// A required set can be structurally known while one of its elements is
+		// still unknown because it comes from another resource or data source.
+		// Defer catalog and selector validation until Terraform has resolved the
+		// complete graph; the lifecycle canonicalizes the fully known plan again
+		// before sending any mutation.
+		if _, err := terraformStringSet(ctx, model.Actions); err != nil {
+			return
+		}
+		if _, err := terraformStringSet(ctx, model.Resources); err != nil {
+			return
+		}
 	}
 	if _, err := canonicalizeTerraformPolicyStatements(ctx, req.ConfigValue); err != nil {
 		resp.Diagnostics.AddAttributeError(

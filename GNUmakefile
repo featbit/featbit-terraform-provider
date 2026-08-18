@@ -12,7 +12,7 @@ ACTIONLINT := $(GO) run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 GITLEAKS := $(GO) run github.com/zricethezav/gitleaks/v8@v8.28.0
 GORELEASER := $(GO) run github.com/goreleaser/goreleaser/v2@v2.13.3
 
-TEST_TIMEOUT := 120s
+TEST_TIMEOUT := 180s
 TEST_PARALLEL := 10
 TESTACC_TIMEOUT := 120m
 

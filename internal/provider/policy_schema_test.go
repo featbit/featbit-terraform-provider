@@ -7,10 +7,13 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	frameworkvalidator "github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 func TestPolicyResourceSchemaFreezesOwnershipAndReplacement(t *testing.T) {
@@ -108,5 +111,79 @@ func TestPolicyDataSourceSchemaKeepsBuiltInObservationReadOnly(t *testing.T) {
 		default:
 			t.Fatalf("statement %s attribute type = %T", name, attribute)
 		}
+	}
+}
+
+func TestPolicyStatementsValidatorDefersUnknownGraphValues(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		actions   []types.String
+		resources []types.String
+		wantError bool
+	}{
+		"unknown selector is deferred": {
+			actions:   []types.String{types.StringValue("CanAccessProject")},
+			resources: []types.String{types.StringUnknown()},
+		},
+		"unknown action is deferred": {
+			actions:   []types.String{types.StringUnknown()},
+			resources: []types.String{types.StringValue("project/example")},
+		},
+		"known invalid selector is rejected": {
+			actions:   []types.String{types.StringValue("CanAccessProject")},
+			resources: []types.String{types.StringValue("not-a-project-selector")},
+			wantError: true,
+		},
+	}
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			actionValues := make([]attr.Value, 0, len(test.actions))
+			for _, value := range test.actions {
+				actionValues = append(actionValues, value)
+			}
+			resourceValues := make([]attr.Value, 0, len(test.resources))
+			for _, value := range test.resources {
+				resourceValues = append(resourceValues, value)
+			}
+
+			statement := policyStatementModel{
+				ResourceType: types.StringValue(policyResourceTypeProject),
+				Effect:       types.StringValue(policyEffectAllow),
+				Actions: types.SetValueMust(
+					types.StringType,
+					actionValues,
+				),
+				Resources: types.SetValueMust(
+					types.StringType,
+					resourceValues,
+				),
+			}
+			statementValue := types.ObjectValueMust(
+				policyStatementAttributeTypes(),
+				map[string]attr.Value{
+					"resource_type": statement.ResourceType,
+					"effect":        statement.Effect,
+					"actions":       statement.Actions,
+					"resources":     statement.Resources,
+				},
+			)
+			value := types.SetValueMust(
+				policyStatementObjectType(),
+				[]attr.Value{statementValue},
+			)
+			var response frameworkvalidator.SetResponse
+			policyStatementsValidator{}.ValidateSet(
+				context.Background(),
+				frameworkvalidator.SetRequest{ConfigValue: value},
+				&response,
+			)
+			if got := response.Diagnostics.HasError(); got != test.wantError {
+				t.Fatalf("validator error = %t, want %t: %v", got, test.wantError, response.Diagnostics)
+			}
+		})
 	}
 }

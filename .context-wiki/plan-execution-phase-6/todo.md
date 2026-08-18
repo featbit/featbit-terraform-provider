@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-100**.
+only the concise result under the active item. The current item is **P6-110**.
 
 ## Scope and API contract
 
@@ -422,7 +422,7 @@ only the concise result under the active item. The current item is **P6-100**.
 
 ## Verification and release
 
-- [ ] **P6-100 — Prove the complete IAM workflow locally.**
+- [x] **P6-100 — Prove the complete IAM workflow locally.**
 
   Add Protocol and integration coverage for the customer-shaped resource
   graph. Look up Project/Environment and the built-in Owner Policy by exact
@@ -438,6 +438,34 @@ only the concise result under the active item. The current item is **P6-100**.
   cleanup, and an empty second plan. A binding must accept the looked-up Group
   ID. Removing one binding must remove only its exact pair and preserve the
   other Policy and Member bindings.
+
+  Result: `internal/provider/iam_workflow_integration_test.go` now drives the
+  registered Protocol v6 provider and existing client adapters against one
+  stateful documented-endpoint fixture. The graph creates one test-owned
+  Project, resolves it plus its `dev`/`prod` Environments and the immutable
+  built-in Owner Policy by exact key, creates the base/scoped custom Policies
+  and admin/developer Groups, observes both Groups by exact UUID/name, and feeds
+  those observed IDs into the three Group-Policy and one Group-Member bindings.
+  One protected existing Member is assigned only to the developer Group and its
+  authoritative direct Policy set converges from Owner to empty without profile
+  mutation. The graph round-trips `project`, `env`, `flag`, and `segment`
+  statements through reversed server order with wildcard/exact selectors,
+  Allow/Deny, and action subsets, then produces an empty second plan. Removing
+  only the developer base-Policy binding sends one exact remove, while the
+  admin Owner, developer scoped-Policy, and developer Member bindings remain.
+  Automatic destroy reaches exact zero for every test-owned Project, Policy,
+  Group, and relationship while preserving the built-in Owner and existing
+  Member; endpoint-only passwords, Environment secrets, and the access token do
+  not enter state. The established focused suites continue to prove every IAM
+  Import form, per-resource drift, exact zero/duplicate behavior, and diagnostic
+  redaction. The graph exposed and fixed deferred validation of computed Policy
+  selector set elements: full catalog validation now waits until values are
+  known, while Create still fails closed before mutation. Targeted and complete
+  repository tests pass (client/provider coverage 87.3%/79.0%), as do vet,
+  build, formatting of touched Go files, module tidy/verification, actionlint,
+  and the 180-second current-Terraform Protocol selector. Ordinary and
+  compatibility per-package ceilings are now 180 seconds for the expanded
+  serial Protocol suite; version-matrix and race qualification remain P6-130.
 
 - [ ] **P6-110 — Pass trusted current-Cloud acceptance.**
 
