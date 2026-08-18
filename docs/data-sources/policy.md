@@ -15,17 +15,18 @@ organization-scoped, case-sensitive exact key. Key lookup scans the complete
 Policy collection and rejects zero or duplicate exact matches. It never
 selects the first fuzzy result.
 
-This data source is the supported way to reference built-in Policies such as
-`Owner`. Its statements are observations only. A built-in Policy can be a
-Group-Policy binding or direct-Policy target, but no provider resource can
-change or delete it. Server-managed statement shapes do not expand the
+This data source is the supported way to reference built-in Policies. On
+current FeatBit Cloud, the built-in Owner Policy has the exact key `owner` and
+display name `Owner`. Its statements are observations only. A built-in Policy
+can be a Group-Policy binding or direct-Policy target, but no provider resource
+can change or delete it. Server-managed statement shapes do not expand the
 stricter catalog accepted by the custom Policy resource.
 
 ## Example Usage
 
 ```terraform
 data "featbit_policy" "owner" {
-  key = "Owner"
+  key = "owner"
 }
 ```
 
