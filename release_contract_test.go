@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	iamReleaseVersion           = "0.2.0"
+	iamReleaseVersion           = "0.2.0-beta.1"
 	releaseSchemaPath           = "internal/provider/testdata/release-schema.json"
 	releaseProjectID            = "11111111-1111-4111-8111-111111111111"
 	releaseEnvironmentID        = "22222222-2222-4222-8222-222222222222"

@@ -11,15 +11,19 @@ roadmap.
 ## 1. Current position
 
 The Phase 6 public IAM API, frozen Terraform contracts, runtime implementation,
-local Protocol workflow, trusted current-Cloud workflow, and Registry
-documentation have passed. Release qualification is next. The current branch
-owns only that IAM surface and the release that follows it; it must not
-implement the deferred Phase 7 Segment prerequisite work. Stable releases
-`v0.1.0` and documentation-only `v0.1.1` are published through the Terraform
-Registry and remain core-only. The current branch targets the additive `0.2.x`
-IAM line and exposes a Protocol v6 provider with five configuration attributes,
-a shared handwritten HTTP client, nine managed resources, and seven exact
-single-object data sources. In addition to Project, Environment, Feature Flag,
+local Protocol workflow, trusted current-Cloud workflow, Registry
+documentation, and `v0.2.0-beta.1` release qualification have passed. The next
+step is separately authorized beta publication and Registry verification,
+followed by real-scenario validation and remediation; stable `v0.2.0` is
+published only after those findings are resolved and the candidate is
+requalified. The current branch owns only that IAM surface and its release; it
+must not implement the deferred Phase 7 Segment prerequisite work. Stable
+releases `v0.1.0` and documentation-only `v0.1.1` are published through the
+Terraform Registry and remain core-only. The current branch targets the
+additive `0.2.x` IAM line and exposes a Protocol v6 provider with five
+configuration attributes, a shared handwritten HTTP client, nine managed
+resources, and seven exact single-object data sources. In addition to Project,
+Environment, Feature Flag,
 and Segment, it implements custom Policies with complete statements, Groups,
 exact Group-Policy and Group-Member bindings, one existing Member's
 authoritative direct-Policy set, and exact Policy, Group, and Member lookup.
@@ -42,10 +46,10 @@ and their data sources; no IAM surface is published yet. The checked-in
 Protocol v6 release snapshot and focused registration, Import, manifest, and
 generated-document checks now freeze the complete approved IAM surface.
 GoReleaser owns tag-derived version injection. Terraform `1.0.11`, `1.5.7`,
-and `1.15.8` passed the previous credential-free Linux/AMD64 Protocol gates,
-and the GoReleaser snapshot produced the frozen five-platform archive matrix;
-P6-130 must requalify those release gates for the IAM schema before separately
-maintainer-authorized publication.
+and `1.15.8`, the Linux race gate, and the frozen five-platform GoReleaser
+archive matrix pass for the `v0.2.0-beta.1` IAM candidate. No release tag,
+signature, draft, or publication is part of qualification; those remain
+separately maintainer-authorized.
 
 ## 2. Product boundary
 
@@ -284,9 +288,11 @@ identities are frozen before publication; exact-pair bindings and the explicit
 per-Member direct-Policy set preserve their ownership boundaries; all four
 Policy control levels round-trip with canonical effects, actions, and resource
 selectors; current-Cloud verification is redaction-safe; Registry documentation
-and release artifacts describe exactly the implemented IAM surface; and the
-approved IAM release is published. Tag creation, signing, draft finalization,
-and publication remain separately maintainer-authorized.
+and release artifacts describe exactly the implemented IAM surface; the beta
+is published and exercised in real scenarios; every resulting release blocker
+is resolved and requalified; and stable `v0.2.0` is published only afterward.
+Tag creation, signing, draft finalization, and publication remain separately
+maintainer-authorized.
 
 ### Phase 7 — Segment targeting prerequisites (deferred)
 
@@ -323,14 +329,14 @@ token, Environment ID, user key, property name, or targeting value.
 
 ## 6. Global verification
 
-Current runtime pins are authoritative in `go.mod`: Go `1.26.5`, Plugin
+Current runtime pins are authoritative in `go.mod`: Go `1.26.6`, Plugin
 Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
 Log `v0.10.0`. Protocol is `6.0`, so the minimum Terraform CLI is `1.0.0`.
-Release qualification passed on credential-free Linux/AMD64 with Terraform
+Release qualification passes on credential-free Linux/AMD64 with Terraform
 `1.0.11`, `1.5.7`, and `1.15.8` through the existing Protocol contract.
 Initial archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
 `linux_arm64`, and `windows_amd64`, cross-built without CGO and checked by the
-GoReleaser snapshot. The credential-free Go 1.26.5 snapshot still produces
+GoReleaser snapshot. The credential-free Go 1.26.6 snapshot produces
 exactly those five archives. This archive matrix is a distribution contract,
 not a claim that every target has a separate native-runner qualification. The
 Registry serves stable non-prerelease releases `v0.1.0` and `v0.1.1`;
@@ -338,8 +344,9 @@ Registry serves stable non-prerelease releases `v0.1.0` and `v0.1.1`;
 not change runtime behavior, schema, state, or compatibility.
 The repository contains fork-safe, read-only, credential-free CI with pinned
 actions and quality/supply-chain tools; deterministic five-platform GoReleaser
-packaging; a protected stable-tag workflow that can create only a signed draft;
-and the existing frozen Protocol schema contract. The current release design
+packaging; a protected SemVer-tag workflow that creates a signed draft and
+keeps prereleases from replacing the latest stable release; and the existing
+frozen Protocol schema contract. The current release design
 intentionally follows the scaffold without a custom artifact verifier or
 clean-install harness. Release signing identity, protected environment, tag
 creation, draft inspection/finalization, Registry connection, and publication

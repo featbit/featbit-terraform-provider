@@ -9,10 +9,11 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 ## Current entry point
 
 The public IAM API, Terraform schema/lifecycle, runtime implementation, local
-Protocol workflow, trusted current-Cloud customer workflow, and Registry
-documentation have passed. Start with [P6-130](todo.md): qualify the complete
-IAM release through the frozen credential-free, Protocol, race, redaction, and
-packaging gates.
+Protocol workflow, trusted current-Cloud customer workflow, Registry
+documentation, and `v0.2.0-beta.1` release qualification have passed. Start
+with [P6-140](todo.md): only with explicit maintainer authorization, publish
+and verify that prerelease for real-scenario validation. Resolve and requalify
+all beta findings before the stable `v0.2.0` release.
 
 ## IAM v1 scope
 
@@ -97,7 +98,12 @@ The phase passes only when:
   deleting a Member and restores every test-owned relationship;
 - diagnostics, logs, fixtures, and state contain no protected values;
 - Registry documentation and release artifacts expose exactly the approved IAM
-  surface; and
-- the maintainer-authorized IAM release is published.
+  surface;
+- the maintainer-authorized `v0.2.0-beta.1` prerelease is published and
+  verified for exact-version Registry installation;
+- real-scenario beta findings are resolved and the resulting candidate is
+  requalified; and
+- the maintainer-authorized stable `v0.2.0` release is published only after
+  that validation.
 
 Passing this gate ends this branch. Phase 7 continues separately.

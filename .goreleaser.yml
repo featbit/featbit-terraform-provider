@@ -1,5 +1,5 @@
 # Registry packaging derived from HashiCorp's Terraform Plugin Framework
-# scaffold and narrowed to the reviewed FeatBit initial-release contract.
+# scaffold and narrowed to the reviewed FeatBit release contract.
 version: 2
 project_name: terraform-provider-featbit
 
@@ -64,6 +64,8 @@ signs:
 
 release:
   draft: true
+  prerelease: auto
+  make_latest: "{{ if .Prerelease }}false{{ else }}true{{ end }}"
   extra_files:
     - glob: terraform-registry-manifest.json
       name_template: "{{ .ProjectName }}_{{ .Version }}_manifest.json"

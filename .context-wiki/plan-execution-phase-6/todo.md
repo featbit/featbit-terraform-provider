@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-130**.
+only the concise result under the active item. The current item is **P6-140**.
 
 ## Scope and API contract
 
@@ -281,9 +281,8 @@ only the concise result under the active item. The current item is **P6-130**.
   missing selectors, redaction, association refusal, and ambiguous mutations
   before or after remote apply. Protocol schema/Import, repository tests, vet,
   build, formatting, module
-  tidy, and module verification pass. The local Windows race suite could not
-  start because CGO has no installed C compiler; race qualification remains in
-  P6-130/CI. A follow-up production reuse/dead-code pass removed the duplicate
+  tidy, and module verification pass. A follow-up production reuse/dead-code
+  pass removed the duplicate
   canonical Group type, centralized exact zero/one/duplicate resolution across
   Project, Environment, Policy, and Group, and centralized complete IAM
   association-ID pagination for Policy and Group. Go `x/tools/deadcode`
@@ -417,8 +416,6 @@ only the concise result under the active item. The current item is **P6-130**.
   module tidy/verification, and production/test-inclusive reachability checks
   pass. Production reachability reports only deliberate dynamic
   `fmt.Formatter` redaction hooks, while test-inclusive reachability is clean.
-  The local Windows race run still cannot start because CGO is disabled; race
-  qualification remains in P6-130/CI.
 
 ## Verification and release
 
@@ -465,7 +462,7 @@ only the concise result under the active item. The current item is **P6-130**.
   build, formatting of touched Go files, module tidy/verification, actionlint,
   and the 180-second current-Terraform Protocol selector. Ordinary and
   compatibility per-package ceilings are now 180 seconds for the expanded
-  serial Protocol suite; version-matrix and race qualification remain P6-130.
+  serial Protocol suite.
 
 - [x] **P6-110 — Pass trusted current-Cloud acceptance.**
 
@@ -521,15 +518,46 @@ only the concise result under the active item. The current item is **P6-130**.
   credential-free example sets validate, and repository tests, vet, build,
   module tidy/verification, formatting, and diff checks pass.
 
-- [ ] **P6-130 — Qualify the IAM release.**
+- [x] **P6-130 — Qualify the IAM release.**
 
   Run formatting, unit/race tests, vet, build, module checks, Protocol/schema
   checks, generated-doc checks, redaction scans, and the GoReleaser snapshot.
   Confirm the release contains exactly the approved IAM surface.
 
-- [ ] **P6-140 — Publish and close the IAM release.**
+  Result: the first IAM candidate is frozen as `v0.2.0-beta.1`; public examples
+  pin that exact prerelease, and GoReleaser marks prereleases without replacing
+  the latest stable release. The toolchain is frozen at Go 1.26.6 after the
+  patch release removed six reachable standard-library vulnerabilities.
+  Formatting, unit and Linux race tests, vet, build, module graph/tidy/verify,
+  generated docs and 17 examples, workflow syntax, licenses, vulnerability and
+  secret scans, release configuration, and Terraform `1.0.11`, `1.5.7`, and
+  `1.15.8` Protocol contracts pass. The Protocol v6 release snapshot contains
+  exactly five provider attributes, nine resources, seven data sources, and no
+  other framework surfaces. The standard snapshot and exact beta candidate
+  each produce only the five frozen single-executable archives; all six
+  checksums, including the Protocol 6.0 manifest, verify. No credential, tag,
+  signature, draft, or publication was created.
+
+- [ ] **P6-140 — Publish and verify the IAM beta.**
 
   Begin only with explicit maintainer authorization. Create and inspect the
-  release through the existing protected workflow, publish it, merge only
-  still-current facts into the master plan, and remove the completed Phase 6
-  package. Do not start Phase 7 implementation on this branch.
+  signed draft for exact tag `v0.2.0-beta.1` through the existing protected
+  workflow. Confirm GitHub classifies it as a prerelease without changing the
+  latest stable release, publish it, and verify a clean Terraform directory can
+  install and use that exact Registry version. Do not close Phase 6 yet.
+
+- [ ] **P6-150 — Exercise real scenarios and remediate the beta.**
+
+  Use the published beta in the intended real customer scenarios. Record only
+  current actionable findings, fix every release-blocking defect, and rerun the
+  complete P6-130 qualification on the resulting candidate. Publish another
+  beta only when needed and only with explicit maintainer authorization.
+
+- [ ] **P6-160 — Publish and close stable `v0.2.0`.**
+
+  Begin only after beta scenario findings are resolved and the final candidate
+  passes the complete release gate, and only with explicit maintainer
+  authorization. Create, inspect, publish, and Registry-verify stable
+  `v0.2.0`; then merge only still-current facts into the master plan and remove
+  the completed Phase 6 package. Do not start Phase 7 implementation on this
+  branch.

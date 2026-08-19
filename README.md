@@ -104,11 +104,14 @@ disclosing vulnerability details publicly.
 
 ## Upgrading
 
-Pin the IAM release line with `~> 0.2.0` so Terraform cannot automatically
-select a potentially breaking pre-1.0 minor release. Existing core-only
-`0.1.x` configurations remain covered by the compatibility contract.
-[UPGRADING.md](UPGRADING.md) defines the SemVer, schema, state, and Import
-contract plus a safe plan-first upgrade and rollback workflow.
+The first IAM release candidate is `v0.2.0-beta.1`. Terraform requires an
+explicit prerelease selection, so real-scenario validation must pin
+`= 0.2.0-beta.1`; a broad `~> 0.2.0` constraint will not select the beta.
+Review and update the lock file deliberately when a later beta or the stable
+`v0.2.0` is qualified. Existing core-only `0.1.x` configurations remain
+covered by the compatibility contract. [UPGRADING.md](UPGRADING.md) defines
+the SemVer, schema, state, and Import contract plus a safe plan-first upgrade
+and rollback workflow.
 
 ## License
 

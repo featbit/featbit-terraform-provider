@@ -4,6 +4,9 @@
 
 The provider follows Semantic Versioning with an explicit pre-1.0 boundary:
 
+- prereleases such as `0.2.0-beta.1` are explicit validation candidates and
+  may change before the corresponding stable version based on real-scenario
+  findings;
 - patch releases in a published minor line, such as `0.1.x`, contain
   backward-compatible bug or security fixes;
 - additive resources, data sources, and optional capabilities use a minor
@@ -54,24 +57,26 @@ removed or reinterpreted in a compatible release.
 
 ## Pin the intended release line
 
-Use a three-component pessimistic constraint so Terraform cannot cross a
-pre-1.0 minor boundary automatically. For the IAM-enabled `0.2.x` line:
+Terraform does not select a prerelease through a broad stable constraint. For
+the qualified IAM beta, opt in to that exact version:
 
 ```hcl
 terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.2.0"
+      version = "= 0.2.0-beta.1"
     }
   }
 }
 ```
 
+After real-scenario validation, required fixes, and stable `v0.2.0`
+qualification, use `~> 0.2.0` to stay within the IAM-enabled `0.2.x` line.
 Core-only roots that intentionally remain on `0.1.x` can retain `~> 0.1.0`.
-Commit `.terraform.lock.hcl` for deployed root configurations. Change the
-minor or major constraint only after reviewing that release's notes and any
-migration instructions.
+Commit `.terraform.lock.hcl` for deployed root configurations. Change an exact
+prerelease, minor, or major constraint only after reviewing that release's
+notes and any migration instructions.
 
 ## Safe upgrade workflow
 

@@ -77,7 +77,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.2.0"
+      version = "= 0.2.0-beta.1"
     }
   }
 }
@@ -94,6 +94,12 @@ provider "featbit" {
 The provider block deliberately leaves authentication to the process
 environment. Optional timeout, concurrency, and read-retry settings can also
 be supplied through the environment variables documented in the schema.
+
+The first IAM release candidate is `v0.2.0-beta.1`. Terraform prereleases
+require an explicit version selection, so this example deliberately pins the
+exact beta for real-scenario validation. Review the release notes and update
+the constraint and lock file deliberately for a later beta or stable
+`v0.2.0`.
 
 ## Exact identity and Import
 
