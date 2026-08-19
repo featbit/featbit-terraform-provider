@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-140**.
+only the concise result under the active item. The current item is **P6-150**.
 
 ## Scope and API contract
 
@@ -538,13 +538,26 @@ only the concise result under the active item. The current item is **P6-140**.
   checksums, including the Protocol 6.0 manifest, verify. No credential, tag,
   signature, draft, or publication was created.
 
-- [ ] **P6-140 — Publish and verify the IAM beta.**
+- [x] **P6-140 — Publish and verify the IAM beta.**
 
   Begin only with explicit maintainer authorization. Create and inspect the
   signed draft for exact tag `v0.2.0-beta.1` through the existing protected
   workflow. Confirm GitHub classifies it as a prerelease without changing the
   latest stable release, publish it, and verify a clean Terraform directory can
   install and use that exact Registry version. Do not close Phase 6 yet.
+
+  Result: authorized lightweight tag `v0.2.0-beta.1` targets qualified commit
+  `c4ac0bc64c11683a22bc05362f2b04502149d95f`. Protected workflow run
+  `32219609903` produced the frozen five archives, Protocol 6.0 manifest,
+  checksums, and a valid detached signature from Registry key
+  `DF6E0745BAEA5089`. The inspected draft was published as a GitHub prerelease
+  on 2026-08-19 while `v0.1.1` remained Latest. HCP public-namespace resync
+  indexed the exact beta in the Registry. A clean Terraform 1.5.6 directory,
+  with direct installation and exact `= 0.2.0-beta.1` selection, verified the
+  developer signature, locked the published hashes, validated successfully,
+  and loaded the frozen five provider attributes, nine resources, and seven
+  data sources. No credential was used or retained. Phase 6 remains open for
+  P6-150 real-scenario validation.
 
 - [ ] **P6-150 — Exercise real scenarios and remediate the beta.**
 
