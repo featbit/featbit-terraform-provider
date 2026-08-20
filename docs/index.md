@@ -39,6 +39,11 @@ For a hands-on workflow across Dev, Stage, and Prod, follow the
 It complements this reference with an end-to-end Terraform root, idempotence
 checks, promotion, cleanup, and explicit current capability boundaries.
 
+For a hands-on IAM workflow, follow the
+[FeatBit Terraform IAM GitOps Tutorial](../GitOpsGettingStartedIAM.md).
+It covers custom Policies, Groups, direct and inherited Member access, scoped
+Policy updates, association-safe deletion, and dependency-ordered cleanup.
+
 ## Authentication
 
 Set `FEATBIT_ACCESS_TOKEN` in the provider process environment. FeatBit service

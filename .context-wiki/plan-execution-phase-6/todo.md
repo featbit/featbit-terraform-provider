@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-150**.
+only the concise result under the active item. The current item is **P6-160**.
 
 ## Scope and API contract
 
@@ -559,12 +559,34 @@ only the concise result under the active item. The current item is **P6-150**.
   data sources. No credential was used or retained. Phase 6 remains open for
   P6-150 real-scenario validation.
 
-- [ ] **P6-150 — Exercise real scenarios and remediate the beta.**
+- [x] **P6-150 — Exercise real scenarios and remediate the beta.**
 
   Use the published beta in the intended real customer scenarios. Record only
   current actionable findings, fix every release-blocking defect, and rerun the
   complete P6-130 qualification on the resulting candidate. Publish another
   beta only when needed and only with explicit maintainer authorization.
+
+  Result: **passed against the published Registry beta on 2026-08-19; no
+  release-blocking defect or second beta is needed.** A signed `v0.1.1`
+  customer state created one Project, its three Environments, three Feature
+  Flags, and three Segments, then upgraded in place to exact
+  `v0.2.0-beta.1` without core drift. The beta added exact Project and
+  Environment lookups, the built-in Owner Policy lookup, two custom Policies
+  spanning all four statement levels with Allow/Deny and wildcard, exact-key,
+  and tag selectors, two Groups, and three exact Group-Policy bindings.
+  Focused updates changed only their intended Group and Policy, removing one
+  binding preserved the other relationships, six IAM imports converged to an
+  empty plan, and every create, upgrade, update, and import boundary reached an
+  empty second plan. Destroy removed all test-owned objects; complete public
+  collection reads proved exact zero while the built-in Owner remained.
+  Existing protected-Member coverage from P6-110 was not re-mutated without a
+  configured exact member identity. No actionable public issue report was
+  open. The unchanged runtime candidate passed the complete P6-130 gate again:
+  fresh local quality, supply-chain, schema, documentation, 17-example, and
+  five-archive/six-checksum snapshot checks passed, while current-HEAD native
+  Ubuntu run `32228416389` supplies the exact Linux race and Terraform
+  `1.0.11`, `1.5.7`, and `1.15.8` Protocol passes. No credential, test
+  identity, test object, tag, signature, draft, or publication was retained.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 

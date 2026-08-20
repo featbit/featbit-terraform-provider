@@ -18,6 +18,7 @@
 
 <div align="center">
   <a href="GitOpsGettingStarted.md">Getting Started</a> &middot;
+  <a href="GitOpsGettingStartedIAM.md">IAM Tutorial</a> &middot;
   <a href="docs/index.md">Registry Documentation</a> &middot;
   <a href="examples">Examples</a> &middot;
   <a href="SUPPORT.md">Support</a> &middot;
@@ -44,11 +45,13 @@ root across Dev, Stage, and Prod with Projects, Environments, Feature Flags,
 and environment-specific Segments. The workflow verifies empty second plans,
 demonstrates promotion and rollback, and finishes with reviewed cleanup.
 
-For IAM, start with the complete
-[custom Policy example](examples/resources/featbit_policy), which includes the
-parent Project and Environment access required alongside scoped Feature Flag
-and Segment permissions. Then compose the focused Group, binding, Member, and
-direct-Policy examples documented below.
+For IAM, follow the
+**[FeatBit Terraform IAM GitOps Tutorial](GitOpsGettingStartedIAM.md)**. It
+creates two custom Policies and Groups, exercises direct and inherited Member
+access, updates one exact Prod Feature Flag permission, proves association-safe
+Policy deletion, and performs dependency-ordered cleanup. The focused
+[custom Policy example](examples/resources/featbit_policy) and the other IAM
+examples remain useful as individual reference configurations.
 
 The provider supports Terraform 1.0 or later. The tutorial uses Terraform
 `>= 1.5.0, < 2.0.0`.

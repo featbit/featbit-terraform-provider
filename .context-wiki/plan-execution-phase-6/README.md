@@ -10,10 +10,12 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 
 The public IAM API, Terraform schema/lifecycle, runtime implementation, local
 Protocol workflow, trusted current-Cloud customer workflow, Registry
-documentation, `v0.2.0-beta.1` release qualification, publication, and exact
-Registry installation have passed. Start with [P6-150](todo.md): exercise the
-published beta in real customer scenarios, resolve every release-blocking
-finding, and requalify the resulting candidate before stable `v0.2.0`.
+documentation, `v0.2.0-beta.1` release qualification, publication, exact
+Registry installation, published-provider customer scenario, and candidate
+requalification have passed without a release-blocking finding. Start with
+[P6-160](todo.md): publish and verify stable `v0.2.0` only with explicit
+maintainer authorization, then close Phase 6 without starting Phase 7 on this
+branch.
 
 ## IAM v1 scope
 

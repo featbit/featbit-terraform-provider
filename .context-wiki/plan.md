@@ -13,10 +13,11 @@ roadmap.
 The Phase 6 public IAM API, frozen Terraform contracts, runtime implementation,
 local Protocol workflow, trusted current-Cloud workflow, Registry
 documentation, `v0.2.0-beta.1` release qualification, maintainer-authorized
-publication, and exact Registry installation have passed. The next step is
-real-scenario beta validation and remediation; stable `v0.2.0` is published
-only after those findings are resolved and the candidate is requalified. The
-current branch owns only that IAM surface and its release; it must not
+publication, exact Registry installation, published-provider customer
+scenario, and final candidate requalification have passed without a
+release-blocking finding. The next step is maintainer-authorized publication
+and Registry verification of stable `v0.2.0`. The current branch owns only
+that IAM surface and its release; it must not
 implement the deferred Phase 7 Segment prerequisite work. Stable releases
 `v0.1.0` and documentation-only `v0.1.1` remain core-only, while the published
 `v0.2.0-beta.1` prerelease exposes the additive IAM surface for validation.
@@ -42,8 +43,10 @@ Segment work is deferred until Phase 7, after IAM, and must not be implemented
 through Portal-private endpoints in the meantime. All four core resource
 phases passed their local, Protocol, and trusted current-Cloud gates with exact
 cleanup. The `v0.2.0-beta.1` GitHub prerelease and exact Registry version
-contain the complete approved IAM surface, while `v0.1.1` remains GitHub's
-latest stable release. The checked-in Protocol v6 release snapshot and focused
+contain the complete approved IAM surface and pass customer-state upgrade,
+IAM create/update/import, empty-plan, and exact-cleanup scenarios, while
+`v0.1.1` remains GitHub's latest stable release. The checked-in Protocol v6
+release snapshot and focused
 registration, Import, manifest, and generated-document checks freeze that
 surface. GoReleaser owns tag-derived version injection. Terraform `1.0.11`,
 `1.5.7`, and `1.15.8`, the Linux race gate, and the frozen five-platform
