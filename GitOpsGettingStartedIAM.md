@@ -6,10 +6,10 @@ This hands-on tutorial shows how to use the
 [FeatBit Terraform Provider](https://registry.terraform.io/providers/featbit/featbit/latest/docs)
 to manage one isolated FeatBit IAM scenario as reviewable Terraform code. You
 will evolve one Terraform root that creates a Project and Feature Flags,
-defines two custom Policies and two Groups, assigns direct and inherited
-access to one or more existing Members, updates scoped permissions, proves
-that a live Group association blocks Policy deletion, and then removes
-everything in the required dependency order.
+defines two complementary custom Policies and one Group, exercises inherited
+and direct access with exactly two existing Members, updates scoped
+permissions, proves that a live Group association blocks Policy deletion, and
+then removes everything in the required dependency order.
 
 [Get started](#getting-started) · [Create the baseline](#create-resources) ·
 [Assign access](#assign-access) · [Update a Policy](#update-policy) ·
@@ -47,11 +47,11 @@ The IAM configuration then adds:
 
 | Object | Intended access |
 |---|---|
-| Project owner Policy | Every supported Project, Environment, Feature Flag, and Segment action inside this exact Project |
+| Project observer Policy | Read-only Project and Environment visibility across Dev and Prod |
 | Dev operator Policy | Project visibility plus Dev Environment, Feature Flag, and Segment actions except permanent delete capabilities |
-| Project owners Group | Holds the Project owner Policy; no tutorial Member is added to it |
-| Dev operators Group | Holds the Dev operator Policy and every selected existing test Member |
-| Existing test Members | Retain every unrelated direct Policy and temporarily receive the Dev operator Policy both directly and through the Dev operators Group |
+| Project operators Group | Holds both complementary Policies; Member A joins it and inherits their union |
+| Existing Member A (`group-member`) | Starts with the Project observer Policy directly, joins the Group, and then has only that exact tutorial direct binding removed |
+| Existing Member B (`direct-member`) | Stays outside the Group and receives the Dev operator Policy directly |
 
 The Dev operator Policy is later updated with `CanAccessEnv` for Prod and
 `ToggleFlag` for only the Prod `checkout-enabled` Flag. It does not gain
@@ -65,21 +65,22 @@ This tutorial interprets "all actions except delete" conservatively:
 - it keeps reversible `ArchiveFlag`, `RestoreFlag`, `ArchiveSegment`, and
   `RestoreSegment` actions.
 
-The Project owner Policy uses the complete Provider-supported action catalog.
-The Dev operator Policy enumerates its allowed actions rather than using `*`,
-because `*` would also grant deletion.
+The Project observer Policy grants only the parent visibility actions. The Dev
+operator Policy enumerates its allowed actions rather than using `*`, because
+`*` would also grant deletion.
 
 ## IAM ownership and safety boundaries
 
-The tutorial depends on four distinct ownership contracts:
+The tutorial depends on these ownership boundaries:
 
-- `featbit_policy` owns one custom Policy and its complete statement set.
-- `featbit_group` owns only Group existence, name, and description.
+- each `featbit_policy` resource owns one custom Policy and its complete
+  statement set;
+- each `featbit_group` resource owns only Group existence, name, and
+  description;
 - each binding resource owns one exact Group-to-Policy, Group-to-Member, or
-  direct Member-to-Policy pair.
-
-The Provider does not invite, create, update, remove, or delete Members. The
-Members used here must already exist.
+  direct Member-to-Policy pair; and
+- Members remain external: the Provider does not invite, create, update,
+  remove, or delete them.
 
 This tutorial deliberately uses `featbit_member_policy_binding`, which owns
 only the configured direct Member-Policy pair. It neither asks for nor takes
@@ -88,9 +89,11 @@ Do not replace it with `featbit_member_direct_policies`: that separate resource
 is for callers who intentionally manage one Member's complete direct Policy
 set, and the two ownership models must not overlap for the same Member.
 
-Use dedicated test Members whose unrelated Groups do not grant overlapping
-Project access. Do not use a production administrator or your only
-organization owner.
+Use exactly two dedicated test Members whose unrelated default, direct, or
+Group-derived permissions do not grant overlapping access to the tutorial
+Project. Do not use a production administrator or your only organization
+owner. The tutorial never clears a Member's complete direct Policy set; it
+removes only binding resources that the tutorial added.
 
 Member identifiers are Sensitive in Terraform. Treat local state, state
 backups, plans, and terminal output as confidential even though the access
@@ -106,9 +109,9 @@ You need:
 |---|---|
 | Terraform | `>= 1.5.0, < 2.0.0` |
 | Command shell | PowerShell `>= 7` or Bash `>= 3.2` |
-| FeatBit API access token | A personal or service token from the target FeatBit Organization, with permission to manage the isolated Project, Feature Flags, custom Policies, Groups, and IAM relationships, and to read the selected Member |
-| Existing FeatBit test Members | One or more Members with no unrelated effective access to the tutorial Project, safe to receive/remove the one tutorial Policy pair and join/leave the tutorial Group; no current Policy inventory is required |
-| Member test session | A separate login or test harness for at least one selected Member, kept completely outside Terraform |
+| FeatBit API access token | A personal or service token from the target FeatBit Organization, with permission to manage the isolated Project, Feature Flags, custom Policies, Groups, and IAM relationships, and to read both selected Members |
+| Existing FeatBit test Members | Exactly two Members with no unrelated effective access to the tutorial Project, safe to receive and remove tutorial-owned bindings; no complete direct Policy inventory is required |
+| Member test sessions | A separate login or test harness for each selected Member, kept completely outside Terraform |
 
 Only the API access token is required for Provider authentication. You do
 **not** need an Organization key for this tutorial: the public Project and IAM
@@ -605,48 +608,23 @@ another lifecycle.
 Put this in `policies.tf`:
 
 ```hcl
-resource "featbit_policy" "project_owner" {
-  name        = "Terraform IAM Project Owners ${var.demo_suffix}"
-  key         = "tf-iam-project-owner-${var.demo_suffix}"
-  description = "All supported actions inside the exact tutorial Project"
+resource "featbit_policy" "project_observer" {
+  name        = "Terraform IAM Project Observers ${var.demo_suffix}"
+  key         = "tf-iam-project-observer-${var.demo_suffix}"
+  description = "Read-only Project and Environment visibility across Dev and Prod"
 
   statements = [
     {
       resource_type = "project"
       effect        = "allow"
-      actions = [
-        "CanAccessProject",
-        "CreateProject",
-        "DeleteProject",
-        "UpdateProjectSettings",
-        "CreateEnv"
-      ]
-      resources = ["project/${data.featbit_project.iam.key}"]
+      actions       = ["CanAccessProject"]
+      resources     = ["project/${data.featbit_project.iam.key}"]
     },
     {
       resource_type = "env"
       effect        = "allow"
-      actions = [
-        "CanAccessEnv",
-        "DeleteEnv",
-        "UpdateEnvSettings",
-        "DeleteEnvSecret",
-        "CreateEnvSecret",
-        "UpdateEnvSecret"
-      ]
-      resources = ["project/${data.featbit_project.iam.key}:env/*"]
-    },
-    {
-      resource_type = "flag"
-      effect        = "allow"
-      actions       = ["*"]
-      resources     = ["project/${data.featbit_project.iam.key}:env/*:flag/*"]
-    },
-    {
-      resource_type = "segment"
-      effect        = "allow"
-      actions       = ["*"]
-      resources     = ["project/${data.featbit_project.iam.key}:env/*:segment/*"]
+      actions       = ["CanAccessEnv"]
+      resources     = ["project/${data.featbit_project.iam.key}:env/*"]
     }
   ]
 }
@@ -709,19 +687,16 @@ resource "featbit_policy" "dev_operator" {
         "UpdateSegmentRules"
       ]
       resources = ["project/${data.featbit_project.iam.key}:env/${data.featbit_environment.dev.key}:segment/*"]
-    }
+    },
   ]
 }
 ```
 
 Feature Flag and Segment permissions do not grant parent visibility by
-themselves. Both Policies therefore include the required Project and
-Environment access statements.
-
-`featbit_policy.project_owner` is a Project-scoped `CustomerManaged` Policy,
-not FeatBit's built-in `owner` Policy. The built-in Policy is `SysManaged` and
-can only be observed through the `featbit_policy` data source; Terraform cannot
-mutate or delete it.
+themselves. The Project observer Policy grants only Project and Environment
+access actions. The Dev operator Policy contains its own exact Project and Dev
+access statements, so it remains usable when assigned directly to Member B.
+Both are `CustomerManaged` Policies.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -787,7 +762,7 @@ Plan: 2 to add, 0 to change, 0 to destroy.
 The verification plan must report `No changes`. In FeatBit, confirm that both
 Policies are `CustomerManaged` and that their statement sets match the HCL.
 
-## Step 3: Create two Groups
+## Step 3: Create one Group
 
 Create `groups.tf`.
 
@@ -806,14 +781,9 @@ touch groups.tf
 Put this in `groups.tf`:
 
 ```hcl
-resource "featbit_group" "project_owners" {
-  name        = "Terraform IAM Project Owners ${var.demo_suffix}"
-  description = "Holds full access to the exact tutorial Project"
-}
-
-resource "featbit_group" "dev_operators" {
-  name        = "Terraform IAM Dev Operators ${var.demo_suffix}"
-  description = "Holds non-delete access to the Dev Environment"
+resource "featbit_group" "project_operators" {
+  name        = "Terraform IAM Project Operators ${var.demo_suffix}"
+  description = "Combines Project visibility with non-delete Dev operations"
 }
 ```
 
@@ -875,15 +845,15 @@ fi
 The first saved plan should report:
 
 ```text
-Plan: 2 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-The verification plan must report `No changes`. Both Groups should initially
+The verification plan must report `No changes`. The Group should initially
 have zero Policy and Member relationships.
 
 <a id="assign-access"></a>
 
-## Step 4: Assign each Policy to its Group
+## Step 4: Assign both Policies to the Group
 
 Create `bindings.tf`.
 
@@ -902,13 +872,13 @@ touch bindings.tf
 Put this in `bindings.tf`:
 
 ```hcl
-resource "featbit_group_policy_binding" "project_owners" {
-  group_id  = featbit_group.project_owners.id
-  policy_id = featbit_policy.project_owner.id
+resource "featbit_group_policy_binding" "project_observer" {
+  group_id  = featbit_group.project_operators.id
+  policy_id = featbit_policy.project_observer.id
 }
 
-resource "featbit_group_policy_binding" "dev_operators" {
-  group_id  = featbit_group.dev_operators.id
+resource "featbit_group_policy_binding" "dev_operator" {
+  group_id  = featbit_group.project_operators.id
   policy_id = featbit_policy.dev_operator.id
 }
 ```
@@ -975,21 +945,25 @@ Plan: 2 to add, 0 to change, 0 to destroy.
 ```
 
 Each binding owns only its exact pair. The verification plan must report
-`No changes`, and each Group should show only its intended Policy.
+`No changes`, and the Project operators Group should show exactly the Project
+observer and Dev operator Policies.
 
-## Step 5: Assign the Dev operator Policy directly to multiple Members
+## Step 5: Give two Members different direct Policies
 
-Before writing HCL, use FeatBit to select one or more dedicated existing test
-Members. For every selected Member, verify all of these conditions:
+Before writing HCL, select exactly two dedicated existing test Members in
+FeatBit:
 
-1. the Member is not an Owner or administrator;
-2. unrelated Groups do not grant access to the tutorial Project; and
-3. adding and later removing the tutorial's one direct Dev operator Policy
-   pair is safe.
+1. Member A will use the stable alias `group-member`. This Member starts with
+   the Project observer Policy directly and will move to Group-based access in
+   Step 6.
+2. Member B will use the stable alias `direct-member`. This Member stays
+   outside the Group and receives the Dev operator Policy directly.
 
-You do not need to list any current Policy. The binding resource below reads
-the selected Member only to resolve its exact identity and owns only the one
-configured pair.
+For both Members, verify that they are not Owners or administrators and that
+their existing effective permissions do not grant access to the newly created
+tutorial Project. You do not need to list their current Policies. Each binding
+resource below reads a Member only to resolve its exact identity and owns only
+its one configured pair.
 
 Create `members.tf`.
 
@@ -1010,8 +984,8 @@ Put this in `members.tf`:
 ```hcl
 locals {
   member_emails_by_alias = sensitive({
-    "test-member-a" = "first@example.com"
-    "test-member-b" = "second@example.com"
+    "group-member"  = "first@example.com"
+    "direct-member" = "second@example.com"
   })
 
   member_aliases = nonsensitive(toset(keys(local.member_emails_by_alias)))
@@ -1023,25 +997,28 @@ data "featbit_member" "tester" {
   email = local.member_emails_by_alias[each.key]
 }
 
-resource "featbit_member_policy_binding" "dev_operator" {
-  for_each = local.member_aliases
+resource "featbit_member_policy_binding" "group_member_observer" {
+  member_id = data.featbit_member.tester["group-member"].id
+  policy_id = featbit_policy.project_observer.id
+}
 
-  member_id = data.featbit_member.tester[each.key].id
+resource "featbit_member_policy_binding" "direct_member_dev_operator" {
+  member_id = data.featbit_member.tester["direct-member"].id
   policy_id = featbit_policy.dev_operator.id
 }
 ```
 
-Replace both `example.com` addresses with the selected Members' complete
-FeatBit emails before planning. Add or remove map entries to declare exactly
-which Members participate; at least one entry is required. Use non-identifying
-aliases because they become Terraform instance keys and therefore appear in
-plans and state addresses.
+Replace both `example.com` addresses with the two selected Members' complete
+FeatBit emails before planning. Keep exactly the `group-member` and
+`direct-member` entries: later resources refer to those aliases explicitly.
+The aliases are non-identifying because they become Terraform instance keys
+and therefore appear in plans and state addresses.
 
 The aliases drive `for_each`, while `sensitive()` prevents the email map from
 being displayed through ordinary Terraform expressions. It does not encrypt
 the HCL source, so keep this tutorial in the ignored `mypractice/iam/` root and
 never commit the real addresses. Member IDs remain Sensitive. Every resource
-instance owns exactly one direct Member-Policy pair. Create adopts an
+owns exactly one direct Member-Policy pair. Create adopts an
 already-present exact pair or adds it once, and it never removes or replaces
 another direct Policy. Do not add `featbit_member_direct_policies` for these
 Members.
@@ -1101,33 +1078,38 @@ if ! terraform plan; then
 fi
 ```
 
-If the map contains `N` Members, the first saved plan contains `N` adds. For
-the two-entry example it should report:
+The first saved plan should report:
 
 ```text
 Plan: 2 to add, 0 to change, 0 to destroy.
 ```
 
-The verification plan must report `No changes`. No baseline Policy inventory
-or comparison is required: the only intended remote change is that the Dev
-operator Policy is now assigned directly to every selected Member. No selected
-Member has inherited the tutorial Policy yet.
+The verification plan must report `No changes`. Confirm with the separate
+Member sessions that:
 
-## Step 6: Assign the Dev operators Group to the same Members
+1. Member A can see the tutorial Project plus Dev and Prod, but cannot toggle
+   the tutorial Flags through the Project observer Policy;
+2. Member B can see the Project and operate Dev Flags, but cannot access Prod
+   through the Dev operator Policy; and
+3. neither Member belongs to the tutorial Group yet.
 
-Append this block to `bindings.tf`:
+Any Organization-default or unrelated direct Policies on either Member remain
+unchanged.
+
+## Step 6: Move Member A from direct access to Group access
+
+First append this block to `bindings.tf`:
 
 ```hcl
-resource "featbit_group_member_binding" "dev_operator" {
-  for_each = local.member_aliases
-
-  group_id  = featbit_group.dev_operators.id
-  member_id = data.featbit_member.tester[each.key].id
+resource "featbit_group_member_binding" "group_member" {
+  group_id  = featbit_group.project_operators.id
+  member_id = data.featbit_member.tester["group-member"].id
 }
 ```
 
-Format and validate the root, save and apply the reviewed plan, and then run a
-second plan to verify idempotence.
+Apply the Group membership before removing Member A's direct binding. This
+ordering avoids an access gap. Run this review and apply loop now, and run it
+again after the second edit later in this step.
 
 **PowerShell**
 
@@ -1181,24 +1163,44 @@ if ! terraform plan; then
 fi
 ```
 
-If the map contains `N` Members, the first saved plan contains `N` adds. For
-the two-entry example it should report:
+The first saved plan should report:
 
 ```text
-Plan: 2 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-Every selected Member now receives the same Dev operator Policy through two
-independent paths: one exact direct pair and one inherited from the Dev
-operators Group. Terraform owns each pair separately. The verification plan
-must report `No changes`.
+The verification plan must report `No changes`. Confirm that Member A now
+belongs to the Project operators Group and inherits both Policies. Member A
+temporarily has two access paths to the Project observer Policy, while Member
+B remains outside the Group with only its tutorial direct Dev operator
+binding.
 
-Using the separate Member test session, verify:
+Now delete only this block from `members.tf`:
 
-1. the tutorial Project and Dev Environment are visible;
-2. Dev `checkout-enabled` can be toggled;
-3. permanent Flag deletion is unavailable or forbidden; and
-4. Prod is not accessible through this Policy yet.
+```hcl
+resource "featbit_member_policy_binding" "group_member_observer" {
+  member_id = data.featbit_member.tester["group-member"].id
+  policy_id = featbit_policy.project_observer.id
+}
+```
+
+Run the same PowerShell or Bash review and apply loop above a second time. The
+second saved plan should report:
+
+```text
+Plan: 0 to add, 0 to change, 1 to destroy.
+```
+
+Only the exact direct Member A-to-Project-observer pair should be destroyed.
+The verification plan must report `No changes`. Confirm that:
+
+1. Member A still sees Dev and Prod and can operate Dev Flags, now through the
+   Group's two Policies;
+2. Member A cannot permanently delete a Dev Flag;
+3. Member B still operates Dev through its direct Policy and remains outside
+   the Group; and
+4. neither Member's Organization-default or unrelated direct Policies were
+   removed.
 
 Toggling is safe for this Terraform configuration because enabled state is
 UI-owned. Do not rename or delete Terraform-owned Feature Flag definitions
@@ -1210,7 +1212,8 @@ during the access check.
 
 Append these two statement objects inside
 `featbit_policy.dev_operator.statements` in `policies.tf`, immediately before
-the list's closing bracket:
+the list's closing bracket. The existing final Segment statement already ends
+with the trailing comma required before these new list elements:
 
 ```hcl
     {
@@ -1291,12 +1294,13 @@ Plan: 0 to add, 1 to change, 0 to destroy.
 Only `featbit_policy.dev_operator` should update in place. Its key and UUID
 must remain unchanged, and the verification plan must report `No changes`.
 
-Using the separate Member test session, verify:
+Using both separate Member sessions, verify:
 
-1. Dev access still behaves as before;
-2. Prod is now visible;
-3. Prod `checkout-enabled` can be toggled; and
-4. Prod `payment-retry` and `fraud-review` cannot be toggled.
+1. Dev access still behaves as before for both Members;
+2. Member A receives the new Prod Flag operation through the Group, while
+   Member B receives it through the direct Policy;
+3. Prod `checkout-enabled` can be toggled by both Members; and
+4. Prod `payment-retry` and `fraud-review` cannot be toggled by either Member.
 
 The final check proves that the new leaf selector is exact rather than a fuzzy
 or Environment-wide grant.
@@ -1305,13 +1309,15 @@ or Environment-wide grant.
 
 ## Step 8: Prove that a Group association blocks Policy deletion
 
-The Dev operator Policy is currently assigned directly to every selected
-Member and to the Dev operators Group. First remove only the tutorial's direct
-pairs so the negative deletion test has exactly one cause.
+The Dev operator Policy is currently inherited by Member A through the Project
+operators Group and assigned directly to Member B. First remove only Member
+B's tutorial-owned direct pair so the negative deletion test has exactly one
+remaining association path.
 
-Delete the `featbit_member_policy_binding.dev_operator` block from
-`members.tf`. Keep the `locals` block and `data.featbit_member.tester`; Step 6
-still uses them for the Group-Member bindings.
+Delete the `featbit_member_policy_binding.direct_member_dev_operator` block
+from `members.tf`. Keep the `locals` block and
+`data.featbit_member.tester`; Step 6 still uses Member A for the Group-Member
+binding.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -1368,17 +1374,16 @@ if ! terraform plan; then
 fi
 ```
 
-If the map contains `N` Members, the first saved plan contains `N` destroys.
-For the two-entry example it should report:
+The first saved plan should report:
 
 ```text
-Plan: 0 to add, 0 to change, 2 to destroy.
+Plan: 0 to add, 0 to change, 1 to destroy.
 ```
 
-Each destroy removes only the exact tutorial pair. No baseline Policy inventory
-or comparison is required; the Dev operator Policy must still be inherited
-through the Dev operators Group. The verification plan must report `No
-changes`.
+The destroy removes only Member B's exact tutorial pair. No baseline Policy
+inventory or comparison is required. Confirm that Member B no longer receives
+the tutorial Dev operator access, while Member A still inherits it through the
+Project operators Group. The verification plan must report `No changes`.
 
 Now create a targeted destroy plan for only the Dev operator Policy. This is a
 controlled negative test, not a normal GitOps operation. Inspect the plan and
@@ -1447,19 +1452,18 @@ continuing.
 
 <a id="cleanup"></a>
 
-## Step 9: Delete the Groups and their exact bindings
+## Step 9: Delete the Group and its exact bindings
 
 Normal GitOps cleanup removes relationships before their endpoints. Delete
 these blocks from `bindings.tf`:
 
-- `featbit_group_policy_binding.project_owners`
-- `featbit_group_policy_binding.dev_operators`
-- `featbit_group_member_binding.dev_operator`
+- `featbit_group_policy_binding.project_observer`
+- `featbit_group_policy_binding.dev_operator`
+- `featbit_group_member_binding.group_member`
 
-Delete both blocks from `groups.tf`:
+Delete the block from `groups.tf`:
 
-- `featbit_group.project_owners`
-- `featbit_group.dev_operators`
+- `featbit_group.project_operators`
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -1516,26 +1520,25 @@ if ! terraform plan; then
 fi
 ```
 
-If the map contains `N` Members, the first saved plan contains `N + 4`
-destroys. For the two-entry example it should report:
+The first saved plan should report:
 
 ```text
-Plan: 0 to add, 0 to change, 6 to destroy.
+Plan: 0 to add, 0 to change, 4 to destroy.
 ```
 
-Those six objects are two exact Group-Policy pairs, two exact Group-Member
-pairs, and two Groups. Terraform orders the bindings before their Groups. The
+Those four objects are two exact Group-Policy pairs, one exact Group-Member
+pair, and one Group. Terraform orders the bindings before the Group. The two
 existing Members, both custom Policies, and all core Project resources remain.
 The verification plan must report `No changes`.
 
-Confirm in FeatBit that both tutorial Groups are absent, the Members are not
+Confirm in FeatBit that the tutorial Group is absent, the Members are not
 removed or changed, and both custom Policies still exist.
 
 ## Step 10: Delete the custom Policies
 
 Delete both resource blocks from `policies.tf`:
 
-- `featbit_policy.project_owner`
+- `featbit_policy.project_observer`
 - `featbit_policy.dev_operator`
 
 Delete both remaining blocks from `members.tf`:
@@ -1609,8 +1612,9 @@ Plan: 0 to add, 0 to change, 2 to destroy.
 It removes only the two custom Policies. The verification plan must report
 `No changes`.
 
-Confirm that both tutorial Policy keys are absent. No selected Member or
-unrelated direct Policy is owned by the remaining Terraform configuration.
+Confirm that both tutorial Policy keys are absent. Neither selected Member nor
+any Organization-default or unrelated direct Policy is owned by the remaining
+Terraform configuration.
 
 ## Final core-resource cleanup
 
@@ -1655,9 +1659,9 @@ Review it before applying. Terraform removes the six Feature Flags before the
 Project, and FeatBit removes the Project's default Dev and Prod Environments
 with the Project.
 
-Confirm that the exact tutorial Project, Policy keys, Group names, bindings,
-and Feature Flags are absent. Confirm again that the existing Member and every
-unrelated relationship remain unchanged.
+Confirm that the exact tutorial Project, Policy keys, Group name, bindings,
+and Feature Flags are absent. Confirm again that both existing Members and
+every unrelated relationship remain unchanged.
 
 Clear process-scoped values:
 

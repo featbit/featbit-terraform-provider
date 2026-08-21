@@ -594,19 +594,25 @@ only the concise result under the active item. The current item is **P6-150**.
   redaction, and one-shot lifecycle. Focused tests prove an existing two-Policy
   baseline survives Create/adoption/Destroy, and the IAM Protocol workflow
   retains and restores an unrelated built-in direct Policy. Registry docs and
-  the manual tutorial use alias-keyed `for_each` for one or more Members; the
-  tutorial declares its selected Members directly in the ignored HCL practice
-  root and requires no runtime JSON or current-Policy input. The authoritative
-  complete-set resource is still available with an explicit no-overlap
-  warning. The 10-resource,
-  7-data-source Protocol snapshot and 18 examples are current. Formatting,
+  the manual tutorial declare Member identities directly in the ignored HCL
+  practice root and require no runtime JSON or current-Policy input. The
+  corrected tutorial exercises exactly two existing Members and two
+  complementary Policies on one Group: Member A migrates from one
+  tutorial-owned direct pair to inherited Group access, while Member B remains
+  outside the Group with a different direct pair. Cleanup removes only those
+  exact tutorial bindings and never inventories or replaces unrelated/default
+  Policies. The authoritative complete-set resource is still available with
+  an explicit no-overlap warning. The 10-resource, 7-data-source Protocol
+  snapshot and 18 examples are current. Formatting,
   unit and Linux race tests, vet, build, module checks, generated docs,
   workflow syntax, licenses, reachable-vulnerability and secret scans,
   release configuration, Terraform `1.0.11`, `1.5.7`, and `1.15.8` Protocol
   contracts, and the five-archive/six-checksum snapshot pass. No credential,
   tag, signature, draft, publication, or practice-root mutation occurred.
-  P6-150 remains open until a separately authorized beta.2 is published and
-  the corrected multi-Member scenario is exercised against that artifact.
+  Publication of beta.2 was explicitly authorized on 2026-08-21; final
+  qualification and the protected release workflow are in progress. P6-150
+  remains open until the published artifact is exercised through the corrected
+  multi-Member scenario.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 

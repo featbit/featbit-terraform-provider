@@ -43,8 +43,9 @@ checks, promotion, cleanup, and explicit current capability boundaries.
 
 For a hands-on IAM workflow, follow the
 [FeatBit Terraform IAM GitOps Tutorial](../GitOpsGettingStartedIAM.md).
-It covers custom Policies, Groups, direct and inherited Member access, scoped
-Policy updates, association-safe deletion, and dependency-ordered cleanup.
+It covers two custom Policies on one Group, direct and inherited access for
+two existing Members, scoped Policy updates, association-safe deletion, and
+dependency-ordered cleanup.
 
 ## Authentication
 

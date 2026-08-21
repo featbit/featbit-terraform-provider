@@ -47,9 +47,10 @@ demonstrates promotion and rollback, and finishes with reviewed cleanup.
 
 For IAM, follow the
 **[FeatBit Terraform IAM GitOps Tutorial](GitOpsGettingStartedIAM.md)**. It
-creates two custom Policies and Groups, exercises direct and inherited Member
-access, updates one exact Prod Feature Flag permission, proves association-safe
-Policy deletion, and performs dependency-ordered cleanup. The focused
+creates two custom Policies and one Group, exercises direct and inherited
+access with two existing Members, updates one exact Prod Feature Flag
+permission, proves association-safe Policy deletion, and performs
+dependency-ordered cleanup. The focused
 [custom Policy example](examples/resources/featbit_policy) and the other IAM
 examples remain useful as individual reference configurations.
 
