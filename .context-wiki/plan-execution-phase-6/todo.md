@@ -573,7 +573,8 @@ only the concise result under the active item. The current item is **P6-150**.
   complete P6-130 qualification on the resulting candidate. Publish another
   beta only when needed and only with explicit maintainer authorization.
 
-  Active finding: manual customer exercise found that
+  Resolved beta finding and current exercise contract: manual customer
+  exercise found that
   `featbit_member_direct_policies` cannot safely express the common additive
   workflow. It authoritatively owns one Member's complete direct Policy set,
   while customers may select multiple Members and cannot reliably inventory
@@ -582,9 +583,11 @@ only the concise result under the active item. The current item is **P6-150**.
   beta with an additive exact Member-Policy pair resource that reuses the
   proven direct-Policy list/add/remove client operations and exact binding
   lifecycle. Preserve the authoritative resource for explicit complete-set
-  ownership, document that the two ownership models must not overlap for one
-  Member, and exercise multiple existing Members without reading or replacing
-  their unrelated direct Policies. Stable publication remains blocked until
+  ownership and document that the two ownership models must not overlap for
+  one Member. Exercise them on separate Members: clear one Group Member's
+  complete direct set only with explicit authorization, and use the additive
+  pair for a different Member whose unrelated direct Policies must survive.
+  Stable publication remains blocked until
   focused, Protocol, documentation, real-scenario, and complete P6-130 gates
   pass on the corrected surface.
 
@@ -597,18 +600,15 @@ only the concise result under the active item. The current item is **P6-150**.
   the manual tutorial declare Member identities directly in the ignored HCL
   practice root and require no runtime JSON or current-Policy input. The
   corrected tutorial exercises exactly two existing Members and two
-  complementary Policies on one Group: Member A migrates from one
-  tutorial-owned direct pair to inherited Group access, while Member B remains
-  outside the Group with a different direct pair. Cleanup removes only those
-  exact tutorial bindings and never inventories or replaces unrelated/default
-  Policies. Manual exercise also showed that Step 5's `group-member` alias
-  could be mistaken for an already-created Group membership; the tutorial now
-  labels that direct pair as temporary, shows the expected pre-migration graph,
-  and identifies Step 6's `featbit_group_member_binding` as the actual
-  Member-to-Group edge. The authoritative complete-set resource is still
-  available with an explicit no-overlap warning. The 10-resource,
-  7-data-source Protocol
-  snapshot and 18 examples are current. Formatting,
+  complementary Policies on one Group through disjoint ownership models.
+  Member A has one Group-Member edge and an authoritative empty direct set
+  ordered after that edge, so both effective Policies are inherited only;
+  Member B stays outside the Group with one additive direct pair that preserves
+  its unrelated/default Policies. The guide explicitly authorizes clearing
+  every direct Policy from the dedicated Member A, forbids overlapping the two
+  direct ownership models, and gives a three-apply migration for practice roots
+  that already applied the superseded direct-pair draft. The 10-resource,
+  7-data-source Protocol snapshot and 18 examples are current. Formatting,
   unit and Linux race tests, vet, build, module checks, generated docs,
   workflow syntax, licenses, reachable-vulnerability and secret scans,
   release configuration, Terraform `1.0.11`, `1.5.7`, and `1.15.8` Protocol
