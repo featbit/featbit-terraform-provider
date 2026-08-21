@@ -1106,7 +1106,8 @@ model's operation.
 
 If both operations were accidentally applied in one plan and Create failed
 with `FeatBit Member Direct Policy Set Is Unconfirmed`, do not remove or import
-state. The Provider preserves the exact server set. Confirm that state contains
+state. Delete the failed saved `tfplan` immediately and never apply it again.
+The Provider preserves the exact server set. Confirm that state contains
 `featbit_member_direct_policies.direct_member` and no longer contains
 `featbit_member_policy_binding.direct_member_dev_operator`; then run a new
 normal plan. It should report only one in-place change from the preserved empty
