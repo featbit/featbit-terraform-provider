@@ -481,6 +481,54 @@
         "block_types": []
       }
     },
+    "featbit_member_policy_binding": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one exact FeatBit Member-to-Policy binding through the documented public API. It owns only the configured pair, not either endpoint or the Member's complete direct Policy collection.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Canonical synthetic binding ID in `\u003cmember_uuid\u003e/\u003cpolicy_uuid\u003e` form.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "member_id",
+            "type": "string",
+            "description": "Exact existing Member UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "policy_id",
+            "type": "string",
+            "description": "Exact custom or built-in Policy UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_policy": {
       "version": 0,
       "block": {
@@ -1804,6 +1852,7 @@
     "featbit_group_member_binding": "\u003cgroup_uuid\u003e/\u003cmember_uuid\u003e",
     "featbit_group_policy_binding": "\u003cgroup_uuid\u003e/\u003cpolicy_uuid\u003e",
     "featbit_member_direct_policies": "\u003cmember_uuid\u003e",
+    "featbit_member_policy_binding": "\u003cmember_uuid\u003e/\u003cpolicy_uuid\u003e",
     "featbit_policy": "\u003cpolicy_uuid\u003e",
     "featbit_project": "\u003cproject_uuid\u003e",
     "featbit_segment": "\u003cenvironment_uuid\u003e/\u003csegment_uuid\u003e"

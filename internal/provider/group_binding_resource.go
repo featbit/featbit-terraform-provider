@@ -47,11 +47,18 @@ func (identity groupBindingIdentity) syntheticID() string {
 type groupBindingKind struct {
 	typeNameSuffix    string
 	pairName          string
+	sourceName        string
+	sourceAttribute   string
+	sourceImportName  string
+	sourceDescription string
+	sourceSensitive   bool
+	sourcePresent     func(*client.Client, context.Context, string) (bool, error)
 	targetName        string
 	targetAttribute   string
 	targetImportName  string
 	targetDescription string
 	collectionName    string
+	collectionOwner   string
 	targetSensitive   bool
 	targetPresent     func(*client.Client, context.Context, string) (bool, error)
 	listIDs           func(*client.Client, context.Context, string) ([]string, error)
@@ -63,11 +70,17 @@ var (
 	groupPolicyBindingKind = groupBindingKind{
 		typeNameSuffix:    "group_policy_binding",
 		pairName:          "Group-Policy",
+		sourceName:        "Group",
+		sourceAttribute:   "group_id",
+		sourceImportName:  "group_uuid",
+		sourceDescription: "Exact Group UUID. Changing it replaces the binding.",
+		sourcePresent:     groupBindingTargetPresent((*client.Client).GetGroup),
 		targetName:        "Policy",
 		targetAttribute:   "policy_id",
 		targetImportName:  "policy_uuid",
 		targetDescription: "Exact custom or built-in Policy UUID. Changing it replaces the binding.",
 		collectionName:    "Group Policy",
+		collectionOwner:   "the Group's complete Policy",
 		targetPresent:     groupBindingTargetPresent((*client.Client).GetPolicy),
 		listIDs:           (*client.Client).ListGroupPolicyIDs,
 		add:               (*client.Client).AddGroupPolicy,
@@ -76,16 +89,42 @@ var (
 	groupMemberBindingKind = groupBindingKind{
 		typeNameSuffix:    "group_member_binding",
 		pairName:          "Group-Member",
+		sourceName:        "Group",
+		sourceAttribute:   "group_id",
+		sourceImportName:  "group_uuid",
+		sourceDescription: "Exact Group UUID. Changing it replaces the binding.",
+		sourcePresent:     groupBindingTargetPresent((*client.Client).GetGroup),
 		targetName:        "Member",
 		targetAttribute:   "member_id",
 		targetImportName:  "member_uuid",
 		targetDescription: "Exact existing Member UUID. Changing it replaces the binding.",
 		collectionName:    "Group Member",
+		collectionOwner:   "the Group's complete Member",
 		targetSensitive:   true,
 		targetPresent:     groupBindingTargetPresent((*client.Client).GetMember),
 		listIDs:           (*client.Client).ListGroupMemberIDs,
 		add:               (*client.Client).AddGroupMember,
 		remove:            (*client.Client).RemoveGroupMember,
+	}
+	memberPolicyBindingKind = groupBindingKind{
+		typeNameSuffix:    "member_policy_binding",
+		pairName:          "Member-Policy",
+		sourceName:        "Member",
+		sourceAttribute:   "member_id",
+		sourceImportName:  "member_uuid",
+		sourceDescription: "Exact existing Member UUID. Changing it replaces the binding.",
+		sourceSensitive:   true,
+		sourcePresent:     groupBindingTargetPresent((*client.Client).GetMember),
+		targetName:        "Policy",
+		targetAttribute:   "policy_id",
+		targetImportName:  "policy_uuid",
+		targetDescription: "Exact custom or built-in Policy UUID. Changing it replaces the binding.",
+		collectionName:    "Member direct Policy",
+		collectionOwner:   "the Member's complete direct Policy",
+		targetPresent:     groupBindingTargetPresent((*client.Client).GetPolicy),
+		listIDs:           (*client.Client).ListMemberDirectPolicyIDs,
+		add:               (*client.Client).AddMemberDirectPolicy,
+		remove:            (*client.Client).RemoveMemberDirectPolicy,
 	}
 )
 
@@ -102,6 +141,10 @@ func newGroupMemberBindingResource() resource.Resource {
 	return &groupBindingResource{kind: groupMemberBindingKind}
 }
 
+func newMemberPolicyBindingResource() resource.Resource {
+	return &groupBindingResource{kind: memberPolicyBindingKind}
+}
+
 func (r *groupBindingResource) Metadata(
 	_ context.Context,
 	req resource.MetadataRequest,
@@ -116,22 +159,23 @@ func (r *groupBindingResource) Schema(
 	resp *resource.SchemaResponse,
 ) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages one exact FeatBit Group-to-" + r.kind.targetName + " binding through the documented public API. It owns only the configured pair, not either endpoint or the Group's complete " + r.kind.targetName + " collection.",
+		MarkdownDescription: "Manages one exact FeatBit " + r.kind.sourceName + "-to-" + r.kind.targetName + " binding through the documented public API. It owns only the configured pair, not either endpoint or " + r.kind.collectionOwner + " collection.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
-				Sensitive:           r.kind.targetSensitive,
-				MarkdownDescription: "Canonical synthetic binding ID in `<group_uuid>/<" + r.kind.targetImportName + ">` form.",
+				Sensitive:           r.kind.sourceSensitive || r.kind.targetSensitive,
+				MarkdownDescription: "Canonical synthetic binding ID in `<" + r.kind.sourceImportName + ">/<" + r.kind.targetImportName + ">` form.",
 				PlanModifiers: []planmodifier.String{
 					useStateForUnknownIfUnchanged(
-						path.Root("group_id"),
+						path.Root(r.kind.sourceAttribute),
 						path.Root(r.kind.targetAttribute),
 					),
 				},
 			},
-			"group_id": schema.StringAttribute{
+			r.kind.sourceAttribute: schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Exact Group UUID. Changing it replaces the binding.",
+				Sensitive:           r.kind.sourceSensitive,
+				MarkdownDescription: r.kind.sourceDescription,
 				Validators: []validator.String{
 					uuidValidator{},
 				},
@@ -177,7 +221,7 @@ func (r *groupBindingResource) Create(
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid FeatBit "+r.kind.pairName+" Binding Plan",
-			"The Group and "+r.kind.targetName+" identifiers could not be canonicalized safely. No mutation was sent.",
+			"The "+r.kind.sourceName+" and "+r.kind.targetName+" identifiers could not be canonicalized safely. No mutation was sent.",
 		)
 		return
 	}
@@ -193,7 +237,7 @@ func (r *groupBindingResource) Create(
 	if !endpointsPresent {
 		resp.Diagnostics.AddError(
 			"FeatBit "+r.kind.pairName+" Binding Endpoint Does Not Exist",
-			"The exact Group or "+r.kind.targetName+" does not exist in the token-scoped collections. No mutation was sent.",
+			"The exact "+r.kind.sourceName+" or "+r.kind.targetName+" does not exist in the token-scoped collections. No mutation was sent.",
 		)
 		return
 	}
@@ -248,7 +292,7 @@ func (r *groupBindingResource) Read(
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid FeatBit "+r.kind.pairName+" Binding State",
-			"The managed binding state does not contain one consistent canonical Group and "+r.kind.targetName+" pair. Terraform state was preserved.",
+			"The managed binding state does not contain one consistent canonical "+r.kind.sourceName+" and "+r.kind.targetName+" pair. Terraform state was preserved.",
 		)
 		return
 	}
@@ -386,12 +430,12 @@ func (r *groupBindingResource) ImportState(
 	if !valid {
 		resp.Diagnostics.AddError(
 			"Invalid FeatBit "+r.kind.pairName+" Binding Import Identifier",
-			"Import a "+r.kind.pairName+" binding as <group_uuid>/<"+r.kind.targetImportName+">, with both values in 8-4-4-4-12 hexadecimal UUID form.",
+			"Import a "+r.kind.pairName+" binding as <"+r.kind.sourceImportName+">/<"+r.kind.targetImportName+">, with both values in 8-4-4-4-12 hexadecimal UUID form.",
 		)
 		return
 	}
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), identity.syntheticID())...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("group_id"), identity.GroupID)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(r.kind.sourceAttribute), identity.GroupID)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(r.kind.targetAttribute), identity.TargetID)...)
 }
 
@@ -400,14 +444,14 @@ func (r *groupBindingResource) planIdentity(
 	plan tfsdk.Plan,
 	diagnostics *diag.Diagnostics,
 ) (groupBindingIdentity, error) {
-	var groupID types.String
+	var sourceID types.String
 	var targetID types.String
-	diagnostics.Append(plan.GetAttribute(ctx, path.Root("group_id"), &groupID)...)
+	diagnostics.Append(plan.GetAttribute(ctx, path.Root(r.kind.sourceAttribute), &sourceID)...)
 	diagnostics.Append(plan.GetAttribute(ctx, path.Root(r.kind.targetAttribute), &targetID)...)
 	if diagnostics.HasError() {
 		return groupBindingIdentity{}, errInvalidGroupBinding
 	}
-	return canonicalizeGroupBindingPlanValues(groupID, targetID)
+	return canonicalizeGroupBindingPlanValues(sourceID, targetID)
 }
 
 func (r *groupBindingResource) stateIdentity(
@@ -416,23 +460,23 @@ func (r *groupBindingResource) stateIdentity(
 	diagnostics *diag.Diagnostics,
 ) (groupBindingIdentity, error) {
 	var id types.String
-	var groupID types.String
+	var sourceID types.String
 	var targetID types.String
 	diagnostics.Append(state.GetAttribute(ctx, path.Root("id"), &id)...)
-	diagnostics.Append(state.GetAttribute(ctx, path.Root("group_id"), &groupID)...)
+	diagnostics.Append(state.GetAttribute(ctx, path.Root(r.kind.sourceAttribute), &sourceID)...)
 	diagnostics.Append(state.GetAttribute(ctx, path.Root(r.kind.targetAttribute), &targetID)...)
 	if diagnostics.HasError() {
 		return groupBindingIdentity{}, errInvalidGroupBinding
 	}
-	return canonicalizeGroupBindingStateValues(id, groupID, targetID)
+	return canonicalizeGroupBindingStateValues(id, sourceID, targetID)
 }
 
 func (r *groupBindingResource) bindingEndpointsPresent(
 	ctx context.Context,
 	identity groupBindingIdentity,
 ) (bool, error) {
-	_, groupFound, err := r.client.GetGroup(ctx, identity.GroupID)
-	if err != nil || !groupFound {
+	sourceFound, err := r.kind.sourcePresent(r.client, ctx, identity.GroupID)
+	if err != nil || !sourceFound {
 		return false, err
 	}
 	return r.kind.targetPresent(r.client, ctx, identity.TargetID)
@@ -461,7 +505,7 @@ func (r *groupBindingResource) setBindingState(
 	identity groupBindingIdentity,
 ) bool {
 	diagnostics.Append(state.SetAttribute(ctx, path.Root("id"), identity.syntheticID())...)
-	diagnostics.Append(state.SetAttribute(ctx, path.Root("group_id"), identity.GroupID)...)
+	diagnostics.Append(state.SetAttribute(ctx, path.Root(r.kind.sourceAttribute), identity.GroupID)...)
 	diagnostics.Append(state.SetAttribute(ctx, path.Root(r.kind.targetAttribute), identity.TargetID)...)
 	return !diagnostics.HasError()
 }

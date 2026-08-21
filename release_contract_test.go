@@ -22,16 +22,17 @@ import (
 )
 
 const (
-	iamReleaseVersion           = "0.2.0-beta.1"
-	releaseSchemaPath           = "internal/provider/testdata/release-schema.json"
-	releaseProjectID            = "11111111-1111-4111-8111-111111111111"
-	releaseEnvironmentID        = "22222222-2222-4222-8222-222222222222"
-	releaseSegmentID            = "33333333-3333-4333-8333-333333333333"
-	releasePolicyID             = "44444444-4444-4444-8444-444444444444"
-	releaseGroupID              = "55555555-5555-4555-8555-555555555555"
-	releaseMemberID             = "66666666-6666-4666-8666-666666666666"
-	releaseGroupPolicyBindingID = releaseGroupID + "/" + releasePolicyID
-	releaseGroupMemberBindingID = releaseGroupID + "/" + releaseMemberID
+	iamReleaseVersion            = "0.2.0-beta.2"
+	releaseSchemaPath            = "internal/provider/testdata/release-schema.json"
+	releaseProjectID             = "11111111-1111-4111-8111-111111111111"
+	releaseEnvironmentID         = "22222222-2222-4222-8222-222222222222"
+	releaseSegmentID             = "33333333-3333-4333-8333-333333333333"
+	releasePolicyID              = "44444444-4444-4444-8444-444444444444"
+	releaseGroupID               = "55555555-5555-4555-8555-555555555555"
+	releaseMemberID              = "66666666-6666-4666-8666-666666666666"
+	releaseGroupPolicyBindingID  = releaseGroupID + "/" + releasePolicyID
+	releaseGroupMemberBindingID  = releaseGroupID + "/" + releaseMemberID
+	releaseMemberPolicyBindingID = releaseMemberID + "/" + releasePolicyID
 )
 
 var releaseImportForms = map[string]string{
@@ -42,6 +43,7 @@ var releaseImportForms = map[string]string{
 	"featbit_group_member_binding":   "<group_uuid>/<member_uuid>",
 	"featbit_group_policy_binding":   "<group_uuid>/<policy_uuid>",
 	"featbit_member_direct_policies": "<member_uuid>",
+	"featbit_member_policy_binding":  "<member_uuid>/<policy_uuid>",
 	"featbit_policy":                 "<policy_uuid>",
 	"featbit_segment":                "<environment_uuid>/<segment_uuid>",
 }
@@ -122,6 +124,12 @@ func TestIAMReleaseProtocolSchemaSnapshot(t *testing.T) {
 	assertReleaseSurfaceNames(t, response)
 
 	actual := releaseSnapshotJSON(t, response)
+	if os.Getenv("FEATBIT_UPDATE_RELEASE_SCHEMA") == "1" {
+		if err := os.WriteFile(releaseSchemaPath, actual, 0o600); err != nil {
+			t.Fatalf("update release schema snapshot: %v", err)
+		}
+		return
+	}
 	expectedBytes, err := os.ReadFile(releaseSchemaPath)
 	if err != nil {
 		t.Fatalf("read release schema snapshot: %v", err)
@@ -246,6 +254,21 @@ func TestIAMReleaseImportForms(t *testing.T) {
 				"",
 				"not-a-uuid",
 				releaseMemberID + "/extra",
+			},
+		},
+		"featbit_member_policy_binding": {
+			validID: releaseMemberPolicyBindingID,
+			identity: map[string]string{
+				"id":        releaseMemberPolicyBindingID,
+				"member_id": releaseMemberID,
+				"policy_id": releasePolicyID,
+			},
+			rejectedForms: []string{
+				"",
+				releaseMemberID,
+				"not-a-uuid/" + releasePolicyID,
+				releaseMemberID + "/not-a-uuid",
+				releaseMemberPolicyBindingID + "/extra",
 			},
 		},
 		"featbit_policy": {
@@ -522,6 +545,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		"featbit_group_member_binding",
 		"featbit_group_policy_binding",
 		"featbit_member_direct_policies",
+		"featbit_member_policy_binding",
 		"featbit_policy",
 		"featbit_project",
 		"featbit_segment",

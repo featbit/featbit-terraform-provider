@@ -21,6 +21,11 @@ Group membership and inherited Group Policies are never read as owned state
 and are never changed. The Member itself must already exist and remains
 external to Terraform lifecycle management.
 
+Use `featbit_member_policy_binding` instead when the intent is to add or remove
+one exact direct Policy without replacing the Member's other direct Policies.
+Do not manage the same Member with both ownership models; overlapping them can
+cause conflicting plans or removal of a binding.
+
 ## Example Usage
 
 {{- range .ExampleFiles }}

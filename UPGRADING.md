@@ -4,7 +4,7 @@
 
 The provider follows Semantic Versioning with an explicit pre-1.0 boundary:
 
-- prereleases such as `0.2.0-beta.1` are explicit validation candidates and
+- prereleases such as `0.2.0-beta.2` are explicit validation candidates and
   may change before the corresponding stable version based on real-scenario
   findings;
 - patch releases in a published minor line, such as `0.1.x`, contain
@@ -50,6 +50,7 @@ The IAM Import contracts introduced in `0.2.x` are:
 | Group | `<group_uuid>` |
 | Group-Policy binding | `<group_uuid>/<policy_uuid>` |
 | Group-Member binding | `<group_uuid>/<member_uuid>` |
+| Member-Policy binding | `<member_uuid>/<policy_uuid>` |
 | Member direct Policies | `<member_uuid>` |
 
 An additional Import spelling may be additive, but none of these forms are
@@ -57,15 +58,15 @@ removed or reinterpreted in a compatible release.
 
 ## Pin the intended release line
 
-Terraform does not select a prerelease through a broad stable constraint. For
-the qualified IAM beta, opt in to that exact version:
+Terraform does not select a prerelease through a broad stable constraint. Once
+the corrected IAM beta is published, opt in to that exact version:
 
 ```hcl
 terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "= 0.2.0-beta.1"
+      version = "= 0.2.0-beta.2"
     }
   }
 }

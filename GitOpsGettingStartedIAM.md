@@ -7,9 +7,9 @@ This hands-on tutorial shows how to use the
 to manage one isolated FeatBit IAM scenario as reviewable Terraform code. You
 will evolve one Terraform root that creates a Project and Feature Flags,
 defines two custom Policies and two Groups, assigns direct and inherited
-access to one existing Member, updates scoped permissions, proves that a live
-Group association blocks Policy deletion, and then removes everything in the
-required dependency order.
+access to one or more existing Members, updates scoped permissions, proves
+that a live Group association blocks Policy deletion, and then removes
+everything in the required dependency order.
 
 [Get started](#getting-started) · [Create the baseline](#create-resources) ·
 [Assign access](#assign-access) · [Update a Policy](#update-policy) ·
@@ -50,8 +50,8 @@ The IAM configuration then adds:
 | Project owner Policy | Every supported Project, Environment, Feature Flag, and Segment action inside this exact Project |
 | Dev operator Policy | Project visibility plus Dev Environment, Feature Flag, and Segment actions except permanent delete capabilities |
 | Project owners Group | Holds the Project owner Policy; no tutorial Member is added to it |
-| Dev operators Group | Holds the Dev operator Policy and the existing test Member |
-| Existing test Member | Receives the Dev operator Policy both directly and through the Dev operators Group |
+| Dev operators Group | Holds the Dev operator Policy and every selected existing test Member |
+| Existing test Members | Retain every unrelated direct Policy and temporarily receive the Dev operator Policy both directly and through the Dev operators Group |
 
 The Dev operator Policy is later updated with `CanAccessEnv` for Prod and
 `ToggleFlag` for only the Prod `checkout-enabled` Flag. It does not gain
@@ -75,22 +75,22 @@ The tutorial depends on four distinct ownership contracts:
 
 - `featbit_policy` owns one custom Policy and its complete statement set.
 - `featbit_group` owns only Group existence, name, and description.
-- each binding resource owns one exact Group-to-Policy or Group-to-Member
-  pair.
-- `featbit_member_direct_policies` owns the existing Member's complete direct
-  Policy set. It never owns inherited Group Policies or the Member lifecycle.
+- each binding resource owns one exact Group-to-Policy, Group-to-Member, or
+  direct Member-to-Policy pair.
 
 The Provider does not invite, create, update, remove, or delete Members. The
-Member used here must already exist.
+Members used here must already exist.
 
-This tutorial requires a dedicated test Member whose complete current direct
-Policy set can be inventoried by exact Policy key and whose unrelated Groups
-do not grant overlapping Project access. FeatBit normally assigns the
-Organization's default permissions when a Member is added, so the baseline is
-not assumed to be empty. Do not use a production administrator or your only
-organization owner. Step 5 preserves every explicitly inventoried baseline
-Policy and contains a confirmation guard because applying an authoritative
-direct-Policy resource is permission to remove every omitted direct Policy.
+This tutorial deliberately uses `featbit_member_policy_binding`, which owns
+only the configured direct Member-Policy pair. It neither asks for nor takes
+ownership of a Member's Organization-default or pre-existing direct Policies.
+Do not replace it with `featbit_member_direct_policies`: that separate resource
+is for callers who intentionally manage one Member's complete direct Policy
+set, and the two ownership models must not overlap for the same Member.
+
+Use dedicated test Members whose unrelated Groups do not grant overlapping
+Project access. Do not use a production administrator or your only
+organization owner.
 
 Member identifiers are Sensitive in Terraform. Treat local state, state
 backups, plans, and terminal output as confidential even though the access
@@ -107,8 +107,8 @@ You need:
 | Terraform | `>= 1.5.0, < 2.0.0` |
 | Command shell | PowerShell `>= 7` or Bash `>= 3.2` |
 | FeatBit API access token | A personal or service token from the target FeatBit Organization, with permission to manage the isolated Project, Feature Flags, custom Policies, Groups, and IAM relationships, and to read the selected Member |
-| Existing FeatBit test Member | Complete current direct Policy baseline inventoried by exact key, no unrelated effective access to the tutorial Project, and safe to add/remove from the tutorial Group |
-| Member test session | A separate login or test harness for that Member, kept completely outside Terraform |
+| Existing FeatBit test Members | One or more Members with no unrelated effective access to the tutorial Project, safe to receive/remove the one tutorial Policy pair and join/leave the tutorial Group; no current Policy inventory is required |
+| Member test session | A separate login or test harness for at least one selected Member, kept completely outside Terraform |
 
 Only the API access token is required for Provider authentication. You do
 **not** need an Organization key for this tutorial: the public Project and IAM
@@ -182,7 +182,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "= 0.2.0-beta.1"
+      version = "= 0.2.0-beta.2"
     }
   }
 }
@@ -190,8 +190,13 @@ terraform {
 provider "featbit" {}
 ```
 
-This manual beta exercise intentionally pins the exact published prerelease.
-Do not replace it with `latest` while following the tutorial.
+This corrected manual exercise requires the exact `0.2.0-beta.2` prerelease,
+which adds `featbit_member_policy_binding`. The published `0.2.0-beta.1` does
+not contain that resource and cannot perform Steps 5 through 10 safely for
+Members whose complete direct Policy baselines are unknown. If
+`0.2.0-beta.2` is not yet available from the Registry, stop here; publication
+is a separate maintainer-authorized release action. Do not substitute
+`0.2.0-beta.1` or `latest`.
 
 Put this in `variables.tf`:
 
@@ -972,84 +977,19 @@ Plan: 2 to add, 0 to change, 0 to destroy.
 Each binding owns only its exact pair. The verification plan must report
 `No changes`, and each Group should show only its intended Policy.
 
-## Step 5: Assign the Dev operator Policy directly to a Member
+## Step 5: Assign the Dev operator Policy directly to multiple Members
 
-Before writing HCL, use FeatBit to select a dedicated existing test Member and
-verify all of these conditions:
+Before writing HCL, use FeatBit to select one or more dedicated existing test
+Members. For every selected Member, verify all of these conditions:
 
-1. you have recorded the exact key of every Policy listed as directly assigned
-   to the Member, including the Organization's default Policy;
-2. the Member is not an Owner or administrator;
-3. unrelated Groups do not grant access to the tutorial Project; and
-4. you can sign in as that Member separately to test effective access.
+1. the Member is not an Owner or administrator;
+2. unrelated Groups do not grant access to the tutorial Project; and
+3. adding and later removing the tutorial's one direct Dev operator Policy
+   pair is safe.
 
-If any condition is false or uncertain, stop. Do not apply this step to that
-Member. Record direct Policies only; do not include Policies inherited from a
-Group. Organization default permissions are configurable, so do not assume
-that another Member's baseline or the commonly used `developer` key matches
-this Member.
-
-Append these variables to `variables.tf`:
-
-```hcl
-variable "member_email" {
-  description = "Organization-scoped full email of the dedicated existing IAM test Member."
-  type        = string
-  sensitive   = true
-}
-
-variable "member_baseline_direct_policy_keys" {
-  description = "Complete set of exact Policy keys directly assigned to the selected Member before this tutorial."
-  type        = set(string)
-
-  validation {
-    condition = (
-      length(var.member_baseline_direct_policy_keys) > 0 &&
-      alltrue([
-        for key in var.member_baseline_direct_policy_keys :
-        length(trimspace(key)) > 0 && key == trimspace(key)
-      ])
-    )
-    error_message = "member_baseline_direct_policy_keys must contain every baseline direct Policy as a non-empty exact key."
-  }
-}
-
-variable "confirm_member_direct_policy_baseline_is_complete" {
-  description = "Explicit confirmation that member_baseline_direct_policy_keys is the selected Member's complete direct Policy baseline."
-  type        = bool
-  default     = false
-}
-```
-
-Provide the Member email, the complete baseline as a JSON array of exact
-Policy keys, and the explicit confirmation in the current shell. For example,
-enter `["developer"]` only when `developer` is the Member's sole current direct
-Policy; include every key when there is more than one.
-
-**PowerShell**
-
-```powershell
-Remove-Item Env:TF_VAR_member_email -ErrorAction SilentlyContinue
-Remove-Item Env:TF_VAR_member_baseline_direct_policy_keys -ErrorAction SilentlyContinue
-
-$env:TF_VAR_member_email = Read-Host "Existing FeatBit IAM test Member email" -MaskInput
-$env:TF_VAR_member_baseline_direct_policy_keys = Read-Host 'Complete direct Policy keys as JSON, for example ["developer"]'
-$env:TF_VAR_confirm_member_direct_policy_baseline_is_complete = "true"
-```
-
-**Bash**
-
-```bash
-unset TF_VAR_member_email TF_VAR_member_baseline_direct_policy_keys
-
-read -rsp "Existing FeatBit IAM test Member email: " TF_VAR_member_email
-printf '\n'
-read -rp 'Complete direct Policy keys as JSON, for example ["developer"]: ' \
-  TF_VAR_member_baseline_direct_policy_keys
-
-export TF_VAR_member_email TF_VAR_member_baseline_direct_policy_keys
-export TF_VAR_confirm_member_direct_policy_baseline_is_complete=true
-```
+You do not need to list any current Policy. The binding resource below reads
+the selected Member only to resolve its exact identity and owns only the one
+configured pair.
 
 Create `members.tf`.
 
@@ -1068,43 +1008,43 @@ touch members.tf
 Put this in `members.tf`:
 
 ```hcl
-data "featbit_member" "tester" {
-  email = var.member_email
-}
-
-data "featbit_policy" "member_baseline_direct" {
-  for_each = var.member_baseline_direct_policy_keys
-
-  key = each.value
-}
-
 locals {
-  member_baseline_direct_policy_ids = toset([
-    for policy in data.featbit_policy.member_baseline_direct : policy.id
-  ])
+  member_emails_by_alias = sensitive({
+    "test-member-a" = "first@example.com"
+    "test-member-b" = "second@example.com"
+  })
+
+  member_aliases = nonsensitive(toset(keys(local.member_emails_by_alias)))
 }
 
-resource "featbit_member_direct_policies" "tester" {
-  member_id = data.featbit_member.tester.id
-  policy_ids = setunion(
-    local.member_baseline_direct_policy_ids,
-    toset([featbit_policy.dev_operator.id])
-  )
+data "featbit_member" "tester" {
+  for_each = local.member_aliases
 
-  lifecycle {
-    precondition {
-      condition     = var.confirm_member_direct_policy_baseline_is_complete
-      error_message = "Stop: confirm that member_baseline_direct_policy_keys is the dedicated test Member's complete direct Policy baseline before authoritatively managing it."
-    }
-  }
+  email = local.member_emails_by_alias[each.key]
+}
+
+resource "featbit_member_policy_binding" "dev_operator" {
+  for_each = local.member_aliases
+
+  member_id = data.featbit_member.tester[each.key].id
+  policy_id = featbit_policy.dev_operator.id
 }
 ```
 
-`policy_ids` is the Member's complete intended direct Policy set, not an
-addition list. `setunion` preserves every inventoried baseline Policy while
-adding the Dev operator Policy. The exact-key Policy data sources fail closed
-if any configured key does not resolve. The explicit confirmation documents
-that no current direct Policy was omitted.
+Replace both `example.com` addresses with the selected Members' complete
+FeatBit emails before planning. Add or remove map entries to declare exactly
+which Members participate; at least one entry is required. Use non-identifying
+aliases because they become Terraform instance keys and therefore appear in
+plans and state addresses.
+
+The aliases drive `for_each`, while `sensitive()` prevents the email map from
+being displayed through ordinary Terraform expressions. It does not encrypt
+the HCL source, so keep this tutorial in the ignored `mypractice/iam/` root and
+never commit the real addresses. Member IDs remain Sensitive. Every resource
+instance owns exactly one direct Member-Policy pair. Create adopts an
+already-present exact pair or adds it once, and it never removes or replaces
+another direct Policy. Do not add `featbit_member_direct_policies` for these
+Members.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -1161,24 +1101,28 @@ if ! terraform plan; then
 fi
 ```
 
-The first saved plan should report:
+If the map contains `N` Members, the first saved plan contains `N` adds. For
+the two-entry example it should report:
 
 ```text
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 2 to add, 0 to change, 0 to destroy.
 ```
 
-The verification plan must report `No changes`. Confirm that the Member still
-has every baseline direct Policy, now also has the Dev operator Policy as a
-direct Policy, and still has no inherited tutorial Policy.
+The verification plan must report `No changes`. No baseline Policy inventory
+or comparison is required: the only intended remote change is that the Dev
+operator Policy is now assigned directly to every selected Member. No selected
+Member has inherited the tutorial Policy yet.
 
-## Step 6: Assign the Dev operators Group to the same Member
+## Step 6: Assign the Dev operators Group to the same Members
 
 Append this block to `bindings.tf`:
 
 ```hcl
 resource "featbit_group_member_binding" "dev_operator" {
+  for_each = local.member_aliases
+
   group_id  = featbit_group.dev_operators.id
-  member_id = data.featbit_member.tester.id
+  member_id = data.featbit_member.tester[each.key].id
 }
 ```
 
@@ -1237,16 +1181,17 @@ if ! terraform plan; then
 fi
 ```
 
-The first saved plan should report:
+If the map contains `N` Members, the first saved plan contains `N` adds. For
+the two-entry example it should report:
 
 ```text
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 2 to add, 0 to change, 0 to destroy.
 ```
 
-The Member now receives the same Dev operator Policy through two independent
-paths: one direct and one inherited from the Dev operators Group. Terraform
-owns the direct set and the exact Group-Member pair separately. The
-verification plan must report `No changes`.
+Every selected Member now receives the same Dev operator Policy through two
+independent paths: one exact direct pair and one inherited from the Dev
+operators Group. Terraform owns each pair separately. The verification plan
+must report `No changes`.
 
 Using the separate Member test session, verify:
 
@@ -1360,25 +1305,13 @@ or Environment-wide grant.
 
 ## Step 8: Prove that a Group association blocks Policy deletion
 
-The Dev operator Policy is currently assigned directly to the Member and to
-the Dev operators Group. First remove only the direct assignment so the
-negative deletion test has exactly one cause.
+The Dev operator Policy is currently assigned directly to every selected
+Member and to the Dev operators Group. First remove only the tutorial's direct
+pairs so the negative deletion test has exactly one cause.
 
-In `members.tf`, replace the configured `policy_ids` value with an empty set:
-
-```hcl
-resource "featbit_member_direct_policies" "tester" {
-  member_id  = data.featbit_member.tester.id
-  policy_ids = []
-
-  lifecycle {
-    precondition {
-      condition     = var.confirm_member_has_no_direct_policies
-      error_message = "Stop: confirm that the dedicated test Member has an empty complete direct Policy baseline before authoritatively managing it."
-    }
-  }
-}
-```
+Delete the `featbit_member_policy_binding.dev_operator` block from
+`members.tf`. Keep the `locals` block and `data.featbit_member.tester`; Step 6
+still uses them for the Group-Member bindings.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -1435,15 +1368,17 @@ if ! terraform plan; then
 fi
 ```
 
-The first saved plan should report:
+If the map contains `N` Members, the first saved plan contains `N` destroys.
+For the two-entry example it should report:
 
 ```text
-Plan: 0 to add, 1 to change, 0 to destroy.
+Plan: 0 to add, 0 to change, 2 to destroy.
 ```
 
-Confirm that the Member has zero direct Policies but still inherits the Dev
-operator Policy through the Dev operators Group. The verification plan must
-report `No changes`.
+Each destroy removes only the exact tutorial pair. No baseline Policy inventory
+or comparison is required; the Dev operator Policy must still be inherited
+through the Dev operators Group. The verification plan must report `No
+changes`.
 
 Now create a targeted destroy plan for only the Dev operator Policy. This is a
 controlled negative test, not a normal GitOps operation. Inspect the plan and
@@ -1581,18 +1516,19 @@ if ! terraform plan; then
 fi
 ```
 
-The first saved plan should report:
+If the map contains `N` Members, the first saved plan contains `N + 4`
+destroys. For the two-entry example it should report:
 
 ```text
-Plan: 0 to add, 0 to change, 5 to destroy.
+Plan: 0 to add, 0 to change, 6 to destroy.
 ```
 
-Terraform removes the two exact Group-Policy pairs and the exact Group-Member
-pair before deleting the two Groups. The existing Member, both custom
-Policies, and all core Project resources remain. The verification plan must
-report `No changes`.
+Those six objects are two exact Group-Policy pairs, two exact Group-Member
+pairs, and two Groups. Terraform orders the bindings before their Groups. The
+existing Members, both custom Policies, and all core Project resources remain.
+The verification plan must report `No changes`.
 
-Confirm in FeatBit that both tutorial Groups are absent, the Member is not
+Confirm in FeatBit that both tutorial Groups are absent, the Members are not
 removed or changed, and both custom Policies still exist.
 
 ## Step 10: Delete the custom Policies
@@ -1602,13 +1538,12 @@ Delete both resource blocks from `policies.tf`:
 - `featbit_policy.project_owner`
 - `featbit_policy.dev_operator`
 
-Delete both blocks from `members.tf`:
+Delete both remaining blocks from `members.tf`:
 
 - `data.featbit_member.tester`
-- `featbit_member_direct_policies.tester`
+- the `locals` block defining `member_emails_by_alias` and `member_aliases`
 
-The direct Policy set is already empty, so destroying its Terraform resource
-does not remove an inherited relationship or change the Member lifecycle.
+Removing the data source and locals has no remote lifecycle effect.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -1668,14 +1603,14 @@ fi
 The first saved plan should report:
 
 ```text
-Plan: 0 to add, 0 to change, 3 to destroy.
+Plan: 0 to add, 0 to change, 2 to destroy.
 ```
 
-It removes the two custom Policies and the empty authoritative direct-Policy
-resource from Terraform state. The verification plan must report `No changes`.
+It removes only the two custom Policies. The verification plan must report
+`No changes`.
 
-Confirm that both tutorial Policy keys are absent and the existing Member is
-unchanged with its original empty direct Policy baseline.
+Confirm that both tutorial Policy keys are absent. No selected Member or
+unrelated direct Policy is owned by the remaining Terraform configuration.
 
 ## Final core-resource cleanup
 
@@ -1731,9 +1666,7 @@ Clear process-scoped values:
 ```powershell
 @(
   "FEATBIT_ACCESS_TOKEN",
-  "FEATBIT_API_URL",
-  "TF_VAR_member_email",
-  "TF_VAR_confirm_member_has_no_direct_policies"
+  "FEATBIT_API_URL"
 ) | ForEach-Object {
   Remove-Item "Env:$_" -ErrorAction SilentlyContinue
 }
@@ -1742,8 +1675,7 @@ Clear process-scoped values:
 **Bash**
 
 ```bash
-unset FEATBIT_ACCESS_TOKEN FEATBIT_API_URL TF_VAR_member_email \
-  TF_VAR_confirm_member_has_no_direct_policies
+unset FEATBIT_ACCESS_TOKEN FEATBIT_API_URL
 ```
 
 Local state backups may retain Sensitive Member identifiers from earlier
@@ -1758,6 +1690,7 @@ handling policy. Never commit it.
 - [Group resource](docs/resources/group.md)
 - [Group-Policy binding resource](docs/resources/group_policy_binding.md)
 - [Group-Member binding resource](docs/resources/group_member_binding.md)
+- [Member-Policy binding resource](docs/resources/member_policy_binding.md)
 - [Member direct Policies resource](docs/resources/member_direct_policies.md)
 - [Core FeatBit Terraform GitOps Tutorial](GitOpsGettingStarted.md)
 

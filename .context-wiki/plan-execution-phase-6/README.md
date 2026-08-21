@@ -8,14 +8,14 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 
 ## Current entry point
 
-The public IAM API, Terraform schema/lifecycle, runtime implementation, local
-Protocol workflow, trusted current-Cloud customer workflow, Registry
-documentation, `v0.2.0-beta.1` release qualification, publication, exact
-Registry installation, published-provider customer scenario, and candidate
-requalification have passed without a release-blocking finding. Start with
-[P6-160](todo.md): publish and verify stable `v0.2.0` only with explicit
-maintainer authorization, then close Phase 6 without starting Phase 7 on this
-branch.
+The published `v0.2.0-beta.1` passed its original automated scenarios, but a
+manual Member workflow exposed a release blocker: its authoritative
+direct-Policy-set resource requires callers to know every pre-existing direct
+Policy and cannot safely express additive assignment across multiple Members.
+Start with [P6-150](todo.md): qualify the additive exact Member-Policy binding
+candidate, publish and exercise `v0.2.0-beta.2` only with explicit maintainer
+authorization, and rerun the complete release gate. Stable `v0.2.0` remains
+blocked.
 
 ## IAM v1 scope
 
@@ -26,7 +26,8 @@ Managed resources:
   levels;
 - a Group whose name and description are managed independently from bindings;
 - one exact Group-to-Policy binding;
-- one exact Group-to-Member binding; and
+- one exact Group-to-Member binding;
+- one exact additive Member-to-Policy binding; and
 - one existing Member's complete direct-Policy set, including an empty set for
   group-only effective access.
 
@@ -59,11 +60,15 @@ Explicit exclusions:
   `segment`, including documented wildcard and exact-key forms.
 - Group-to-Policy and Group-to-Member resources own one exact pair. Destroy
   removes only that pair.
+- The additive Member-to-Policy resource owns one exact direct pair and never
+  removes another direct Policy. It supports multiple Members through ordinary
+  Terraform `for_each` without requiring their current Policy baselines.
 - The Group data source observes an existing Group without adopting its
   lifecycle or relationships; its ID can feed either binding resource.
 - The Member direct-Policy resource is intentionally authoritative for one
   Member's direct Policy set. It never owns inherited Group Policies or the
-  Member lifecycle.
+  Member lifecycle. Do not overlap it with Member-to-Policy pair resources for
+  the same Member.
 - Built-in Policies, Groups selected through the data source, and existing
   Members are observed, not adopted as managed objects.
 - Exact lookup scans complete paginated results and rejects zero or duplicate
@@ -92,8 +97,9 @@ The phase passes only when:
 - Policy statements round-trip Project, Environment, Feature Flag, and Segment
   control levels with canonical effects, actions, and wildcard or exact-key
   selectors;
-- Policy-with-statements, Group, both exact bindings, and authoritative direct
-  Member Policies pass lifecycle, Import, drift, and empty-second-plan tests;
+- Policy-with-statements, Group, all three exact binding types, and
+  authoritative direct Member Policies pass lifecycle, Import, drift, and
+  empty-second-plan tests;
 - built-in Policy, Group-name, Member, Project-key, and Environment-key lookup
   reject zero and duplicate exact matches;
 - a trusted current-Cloud run proves the customer workflow without creating or
@@ -103,6 +109,8 @@ The phase passes only when:
   surface;
 - the maintainer-authorized `v0.2.0-beta.1` prerelease is published and
   verified for exact-version Registry installation;
+- the corrected `v0.2.0-beta.2` prerelease is published and exercised only
+  with separate maintainer authorization;
 - real-scenario beta findings are resolved and the resulting candidate is
   requalified; and
 - the maintainer-authorized stable `v0.2.0` release is published only after

@@ -1021,6 +1021,17 @@ func (f *memberDirectPoliciesFixture) ServeHTTP(
 			"totalCount": len(policies),
 			"items":      policies,
 		})
+	case request.Method == http.MethodGet && strings.HasPrefix(
+		request.URL.EscapedPath(),
+		policyBasePath+"/",
+	):
+		policyID := strings.TrimPrefix(request.URL.EscapedPath(), policyBasePath+"/")
+		policy, exists := f.policies[policyID]
+		if !exists {
+			writePolicyProviderEnvelope(f.t, response, http.StatusNotFound, nil)
+			return
+		}
+		writePolicyProviderEnvelope(f.t, response, http.StatusOK, policy)
 	case request.Method == http.MethodGet && request.URL.EscapedPath() == directPath:
 		f.directReads++
 		if f.failDirectReadAt != 0 && f.directReads == f.failDirectReadAt {

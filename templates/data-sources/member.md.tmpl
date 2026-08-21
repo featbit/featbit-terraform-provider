@@ -19,8 +19,9 @@ canonical email spelling.
 Only ID, email, and display name enter the provider model, and all three are
 Sensitive. Invitation fields and initial passwords are not decoded. The data
 source can supply an existing Member ID to a Group-Member binding or the
-authoritative direct-Policy resource, but it never invites, creates, changes,
-removes, or deletes the Member.
+additive Member-Policy binding, or to the separate authoritative direct-Policy
+resource, but it never invites, creates, changes, removes, or deletes the
+Member.
 
 ## Example Usage
 

@@ -90,10 +90,13 @@ every resource page includes its exact Import form.
 For focused HCL examples, use the complete
 [Feature Flag](examples/resources/featbit_feature_flag),
 [Segment](examples/resources/featbit_segment),
-[IAM Policy](examples/resources/featbit_policy), or
+[IAM Policy](examples/resources/featbit_policy),
+[additive Member-Policy binding](examples/resources/featbit_member_policy_binding), or
 [authoritative Member direct-Policy](examples/resources/featbit_member_direct_policies)
-example. The direct-Policy page explains its complete-set ownership before
-you apply it.
+example. Use the binding when assigning one Policy without replacing a
+Member's other direct Policies. The direct-Policy page explains its distinct
+complete-set ownership before you apply it; do not overlap both models for one
+Member.
 
 ## Security and support
 
@@ -107,14 +110,15 @@ disclosing vulnerability details publicly.
 
 ## Upgrading
 
-The first IAM release candidate is `v0.2.0-beta.1`. Terraform requires an
-explicit prerelease selection, so real-scenario validation must pin
-`= 0.2.0-beta.1`; a broad `~> 0.2.0` constraint will not select the beta.
-Review and update the lock file deliberately when a later beta or the stable
-`v0.2.0` is qualified. Existing core-only `0.1.x` configurations remain
-covered by the compatibility contract. [UPGRADING.md](UPGRADING.md) defines
-the SemVer, schema, state, and Import contract plus a safe plan-first upgrade
-and rollback workflow.
+The published first IAM candidate is `v0.2.0-beta.1`; manual Member scenarios
+found that its complete-set-only assignment surface is unsafe when callers do
+not know every existing direct Policy. The corrected `v0.2.0-beta.2` candidate
+adds exact additive Member-Policy bindings and must be published and exercised
+before stable release. Terraform requires an explicit prerelease selection;
+do not assume a broad `~> 0.2.0` constraint selects a beta. Existing core-only
+`0.1.x` configurations remain covered by the compatibility contract.
+[UPGRADING.md](UPGRADING.md) defines the SemVer, schema, state, and Import
+contract plus a safe plan-first upgrade and rollback workflow.
 
 ## License
 

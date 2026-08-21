@@ -51,7 +51,7 @@ const (
 	iamWorkflowBaseBindingResourceName   = "featbit_group_policy_binding.developer_base"
 	iamWorkflowScopedBindingResourceName = "featbit_group_policy_binding.developer_scoped"
 	iamWorkflowMemberBindingResourceName = "featbit_group_member_binding.developer"
-	iamWorkflowDirectResourceName        = "featbit_member_direct_policies.developer"
+	iamWorkflowMemberPolicyResourceName  = "featbit_member_policy_binding.developer"
 )
 
 func TestIAMCustomerWorkflowProtocolIntegrationExactPairAndCleanup(t *testing.T) {
@@ -244,11 +244,9 @@ resource "featbit_group_member_binding" "developer" {
   member_id = data.featbit_member.developer.id
 }
 
-resource "featbit_member_direct_policies" "developer" {
-  member_id  = data.featbit_member.developer.id
-  policy_ids = []
-
-  depends_on = [featbit_group_member_binding.developer]
+resource "featbit_member_policy_binding" "developer" {
+  member_id = data.featbit_member.developer.id
+  policy_id = featbit_policy.base_access.id
 }
 `, apiOrigin, syntheticProviderAccessToken, iamWorkflowProjectKey,
 		iamWorkflowMemberEmail, baseBinding)
@@ -267,7 +265,6 @@ func iamWorkflowStateChecks(includeBaseBinding bool) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(iamWorkflowScopedPolicyResourceName, "type", client.PolicyTypeCustomerManaged),
 		resource.TestCheckResourceAttr(iamWorkflowScopedPolicyResourceName, "statements.#", "4"),
 		resource.TestCheckResourceAttr(iamWorkflowMemberDataName, "email", iamWorkflowMemberEmail),
-		resource.TestCheckResourceAttr(iamWorkflowDirectResourceName, "policy_ids.#", "0"),
 		resource.TestCheckResourceAttrPair(
 			iamWorkflowProjectResourceName, "id", iamWorkflowProjectDataName, "id",
 		),
@@ -302,7 +299,10 @@ func iamWorkflowStateChecks(includeBaseBinding bool) resource.TestCheckFunc {
 			iamWorkflowMemberDataName, "id", iamWorkflowMemberBindingResourceName, "member_id",
 		),
 		resource.TestCheckResourceAttrPair(
-			iamWorkflowMemberDataName, "id", iamWorkflowDirectResourceName, "member_id",
+			iamWorkflowMemberDataName, "id", iamWorkflowMemberPolicyResourceName, "member_id",
+		),
+		resource.TestCheckResourceAttrPair(
+			iamWorkflowBasePolicyResourceName, "id", iamWorkflowMemberPolicyResourceName, "policy_id",
 		),
 	}
 	if includeBaseBinding {
@@ -1158,8 +1158,11 @@ func (f *iamWorkflowFixture) graphCheck(includeBaseBinding bool) resource.TestCh
 			) {
 			return fmt.Errorf("existing Member was not assigned only to the developer Group")
 		}
-		if len(f.directPolicyIDs) != 0 {
-			return fmt.Errorf("authoritative Member direct Policy set is not empty")
+		if !sameIAMWorkflowIDSet(
+			f.directPolicyIDs,
+			[]string{iamWorkflowOwnerPolicyID, iamWorkflowBasePolicyID},
+		) {
+			return fmt.Errorf("additive Member-Policy binding did not preserve the existing direct Policy")
 		}
 		if f.member != (client.Member{
 			ID: iamWorkflowMemberID, Email: iamWorkflowMemberEmail, Name: "P6-100 Existing Member",
@@ -1183,7 +1186,7 @@ func (f *iamWorkflowFixture) initialMutationCheck() resource.TestCheckFunc {
 			"add-group-policy:" + iamWorkflowDeveloperID + ":" + iamWorkflowBasePolicyID,
 			"add-group-policy:" + iamWorkflowDeveloperID + ":" + iamWorkflowScopedPolicyID,
 			"add-group-member:" + iamWorkflowDeveloperID + ":" + iamWorkflowMemberID,
-			"remove-member-policy:" + iamWorkflowMemberID + ":" + iamWorkflowOwnerPolicyID,
+			"add-member-policy:" + iamWorkflowMemberID + ":" + iamWorkflowBasePolicyID,
 		}
 		actual := f.mutationSnapshot()
 		if !sameIAMWorkflowMutationSet(actual, expected) {
@@ -1233,7 +1236,8 @@ func (f *iamWorkflowFixture) cleanupError() error {
 	policyCount := len(f.policies)
 	owner, ownerPresent := f.policies[iamWorkflowOwnerPolicyID]
 	groupCount := len(f.groups)
-	relationshipCount := len(f.directPolicyIDs)
+	directPolicyIDs := sortedIAMWorkflowIDs(f.directPolicyIDs)
+	relationshipCount := 0
 	for _, ids := range f.groupPolicies {
 		relationshipCount += len(ids)
 	}
@@ -1250,6 +1254,9 @@ func (f *iamWorkflowFixture) cleanupError() error {
 	}
 	if groupCount != 0 || relationshipCount != 0 {
 		return fmt.Errorf("IAM workflow cleanup retained %d Groups and %d relationships", groupCount, relationshipCount)
+	}
+	if !slices.Equal(directPolicyIDs, []string{iamWorkflowOwnerPolicyID}) {
+		return fmt.Errorf("IAM workflow cleanup did not restore the Member direct Policy baseline")
 	}
 	if member != (client.Member{
 		ID: iamWorkflowMemberID, Email: iamWorkflowMemberEmail, Name: "P6-100 Existing Member",

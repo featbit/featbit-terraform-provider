@@ -2,7 +2,7 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-160**.
+only the concise result under the active item. The current item is **P6-150**.
 
 ## Scope and API contract
 
@@ -88,7 +88,8 @@ only the concise result under the active item. The current item is **P6-160**.
   `actions`, and `resources`, including action/type validation and selector
   canonicalization. Define the authoritative per-Member direct-Policy resource
   so `policy_ids = []` means no direct Policies and never affects inherited
-  ones.
+  ones, plus an additive exact Member-Policy pair for callers who do not own a
+  Member's complete direct baseline.
 
   Done when each schema maps to proven API calls and has an unambiguous owner.
 
@@ -104,6 +105,7 @@ only the concise result under the active item. The current item is **P6-160**.
   | resource `featbit_group` | `id` C UUID; `name` R; `description` O+C | all settings update in place; `<group_uuid>` |
   | resource `featbit_group_policy_binding` | `id` C synthetic pair; `group_id` R UUID; `policy_id` R UUID | either input replaces; `<group_uuid>/<policy_uuid>` |
   | resource `featbit_group_member_binding` | `id` C+S synthetic pair; `group_id` R UUID; `member_id` R+S UUID | either input replaces; `<group_uuid>/<member_uuid>` |
+  | resource `featbit_member_policy_binding` | `id` C+S synthetic pair; `member_id` R+S UUID; `policy_id` R UUID | either input replaces; `<member_uuid>/<policy_uuid>` |
   | resource `featbit_member_direct_policies` | `id` C+S and equal to the canonical Member UUID; `member_id` R+S UUID; `policy_ids` R set of UUIDs, including `[]` | `member_id` replaces; `<member_uuid>` |
   | data source `featbit_policy` | exactly one of `id` O+C UUID or exact case-sensitive `key` O+C; `name`, `description`, `type`, and statement set C | no ownership or Import |
   | data source `featbit_group` | exactly one of `id` O+C UUID or organization-scoped exact case-sensitive `name` O+C; `description` C | no ownership or Import |
@@ -171,13 +173,16 @@ only the concise result under the active item. The current item is **P6-160**.
     name and adopts neither its lifecycle nor its relationships.
   - Each binding resource owns only its configured exact pair. Create resolves
     both IDs through complete token-scoped collections, reads the complete
-    Group relationship collection, deliberately takes ownership without a
+    source relationship collection, deliberately takes ownership without a
     mutation when that exact pair already exists, or sends one add and verifies
     the pair. Read removes state only on authoritative exact-pair absence.
     Destroy sends at most one remove and requires authoritative absence; a
     confirmed missing endpoint object already proves the pair absent. No other
-    pair is read into state, added, or removed. Built-in Policies are valid
-    Group-Policy binding targets.
+    pair is read into state, added, or removed. Group bindings read the exact
+    Group's Policy or Member collection. `featbit_member_policy_binding` reads
+    only the exact Member's direct Policy collection, never its inherited
+    Policies, and makes additive multi-Member assignment possible without a
+    baseline inventory. Built-in Policies are valid Policy binding targets.
   - `featbit_member_direct_policies` is the sole owner of one existing Member's
     entire direct Policy set. Create, Update, and drift reconciliation resolve
     the Member and every desired Policy through complete token-scoped
@@ -188,7 +193,9 @@ only the concise result under the active item. The current item is **P6-160**.
     removes every direct Policy. Destroy likewise removes the complete current
     direct set and then drops state. It never reads as authority from the
     combined or inherited Policy collections, never removes a Group edge or
-    inherited Policy, and never updates or deletes the Member.
+    inherited Policy, and never updates or deletes the Member. Callers must not
+    overlap this complete-set owner with `featbit_member_policy_binding` for
+    the same Member.
 
   All IDs and Import components use canonical lower-case 8-4-4-4-12 UUID
   spelling. Computed IDs stay known only while every replacement input is
@@ -559,34 +566,47 @@ only the concise result under the active item. The current item is **P6-160**.
   data sources. No credential was used or retained. Phase 6 remains open for
   P6-150 real-scenario validation.
 
-- [x] **P6-150 — Exercise real scenarios and remediate the beta.**
+- [ ] **P6-150 — Exercise real scenarios and remediate the beta.**
 
   Use the published beta in the intended real customer scenarios. Record only
   current actionable findings, fix every release-blocking defect, and rerun the
   complete P6-130 qualification on the resulting candidate. Publish another
   beta only when needed and only with explicit maintainer authorization.
 
-  Result: **passed against the published Registry beta on 2026-08-19; no
-  release-blocking defect or second beta is needed.** A signed `v0.1.1`
-  customer state created one Project, its three Environments, three Feature
-  Flags, and three Segments, then upgraded in place to exact
-  `v0.2.0-beta.1` without core drift. The beta added exact Project and
-  Environment lookups, the built-in Owner Policy lookup, two custom Policies
-  spanning all four statement levels with Allow/Deny and wildcard, exact-key,
-  and tag selectors, two Groups, and three exact Group-Policy bindings.
-  Focused updates changed only their intended Group and Policy, removing one
-  binding preserved the other relationships, six IAM imports converged to an
-  empty plan, and every create, upgrade, update, and import boundary reached an
-  empty second plan. Destroy removed all test-owned objects; complete public
-  collection reads proved exact zero while the built-in Owner remained.
-  Existing protected-Member coverage from P6-110 was not re-mutated without a
-  configured exact member identity. No actionable public issue report was
-  open. The unchanged runtime candidate passed the complete P6-130 gate again:
-  fresh local quality, supply-chain, schema, documentation, 17-example, and
-  five-archive/six-checksum snapshot checks passed, while current-HEAD native
-  Ubuntu run `32228416389` supplies the exact Linux race and Terraform
-  `1.0.11`, `1.5.7`, and `1.15.8` Protocol passes. No credential, test
-  identity, test object, tag, signature, draft, or publication was retained.
+  Active finding: manual customer exercise found that
+  `featbit_member_direct_policies` cannot safely express the common additive
+  workflow. It authoritatively owns one Member's complete direct Policy set,
+  while customers may select multiple Members and cannot reliably inventory
+  every Member's Organization-default or pre-existing direct Policy. Requiring
+  that baseline in tutorial input risks removing permissions. Remediate the
+  beta with an additive exact Member-Policy pair resource that reuses the
+  proven direct-Policy list/add/remove client operations and exact binding
+  lifecycle. Preserve the authoritative resource for explicit complete-set
+  ownership, document that the two ownership models must not overlap for one
+  Member, and exercise multiple existing Members without reading or replacing
+  their unrelated direct Policies. Stable publication remains blocked until
+  focused, Protocol, documentation, real-scenario, and complete P6-130 gates
+  pass on the corrected surface.
+
+  Candidate status: the corrected `v0.2.0-beta.2` source now registers
+  `featbit_member_policy_binding`, which owns one exact direct pair and reuses
+  the existing exact endpoint, list, add, remove, reconciliation, Import,
+  redaction, and one-shot lifecycle. Focused tests prove an existing two-Policy
+  baseline survives Create/adoption/Destroy, and the IAM Protocol workflow
+  retains and restores an unrelated built-in direct Policy. Registry docs and
+  the manual tutorial use alias-keyed `for_each` for one or more Members; the
+  tutorial declares its selected Members directly in the ignored HCL practice
+  root and requires no runtime JSON or current-Policy input. The authoritative
+  complete-set resource is still available with an explicit no-overlap
+  warning. The 10-resource,
+  7-data-source Protocol snapshot and 18 examples are current. Formatting,
+  unit and Linux race tests, vet, build, module checks, generated docs,
+  workflow syntax, licenses, reachable-vulnerability and secret scans,
+  release configuration, Terraform `1.0.11`, `1.5.7`, and `1.15.8` Protocol
+  contracts, and the five-archive/six-checksum snapshot pass. No credential,
+  tag, signature, draft, publication, or practice-root mutation occurred.
+  P6-150 remains open until a separately authorized beta.2 is published and
+  the corrected multi-Member scenario is exercised against that artifact.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 

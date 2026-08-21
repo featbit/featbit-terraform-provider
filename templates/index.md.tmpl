@@ -12,14 +12,16 @@ description: |-
 The provider manages Projects, Environments, Feature Flag definitions,
 environment-specific Segments, custom Policies and their complete statement
 sets, Groups, exact Group-Policy and Group-Member bindings, and one existing
-Member's complete direct-Policy set. Exact single-object data sources observe
-core objects, custom or built-in Policies, existing Groups, and existing
-Members without adopting their lifecycle.
+Member's complete direct-Policy set or exact additive Member-Policy pairs.
+Exact single-object data sources observe core objects, custom or built-in
+Policies, existing Groups, and existing Members without adopting their
+lifecycle.
 
-IAM ownership is deliberately narrow. Group bindings own one exact pair, not
-a Group's complete relationship collection. The direct-Policy resource is
-authoritative only for one Member's direct Policies and never changes inherited
-Group Policies. Built-in Policies are read-only.
+IAM ownership is explicit. Group bindings and Member-Policy bindings own one
+exact pair. The separate direct-Policy-set resource is authoritative for one
+Member's complete direct Policies. Do not overlap the pair and complete-set
+models for one Member. Neither model changes inherited Group Policies, and
+built-in Policies are read-only.
 
 Member invitation, creation, profile changes, organization or workspace
 removal, and deletion are unsupported. The provider can authenticate with an
@@ -84,11 +86,11 @@ The provider block deliberately leaves authentication to the process
 environment. Optional timeout, concurrency, and read-retry settings can also
 be supplied through the environment variables documented in the schema.
 
-The first IAM release candidate is `v0.2.0-beta.1`. Terraform prereleases
-require an explicit version selection, so this example deliberately pins the
-exact beta for real-scenario validation. Review the release notes and update
-the constraint and lock file deliberately for a later beta or stable
-`v0.2.0`.
+The corrected IAM release candidate is `v0.2.0-beta.2`. Terraform prereleases
+require an explicit version selection, so this example deliberately pins that
+exact beta. The published `v0.2.0-beta.1` lacks additive Member-Policy
+bindings. Review the release notes and update the constraint and lock file
+deliberately for a later beta or stable `v0.2.0`.
 
 ## Exact identity and Import
 
@@ -110,6 +112,7 @@ Managed resources retain these stable Import forms:
 | Group | `<group_uuid>` |
 | Group-Policy binding | `<group_uuid>/<policy_uuid>` |
 | Group-Member binding | `<group_uuid>/<member_uuid>` |
+| Member-Policy binding | `<member_uuid>/<policy_uuid>` |
 | Member direct Policies | `<member_uuid>` |
 
 Use child resource references for dependency ordering. Destroy Feature Flags
