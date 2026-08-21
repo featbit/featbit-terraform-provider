@@ -118,7 +118,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "= 0.2.0-beta.1"
+      version = "= 0.2.0-beta.2"
     }
   }
 }
@@ -126,12 +126,12 @@ terraform {
 provider "featbit" {}
 ```
 
-If this practice root was already initialized with a Provider `v0.1.x`, update
-the constraint above and refresh the dependency lock selection before
-continuing:
+If this practice root was already initialized with Provider `v0.1.x` or an
+earlier beta, update the constraint above and refresh the dependency lock
+selection before continuing:
 
 ```console
-terraform init -upgrade
+terraform init -upgrade -input=false -no-color
 ```
 
 The command upgrades the Provider dependency; it does not change the managed

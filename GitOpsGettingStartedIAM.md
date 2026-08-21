@@ -196,10 +196,19 @@ provider "featbit" {}
 This corrected manual exercise requires the exact `0.2.0-beta.2` prerelease,
 which adds `featbit_member_policy_binding`. The published `0.2.0-beta.1` does
 not contain that resource and cannot perform Steps 5 through 10 safely for
-Members whose complete direct Policy baselines are unknown. If
-`0.2.0-beta.2` is not yet available from the Registry, stop here; publication
-is a separate maintainer-authorized release action. Do not substitute
+Members whose complete direct Policy baselines are unknown. Do not substitute
 `0.2.0-beta.1` or `latest`.
+
+If this practice root was initialized before selecting `0.2.0-beta.2`, refresh
+the dependency lock selection before continuing:
+
+```console
+terraform init -upgrade -input=false -no-color
+```
+
+The command upgrades only the Provider dependency selection; it does not
+change managed FeatBit resources by itself. Review the next `terraform plan`
+as usual.
 
 Put this in `variables.tf`:
 
