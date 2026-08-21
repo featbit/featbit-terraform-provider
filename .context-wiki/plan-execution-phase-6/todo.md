@@ -573,21 +573,15 @@ only the concise result under the active item. The current item is **P6-150**.
   complete P6-130 qualification on the resulting candidate. Publish another
   beta only when needed and only with explicit maintainer authorization.
 
-  Resolved beta finding and current exercise contract: manual customer
-  exercise found that
-  `featbit_member_direct_policies` cannot safely express the common additive
-  workflow. It authoritatively owns one Member's complete direct Policy set,
-  while customers may select multiple Members and cannot reliably inventory
-  every Member's Organization-default or pre-existing direct Policy. Requiring
-  that baseline in tutorial input risks removing permissions. Remediate the
-  beta with an additive exact Member-Policy pair resource that reuses the
-  proven direct-Policy list/add/remove client operations and exact binding
-  lifecycle. Preserve the authoritative resource for explicit complete-set
-  ownership and document that the two ownership models must not overlap for
-  one Member. Exercise them on separate Members: clear one Group Member's
-  complete direct set only with explicit authorization, and use the additive
-  pair for a different Member whose unrelated direct Policies must survive.
-  Stable publication remains blocked until
+  Resolved beta design finding and current exercise contract: beta.2 supports
+  both closed-world complete-set ownership through
+  `featbit_member_direct_policies` and open-world exact-pair ownership through
+  `featbit_member_policy_binding`; the two models must not overlap for one
+  Member. The current customer scenario explicitly chooses closed-world GitOps
+  ownership for both selected Members, so the manual tutorial must replace
+  each complete direct set rather than preserve Policies managed outside this
+  root. The additive resource remains supported for other consumers but is not
+  part of this scenario. Stable publication remains blocked until
   focused, Protocol, documentation, real-scenario, and complete P6-130 gates
   pass on the corrected surface.
 
@@ -600,15 +594,18 @@ only the concise result under the active item. The current item is **P6-150**.
   the manual tutorial declare Member identities directly in the ignored HCL
   practice root and require no runtime JSON or current-Policy input. The
   corrected tutorial exercises exactly two existing Members and two
-  complementary Policies on one Group through disjoint ownership models.
+  complementary Policies on one Group through authoritative direct-set
+  ownership.
   Member A has one Group-Member edge and an authoritative empty direct set
   ordered after that edge, so both effective Policies are inherited only;
-  Member B stays outside the Group with one additive direct pair that preserves
-  its unrelated/default Policies. The guide explicitly authorizes clearing
-  every direct Policy from the dedicated Member A, forbids overlapping the two
-  direct ownership models, and gives a three-apply migration for practice roots
-  that already applied the superseded direct-pair draft. The 10-resource,
-  7-data-source Protocol snapshot and 18 examples are current. Formatting,
+  Member B stays outside the Group with a complete direct set containing only
+  the Dev operator Policy. The guide explicitly authorizes replacement of both
+  Members' current direct sets and gives a two-apply, non-overlapping migration
+  for practice roots that already applied the additive Member B draft. It also
+  distinguishes this direct-set guarantee from exact-pair Group relationships
+  and requires dedicated Members without unmanaged Group access. The
+  10-resource, 7-data-source Protocol snapshot and 18 examples are current.
+  Formatting,
   unit and Linux race tests, vet, build, module checks, generated docs,
   workflow syntax, licenses, reachable-vulnerability and secret scans,
   release configuration, Terraform `1.0.11`, `1.5.7`, and `1.15.8` Protocol
