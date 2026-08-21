@@ -989,6 +989,15 @@ however, explicitly authorize Terraform to remove every current direct Policy
 from Member A and every current direct Policy other than the Dev operator
 Policy from Member B.
 
+> **Existing practice roots:** before replacing any Member B resource, run
+> `terraform state list`. If it contains
+> `featbit_member_policy_binding.direct_member_dev_operator`, do not apply the
+> fresh-root HCL below yet. Follow the two-apply migration later in this step.
+> A plan must never contain that binding's Destroy and
+> `featbit_member_direct_policies.direct_member` Create together, because both
+> operations mutate the same remote direct-Policy collection without a
+> Terraform dependency ordering them.
+
 Create `members.tf`.
 
 **PowerShell**
@@ -1092,6 +1101,17 @@ The plans should respectively report one destroy and one add. Member B may
 temporarily lose the tutorial Dev access between them, so use only the
 dedicated test identity. This sequencing prevents the additive and
 authoritative ownership models from mutating the same Member concurrently.
+Inspect both saved plans: stop if either plan contains the other ownership
+model's operation.
+
+If both operations were accidentally applied in one plan and Create failed
+with `FeatBit Member Direct Policy Set Is Unconfirmed`, do not remove or import
+state. The Provider preserves the exact server set. Confirm that state contains
+`featbit_member_direct_policies.direct_member` and no longer contains
+`featbit_member_policy_binding.direct_member_dev_operator`; then run a new
+normal plan. It should report only one in-place change from the preserved empty
+set to the configured Dev operator set. Apply that new plan and verify a final
+`No changes` plan.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.

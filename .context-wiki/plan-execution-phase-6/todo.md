@@ -603,7 +603,12 @@ only the concise result under the active item. The current item is **P6-150**.
   Members' current direct sets and gives a two-apply, non-overlapping migration
   for practice roots that already applied the additive Member B draft. It also
   distinguishes this direct-set guarantee from exact-pair Group relationships
-  and requires dedicated Members without unmanaged Group access. The
+  and requires dedicated Members without unmanaged Group access. Real exercise
+  confirmed that placing the old pair Destroy and new complete-set Create in
+  one plan races two ownership models: the Provider fails closed on the final
+  mismatch, preserves the exact empty server set, and sends no blind retry. The
+  guide now rejects such a combined plan before HCL replacement and documents
+  recovery as one subsequent in-place authoritative-set update. The
   10-resource, 7-data-source Protocol snapshot and 18 examples are current.
   Formatting,
   unit and Linux race tests, vet, build, module checks, generated docs,
