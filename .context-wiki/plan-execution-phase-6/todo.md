@@ -607,12 +607,19 @@ only the concise result under the active item. The current item is **P6-150**.
   unit and Linux race tests, vet, build, module checks, generated docs,
   workflow syntax, licenses, reachable-vulnerability and secret scans,
   release configuration, Terraform `1.0.11`, `1.5.7`, and `1.15.8` Protocol
-  contracts, and the five-archive/six-checksum snapshot pass. No credential,
-  tag, signature, draft, publication, or practice-root mutation occurred.
-  Publication of beta.2 was explicitly authorized on 2026-08-21; final
-  qualification and the protected release workflow are in progress. P6-150
-  remains open until the published artifact is exercised through the corrected
-  multi-Member scenario.
+  contracts, and the five-archive/six-checksum snapshot pass. No credential or
+  practice-root mutation occurred during qualification. Authorized
+  lightweight tag `v0.2.0-beta.2` targets qualified commit
+  `7a1793ecdfd6cb19c27ad28680ea43da34e9da04`. Protected workflow run
+  `32462631114` produced the five archives, Protocol 6.0 manifest, checksums,
+  and a valid detached signature from Registry key `DF6E0745BAEA5089`; the
+  inspected draft was published as a GitHub prerelease on 2026-08-21 while
+  `v0.1.1` remained Latest. HCP public-namespace resync indexed the exact beta.
+  A clean Terraform 1.5.6 directory installed exact `= 0.2.0-beta.2` directly
+  from the Registry, verified the developer signature, validated successfully,
+  and loaded five provider attributes, 10 resources, and seven data sources.
+  P6-150 remains open until the published artifact is exercised through the
+  corrected multi-Member scenario.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 
