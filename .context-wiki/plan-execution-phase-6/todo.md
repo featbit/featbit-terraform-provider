@@ -601,8 +601,13 @@ only the concise result under the active item. The current item is **P6-150**.
   tutorial-owned direct pair to inherited Group access, while Member B remains
   outside the Group with a different direct pair. Cleanup removes only those
   exact tutorial bindings and never inventories or replaces unrelated/default
-  Policies. The authoritative complete-set resource is still available with
-  an explicit no-overlap warning. The 10-resource, 7-data-source Protocol
+  Policies. Manual exercise also showed that Step 5's `group-member` alias
+  could be mistaken for an already-created Group membership; the tutorial now
+  labels that direct pair as temporary, shows the expected pre-migration graph,
+  and identifies Step 6's `featbit_group_member_binding` as the actual
+  Member-to-Group edge. The authoritative complete-set resource is still
+  available with an explicit no-overlap warning. The 10-resource,
+  7-data-source Protocol
   snapshot and 18 examples are current. Formatting,
   unit and Linux race tests, vet, build, module checks, generated docs,
   workflow syntax, licenses, reachable-vulnerability and secret scans,

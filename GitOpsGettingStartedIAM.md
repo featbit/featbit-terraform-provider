@@ -50,7 +50,7 @@ The IAM configuration then adds:
 | Project observer Policy | Read-only Project and Environment visibility across Dev and Prod |
 | Dev operator Policy | Project visibility plus Dev Environment, Feature Flag, and Segment actions except permanent delete capabilities |
 | Project operators Group | Holds both complementary Policies; Member A joins it and inherits their union |
-| Existing Member A (`group-member`) | Starts with the Project observer Policy directly, joins the Group, and then has only that exact tutorial direct binding removed |
+| Existing Member A (`group-member`) | Step 5 temporarily receives the Project observer Policy directly; Step 6 joins the Group and then removes only that exact tutorial direct binding |
 | Existing Member B (`direct-member`) | Stays outside the Group and receives the Dev operator Policy directly |
 
 The Dev operator Policy is later updated with `CanAccessEnv` for Prod and
@@ -990,6 +990,12 @@ touch members.tf
 
 Put this in `members.tf`:
 
+The alias `group-member` names Member A's role in the finished scenario; it
+does not assign the Group by itself. Step 5 intentionally creates a temporary,
+tutorial-owned direct Policy edge for Member A so that Step 6 can demonstrate
+a safe direct-to-Group migration. The actual Group membership uses
+`featbit_group_member_binding` and is added in Step 6.
+
 ```hcl
 locals {
   member_emails_by_alias = sensitive({
@@ -1016,6 +1022,19 @@ resource "featbit_member_policy_binding" "direct_member_dev_operator" {
   policy_id = featbit_policy.dev_operator.id
 }
 ```
+
+After applying Step 5, the expected temporary relationship graph is:
+
+| Source | Relationship | Target |
+|---|---|---|
+| Project operators Group | Group-Policy binding | Project observer Policy |
+| Project operators Group | Group-Policy binding | Dev operator Policy |
+| Member A (`group-member`) | Direct Member-Policy binding | Project observer Policy |
+| Member B (`direct-member`) | Direct Member-Policy binding | Dev operator Policy |
+
+There is deliberately no Group-Member binding yet. Seeing Member A assigned
+directly to the Project observer Policy at this point is expected; it is the
+known pair that the tutorial will remove after Group access is established.
 
 Replace both `example.com` addresses with the two selected Members' complete
 FeatBit emails before planning. Keep exactly the `group-member` and
@@ -1107,7 +1126,8 @@ unchanged.
 
 ## Step 6: Move Member A from direct access to Group access
 
-First append this block to `bindings.tf`:
+Now create the actual Member A-to-Group relationship. First append this block
+to `bindings.tf`:
 
 ```hcl
 resource "featbit_group_member_binding" "group_member" {
@@ -1210,6 +1230,11 @@ The verification plan must report `No changes`. Confirm that:
    the Group; and
 4. neither Member's Organization-default or unrelated direct Policies were
    removed.
+
+The resulting relationship graph is now the intended steady state: Member A
+belongs to the Project operators Group and inherits both Group Policies;
+Member B remains outside the Group with only the tutorial-owned direct Dev
+operator binding. Member A no longer has a tutorial-owned direct Policy.
 
 Toggling is safe for this Terraform configuration because enabled state is
 UI-owned. Do not rename or delete Terraform-owned Feature Flag definitions
