@@ -630,8 +630,17 @@ only the concise result under the active item. The current item is **P6-150**.
   plan; the Step 7 HCL itself validates. The tutorial now treats token
   replacement, matching API-origin selection, and the read-only HTTP `200`
   check as a per-session gate, and requires a failed or stale saved plan to be
-  discarded before replanning. P6-150 remains open until the published
-  artifact is exercised through the corrected multi-Member scenario.
+  discarded before replanning. Step 8 then exposed that PowerShell splits
+  unquoted native `-target=...` and `-out=...` values containing dots, and that
+  Terraform expands a Policy-targeted destroy to its managed Group binding,
+  defeating the intended live-association guard exercise. The corrected guide
+  quotes both arguments and temporarily removes only the binding's local state
+  entry while preserving its HCL and remote edge; it backs up state, asserts
+  the plan contains exactly one Policy delete, requires the exact guard
+  diagnostic, and restores the binding by Import in guaranteed cleanup. An
+  isolated copy of the real practice state verifies the corrected plan is
+  exactly `0 to add, 0 to change, 1 to destroy`. P6-150 remains open until the
+  published artifact completes the remaining corrected multi-Member scenario.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 

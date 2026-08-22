@@ -1382,9 +1382,20 @@ still inherits it through the Project operators Group. The verification plan
 must report `No changes`.
 
 Now create a targeted destroy plan for only the Dev operator Policy. This is a
-controlled negative test, not a normal GitOps operation. Inspect the plan and
-continue only if it shows exactly one Policy destroy and no binding or Group
-destroy.
+controlled negative test, not a normal GitOps operation.
+
+Terraform normally expands a targeted destroy through the dependency graph.
+Targeting `featbit_policy.dev_operator` while its binding remains in state
+would therefore plan both the Group-Policy binding and the Policy for destroy,
+removing the exact association that this step needs to test. Temporarily make
+Terraform forget only that binding state entry while leaving its HCL and the
+remote FeatBit association unchanged. `terraform state rm` sends no FeatBit API
+mutation. The commands save a local state backup first and always import the
+binding back after the negative test.
+
+PowerShell also requires the complete `-target=...` and `-out=...` arguments
+below to be quoted. Without those quotes, a value containing `.` can be split
+into multiple native-command arguments.
 
 The targeted plan should report:
 
@@ -1395,35 +1406,162 @@ Plan: 0 to add, 0 to change, 1 to destroy.
 **PowerShell**
 
 ```powershell
-terraform plan -destroy -target=featbit_policy.dev_operator -out=blocked.tfplan
-if ($LASTEXITCODE -ne 0) { throw "the targeted destroy plan failed." }
+$bindingAddress = "featbit_group_policy_binding.dev_operator"
 
-terraform show -no-color blocked.tfplan
+$bindingState = terraform state show -no-color $bindingAddress
+if ($LASTEXITCODE -ne 0) { throw "could not read the binding state." }
 
-terraform apply blocked.tfplan
-if ($LASTEXITCODE -eq 0) {
-  throw "expected Policy deletion to be refused while the Group binding exists."
+$bindingIdMatch = [regex]::Match(
+  ($bindingState -join "`n"),
+  '(?m)^\s*id\s*=\s*"([^"]+)"\s*$'
+)
+if (-not $bindingIdMatch.Success) {
+  throw "could not capture the binding import ID."
+}
+$bindingImportId = $bindingIdMatch.Groups[1].Value
+
+$stateBackup = terraform state pull
+if ($LASTEXITCODE -ne 0) { throw "could not back up Terraform state." }
+$stateBackup | Set-Content `
+  -LiteralPath step8-pretest.tfstate `
+  -Encoding utf8NoBOM `
+  -ErrorAction Stop
+
+terraform state rm $bindingAddress
+if ($LASTEXITCODE -ne 0) { throw "could not temporarily forget the binding state." }
+
+try {
+  terraform plan -destroy `
+    '-target=featbit_policy.dev_operator' `
+    '-out=blocked.tfplan'
+  if ($LASTEXITCODE -ne 0) { throw "the targeted destroy plan failed." }
+
+  $planJsonText = terraform show -json blocked.tfplan
+  if ($LASTEXITCODE -ne 0) { throw "could not inspect the targeted destroy plan." }
+  $planJson = $planJsonText | ConvertFrom-Json
+  $destroyChanges = @(
+    $planJson.resource_changes | Where-Object {
+      ($_.change.actions -join ',') -eq 'delete'
+    }
+  )
+  if (
+    $destroyChanges.Count -ne 1 -or
+    $destroyChanges[0].address -ne 'featbit_policy.dev_operator'
+  ) {
+    throw "refusing to apply: expected only featbit_policy.dev_operator to be destroyed."
+  }
+
+  terraform show -no-color blocked.tfplan
+  if ($LASTEXITCODE -ne 0) { throw "could not display the targeted destroy plan." }
+
+  $applyOutput = @(terraform apply -no-color blocked.tfplan 2>&1)
+  $applyExitCode = $LASTEXITCODE
+  $applyOutput | ForEach-Object { Write-Host $_ }
+
+  if ($applyExitCode -eq 0) {
+    throw "expected Policy deletion to be refused while the Group binding exists."
+  }
+  if (($applyOutput | Out-String) -notmatch 'FeatBit Policy Still Has Live Associations') {
+    throw "Policy deletion failed for an unexpected reason."
+  }
+} finally {
+  Remove-Item blocked.tfplan -ErrorAction SilentlyContinue
+
+  terraform import $bindingAddress $bindingImportId
+  if ($LASTEXITCODE -ne 0) {
+    throw "the binding could not be restored to Terraform state; keep step8-pretest.tfstate and stop."
+  }
 }
 
-Remove-Item blocked.tfplan -ErrorAction SilentlyContinue
+terraform plan
+if ($LASTEXITCODE -ne 0) { throw "the post-restore verification plan failed." }
+
+Remove-Item step8-pretest.tfstate -ErrorAction SilentlyContinue
 ```
 
 **Bash**
 
 ```bash
-if ! terraform plan -destroy -target=featbit_policy.dev_operator -out=blocked.tfplan; then
+binding_address="featbit_group_policy_binding.dev_operator"
+
+if ! binding_state="$(terraform state show -no-color "$binding_address")"; then
+  echo "could not read the binding state." >&2
+  exit 1
+fi
+
+binding_import_id="$(printf '%s\n' "$binding_state" | sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*"\([^"]*\)"[[:space:]]*$/\1/p' | head -n 1)"
+if [[ "$binding_import_id" != */* ]]; then
+  echo "could not capture the binding import ID." >&2
+  exit 1
+fi
+
+if ! terraform state pull > step8-pretest.tfstate; then
+  echo "could not back up Terraform state." >&2
+  exit 1
+fi
+
+if ! terraform state rm "$binding_address"; then
+  echo "could not temporarily forget the binding state." >&2
+  exit 1
+fi
+
+binding_removed=1
+restore_binding() {
+  rm -f blocked.tfplan
+  if [[ "$binding_removed" -eq 1 ]]; then
+    if ! terraform import "$binding_address" "$binding_import_id"; then
+      echo "the binding could not be restored to Terraform state; keep step8-pretest.tfstate and stop." >&2
+      return 1
+    fi
+    binding_removed=0
+  fi
+}
+trap restore_binding EXIT
+
+if ! terraform plan -destroy \
+  '-target=featbit_policy.dev_operator' \
+  '-out=blocked.tfplan'; then
   echo "the targeted destroy plan failed." >&2
   exit 1
 fi
 
-terraform show -no-color blocked.tfplan
+if ! plan_text="$(terraform show -no-color blocked.tfplan)"; then
+  echo "could not inspect the targeted destroy plan." >&2
+  exit 1
+fi
+printf '%s\n' "$plan_text"
 
-if terraform apply blocked.tfplan; then
-  echo "expected Policy deletion to be refused while the Group binding exists." >&2
+destroy_count="$(printf '%s\n' "$plan_text" | grep -c '^  # .* will be destroyed$' || true)"
+if [[ "$destroy_count" -ne 1 ]] ||
+  ! printf '%s\n' "$plan_text" | grep -q '^  # featbit_policy.dev_operator will be destroyed$'; then
+  echo "refusing to apply: expected only featbit_policy.dev_operator to be destroyed." >&2
   exit 1
 fi
 
-rm -f blocked.tfplan
+apply_output="$(terraform apply -no-color blocked.tfplan 2>&1)"
+apply_status=$?
+printf '%s\n' "$apply_output"
+
+if [[ "$apply_status" -eq 0 ]]; then
+  echo "expected Policy deletion to be refused while the Group binding exists." >&2
+  exit 1
+fi
+if [[ "$apply_output" != *"FeatBit Policy Still Has Live Associations"* ]]; then
+  echo "Policy deletion failed for an unexpected reason." >&2
+  exit 1
+fi
+
+if ! restore_binding; then
+  exit 1
+fi
+trap - EXIT
+
+if ! terraform plan; then
+  echo "the post-restore verification plan failed." >&2
+  exit 1
+fi
+
+rm -f step8-pretest.tfstate
 ```
 
 The apply must fail with this Provider diagnostic title:
@@ -1434,17 +1572,15 @@ FeatBit Policy Still Has Live Associations
 
 The detail explains that Destroy refuses to cascade a Policy still assigned
 to a Group or direct Member. No delete mutation is sent, the Policy remains in
-FeatBit, and Terraform preserves its state.
+FeatBit, and Terraform preserves its state. The `finally`/`trap` recovery then
+imports the unchanged remote binding back to its original Terraform address.
+The final full plan must report `No changes`.
 
-Run a normal full plan after the expected failure:
-
-```console
-terraform plan
-```
-
-It must report `No changes`. If the targeted plan included a binding or Group
-destroy, or if the apply unexpectedly succeeded, stop and investigate before
-continuing.
+If the isolated targeted plan contains anything except the one Policy destroy,
+the commands refuse to apply it and still restore the binding state. If the
+apply unexpectedly succeeds or the import fails, stop before continuing and
+retain `step8-pretest.tfstate` for recovery. This backup contains Sensitive
+state and must never be committed.
 
 <a id="cleanup"></a>
 
