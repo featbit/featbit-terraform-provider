@@ -989,15 +989,6 @@ however, explicitly authorize Terraform to remove every current direct Policy
 from Member A and every current direct Policy other than the Dev operator
 Policy from Member B.
 
-> **Existing practice roots:** before replacing any Member B resource, run
-> `terraform state list`. If it contains
-> `featbit_member_policy_binding.direct_member_dev_operator`, do not apply the
-> fresh-root HCL below yet. Follow the two-apply migration later in this step.
-> A plan must never contain that binding's Destroy and
-> `featbit_member_direct_policies.direct_member` Create together, because both
-> operations mutate the same remote direct-Policy collection without a
-> Terraform dependency ordering them.
-
 Create `members.tf`.
 
 **PowerShell**
@@ -1068,10 +1059,6 @@ After applying Step 5, the intended relationship graph is:
 | Member A (`group-member`) | Complete direct Policy set | Empty |
 | Member B (`direct-member`) | Complete direct Policy set | Dev operator Policy only |
 
-Member A must not have any `featbit_member_policy_binding` resource. Its two
-effective Policies come only from the Group. Member B must not have a
-`featbit_group_member_binding` or `featbit_member_policy_binding` resource.
-
 Replace both `example.com` addresses with the two selected Members' complete
 FeatBit emails before planning. Keep exactly the `group-member` and
 `direct-member` entries: later resources refer to those aliases explicitly.
@@ -1085,34 +1072,6 @@ never commit the real addresses. Member IDs remain Sensitive. Member A's
 authoritative resource removes every current direct Policy because the desired
 set is empty. Member B's authoritative resource adds the Dev operator Policy
 if missing and removes every other direct Policy.
-
-### If your practice root already uses an additive binding for Member B
-
-Do not add the authoritative resource while
-`featbit_member_policy_binding.direct_member_dev_operator` is still managed.
-Migrate the current practice root with two reviewed applies:
-
-1. delete only `featbit_member_policy_binding.direct_member_dev_operator` from
-   `members.tf` and apply; then
-2. add `featbit_member_direct_policies.direct_member` with the shown complete
-   `policy_ids` set and apply.
-
-The plans should respectively report one destroy and one add. Member B may
-temporarily lose the tutorial Dev access between them, so use only the
-dedicated test identity. This sequencing prevents the additive and
-authoritative ownership models from mutating the same Member concurrently.
-Inspect both saved plans: stop if either plan contains the other ownership
-model's operation.
-
-If both operations were accidentally applied in one plan and Create failed
-with `FeatBit Member Direct Policy Set Is Unconfirmed`, do not remove or import
-state. Delete the failed saved `tfplan` immediately and never apply it again.
-The Provider preserves the exact server set. Confirm that state contains
-`featbit_member_direct_policies.direct_member` and no longer contains
-`featbit_member_policy_binding.direct_member_dev_operator`; then run a new
-normal plan. It should report only one in-place change from the preserved empty
-set to the configured Dev operator set. Apply that new plan and verify a final
-`No changes` plan.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -1175,14 +1134,13 @@ The first saved plan should report:
 Plan: 3 to add, 0 to change, 0 to destroy.
 ```
 
-The verification plan must report `No changes`. Confirm with the separate
-Member sessions that:
+Confirm with the separate Member sessions that:
 
-1. Member A belongs to the Project operators Group, has no direct Policies,
+1. Member A (`group-member`) belongs to the Project operators Group, has no direct Policies,
    and inherits both Group Policies;
-2. Member A can see Dev and Prod and can operate Dev Flags through inherited
+2. Member A (`group-member`) can see Dev and Prod and can operate Dev Flags through inherited
    access, but cannot permanently delete a Dev Flag;
-3. Member B remains outside the Group, can see the Project and operate Dev
+3. Member B (`direct-member`) remains outside the Group, can see the Project and operate Dev
    Flags through its direct Dev operator Policy, but cannot access Prod
    through the Dev operator Policy; and
 4. Member B's direct Policy collection contains exactly the Dev operator
@@ -1196,7 +1154,7 @@ complete set is intentionally absent.
 Do not add another binding in this step. Step 5 already created the complete
 intended topology. In FeatBit, inspect the two Members separately and confirm:
 
-1. Member A belongs to the Project operators Group;
+1. Member A (`group-member`) belongs to the Project operators Group;
 2. Member A's direct Policy collection is empty;
 3. Member A's effective Project observer and Dev operator Policies are both
    inherited from that Group;
