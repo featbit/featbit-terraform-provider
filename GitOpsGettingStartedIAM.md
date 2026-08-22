@@ -1285,8 +1285,8 @@ must remain unchanged, and the verification plan must report `No changes`.
 Using both separate Member sessions, verify:
 
 1. Dev access still behaves as before for both Members;
-2. Member A receives the new Prod Flag operation through the Group, while
-   Member B receives it through the direct Policy;
+2. Member A (`group-member`) receives the new Prod Flag operation through the Group, while
+   Member B (`direct-member`) receives it through the direct Policy;
 3. Prod `checkout-enabled` can be toggled by both Members; and
 4. Prod `payment-retry` and `fraud-review` cannot be toggled by either Member.
 
