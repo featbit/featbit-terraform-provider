@@ -1377,21 +1377,6 @@ Member B no longer receives the tutorial Dev operator access, while Member A
 still inherits it through the Project operators Group. The verification plan
 must report `No changes`.
 
-Do not force a targeted Policy destroy in this single-root tutorial. The Group
-binding directly references `featbit_policy.dev_operator`, so Terraform knows
-the dependency and correctly includes the binding in a Policy destroy graph.
-It removes that managed edge before deleting the Policy; a healthy same-root
-cleanup therefore does not trigger the Provider's live-association guard.
-
-That guard protects a different real-world boundary: a Group or direct-Member
-association created outside this Terraform state, such as by another root or
-through FeatBit. Manufacturing that external ownership with state operations
-would not help a first-time Getting Started workflow, so it remains covered by
-the Provider's focused and Protocol tests rather than by this tutorial. Steps
-9 and 10 now demonstrate the normal customer cleanup order.
-
-<a id="cleanup"></a>
-
 ## Step 9: Delete the Group and its exact bindings
 
 Normal GitOps cleanup removes relationships before their endpoints. Delete
