@@ -65,51 +65,6 @@ The Project observer Policy grants only the parent visibility actions. The Dev
 operator Policy enumerates its allowed actions rather than using `*`, because
 `*` would also grant deletion.
 
-## IAM ownership and safety boundaries
-
-The tutorial depends on these ownership boundaries:
-
-- each `featbit_policy` resource owns one custom Policy and its complete
-  statement set;
-- each `featbit_group` resource owns only Group existence, name, and
-  description;
-- each binding resource owns one exact Group-to-Policy, Group-to-Member, or
-  direct Member-to-Policy pair; and
-- Members remain external: the Provider does not invite, create, update,
-  remove, or delete them.
-
-This tutorial deliberately uses authoritative direct-Policy ownership for
-both Members:
-
-- `featbit_member_direct_policies` authoritatively sets Member A's complete
-  direct Policy set to empty after its Group membership exists; and
-- a second `featbit_member_direct_policies` resource sets Member B's complete
-  direct Policy set to exactly the Dev operator Policy.
-
-No `featbit_member_policy_binding` resource is used in this closed-world
-scenario. That additive resource remains available for callers who want to
-preserve Policies managed outside this Terraform root, but it must never
-overlap an authoritative resource for the same Member.
-
-This closed-world guarantee applies to direct Policies. Group-Policy and
-Group-Member resources each own one exact pair rather than a complete
-collection. To keep each Member's effective access inside this Terraform root,
-use dedicated Members with no unmanaged Group memberships, and do not attach
-extra Policies or Members to the tutorial Group outside Terraform.
-
-Use exactly two dedicated test Members whose unrelated effective permissions
-do not grant overlapping access to the tutorial Project. Every current direct
-Policy on Member A, including an Organization-default Policy, will be removed.
-Member B's direct set will be replaced with exactly the Dev operator Policy.
-Select disposable test identities for which both changes are intentional. Do
-not use a production administrator or your only organization owner.
-
-Member identifiers are Sensitive in Terraform. Treat local state, state
-backups, plans, and terminal output as confidential even though the access
-token and Member login credential are never placed in HCL.
-
-<a id="getting-started"></a>
-
 ## Before you begin
 
 You need:
