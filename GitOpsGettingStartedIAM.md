@@ -8,12 +8,12 @@ to manage one isolated FeatBit IAM scenario as reviewable Terraform code. You
 will evolve one Terraform root that creates a Project and Feature Flags,
 defines two complementary custom Policies and one Group, exercises inherited
 and direct access with exactly two existing Members, updates scoped
-permissions, proves that a live Group association blocks Policy deletion, and
-then removes everything in the required dependency order.
+permissions, and then removes direct access, bindings, endpoints, and the
+Project in the required dependency order.
 
 [Get started](#getting-started) · [Create the baseline](#create-resources) ·
 [Assign access](#assign-access) · [Update a Policy](#update-policy) ·
-[Prove delete protection](#delete-guard) · [Clean up](#cleanup)
+[Prepare cleanup](#prepare-cleanup) · [Clean up](#cleanup)
 
 ## How this tutorial maps to GitOps
 
@@ -27,10 +27,6 @@ checked-in examples. This demonstrates Terraform's change and dependency
 model, not end-to-end GitOps automation. In a real GitOps repository, track
 the equivalent HCL in Git, review every saved plan, and let CI/CD apply only
 approved changes.
-
-One command in Step 8 intentionally uses Terraform targeting to exercise a
-negative Provider lifecycle guard. Targeting is not the normal GitOps delete
-workflow and must not be copied into routine automation.
 
 ## What you will build
 
@@ -1293,14 +1289,14 @@ Using both separate Member sessions, verify:
 The final check proves that the new leaf selector is exact rather than a fuzzy
 or Environment-wide grant.
 
-<a id="delete-guard"></a>
+<a id="prepare-cleanup"></a>
 
-## Step 8: Prove that a Group association blocks Policy deletion
+## Step 8: Remove Member B's direct Policy before cleanup
 
 The Dev operator Policy is currently inherited by Member A through the Project
 operators Group and is the sole direct Policy owned for Member B. First update
-Member B's complete desired direct set to empty so the negative deletion test
-has exactly one remaining association path.
+Member B's complete desired direct set to empty. This separates direct access
+cleanup from the Group cleanup in the next step.
 
 Change only `featbit_member_direct_policies.direct_member` in `members.tf`:
 
@@ -1312,7 +1308,7 @@ resource "featbit_member_direct_policies" "direct_member" {
 ```
 
 Keep the resource so Terraform continues to enforce that Member B has no
-direct Policies during the deletion guard exercise.
+direct Policies through the remaining cleanup steps.
 
 Format and validate the root, save and apply the reviewed plan, and then run a
 second plan to verify idempotence.
@@ -1381,206 +1377,18 @@ Member B no longer receives the tutorial Dev operator access, while Member A
 still inherits it through the Project operators Group. The verification plan
 must report `No changes`.
 
-Now create a targeted destroy plan for only the Dev operator Policy. This is a
-controlled negative test, not a normal GitOps operation.
+Do not force a targeted Policy destroy in this single-root tutorial. The Group
+binding directly references `featbit_policy.dev_operator`, so Terraform knows
+the dependency and correctly includes the binding in a Policy destroy graph.
+It removes that managed edge before deleting the Policy; a healthy same-root
+cleanup therefore does not trigger the Provider's live-association guard.
 
-Terraform normally expands a targeted destroy through the dependency graph.
-Targeting `featbit_policy.dev_operator` while its binding remains in state
-would therefore plan both the Group-Policy binding and the Policy for destroy,
-removing the exact association that this step needs to test. Temporarily make
-Terraform forget only that binding state entry while leaving its HCL and the
-remote FeatBit association unchanged. `terraform state rm` sends no FeatBit API
-mutation. The commands save a local state backup first and always import the
-binding back after the negative test.
-
-PowerShell also requires the complete `-target=...` and `-out=...` arguments
-below to be quoted. Without those quotes, a value containing `.` can be split
-into multiple native-command arguments.
-
-The targeted plan should report:
-
-```text
-Plan: 0 to add, 0 to change, 1 to destroy.
-```
-
-**PowerShell**
-
-```powershell
-$bindingAddress = "featbit_group_policy_binding.dev_operator"
-
-$bindingState = terraform state show -no-color $bindingAddress
-if ($LASTEXITCODE -ne 0) { throw "could not read the binding state." }
-
-$bindingIdMatch = [regex]::Match(
-  ($bindingState -join "`n"),
-  '(?m)^\s*id\s*=\s*"([^"]+)"\s*$'
-)
-if (-not $bindingIdMatch.Success) {
-  throw "could not capture the binding import ID."
-}
-$bindingImportId = $bindingIdMatch.Groups[1].Value
-
-$stateBackup = terraform state pull
-if ($LASTEXITCODE -ne 0) { throw "could not back up Terraform state." }
-$stateBackup | Set-Content `
-  -LiteralPath step8-pretest.tfstate `
-  -Encoding utf8NoBOM `
-  -ErrorAction Stop
-
-terraform state rm $bindingAddress
-if ($LASTEXITCODE -ne 0) { throw "could not temporarily forget the binding state." }
-
-try {
-  terraform plan -destroy `
-    '-target=featbit_policy.dev_operator' `
-    '-out=blocked.tfplan'
-  if ($LASTEXITCODE -ne 0) { throw "the targeted destroy plan failed." }
-
-  $planJsonText = terraform show -json blocked.tfplan
-  if ($LASTEXITCODE -ne 0) { throw "could not inspect the targeted destroy plan." }
-  $planJson = $planJsonText | ConvertFrom-Json
-  $destroyChanges = @(
-    $planJson.resource_changes | Where-Object {
-      ($_.change.actions -join ',') -eq 'delete'
-    }
-  )
-  if (
-    $destroyChanges.Count -ne 1 -or
-    $destroyChanges[0].address -ne 'featbit_policy.dev_operator'
-  ) {
-    throw "refusing to apply: expected only featbit_policy.dev_operator to be destroyed."
-  }
-
-  terraform show -no-color blocked.tfplan
-  if ($LASTEXITCODE -ne 0) { throw "could not display the targeted destroy plan." }
-
-  $applyOutput = @(terraform apply -no-color blocked.tfplan 2>&1)
-  $applyExitCode = $LASTEXITCODE
-  $applyOutput | ForEach-Object { Write-Host $_ }
-
-  if ($applyExitCode -eq 0) {
-    throw "expected Policy deletion to be refused while the Group binding exists."
-  }
-  if (($applyOutput | Out-String) -notmatch 'FeatBit Policy Still Has Live Associations') {
-    throw "Policy deletion failed for an unexpected reason."
-  }
-} finally {
-  Remove-Item blocked.tfplan -ErrorAction SilentlyContinue
-
-  terraform import $bindingAddress $bindingImportId
-  if ($LASTEXITCODE -ne 0) {
-    throw "the binding could not be restored to Terraform state; keep step8-pretest.tfstate and stop."
-  }
-}
-
-terraform plan
-if ($LASTEXITCODE -ne 0) { throw "the post-restore verification plan failed." }
-
-Remove-Item step8-pretest.tfstate -ErrorAction SilentlyContinue
-```
-
-**Bash**
-
-```bash
-binding_address="featbit_group_policy_binding.dev_operator"
-
-if ! binding_state="$(terraform state show -no-color "$binding_address")"; then
-  echo "could not read the binding state." >&2
-  exit 1
-fi
-
-binding_import_id="$(printf '%s\n' "$binding_state" | sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*"\([^"]*\)"[[:space:]]*$/\1/p' | head -n 1)"
-if [[ "$binding_import_id" != */* ]]; then
-  echo "could not capture the binding import ID." >&2
-  exit 1
-fi
-
-if ! terraform state pull > step8-pretest.tfstate; then
-  echo "could not back up Terraform state." >&2
-  exit 1
-fi
-
-if ! terraform state rm "$binding_address"; then
-  echo "could not temporarily forget the binding state." >&2
-  exit 1
-fi
-
-binding_removed=1
-restore_binding() {
-  rm -f blocked.tfplan
-  if [[ "$binding_removed" -eq 1 ]]; then
-    if ! terraform import "$binding_address" "$binding_import_id"; then
-      echo "the binding could not be restored to Terraform state; keep step8-pretest.tfstate and stop." >&2
-      return 1
-    fi
-    binding_removed=0
-  fi
-}
-trap restore_binding EXIT
-
-if ! terraform plan -destroy \
-  '-target=featbit_policy.dev_operator' \
-  '-out=blocked.tfplan'; then
-  echo "the targeted destroy plan failed." >&2
-  exit 1
-fi
-
-if ! plan_text="$(terraform show -no-color blocked.tfplan)"; then
-  echo "could not inspect the targeted destroy plan." >&2
-  exit 1
-fi
-printf '%s\n' "$plan_text"
-
-destroy_count="$(printf '%s\n' "$plan_text" | grep -c '^  # .* will be destroyed$' || true)"
-if [[ "$destroy_count" -ne 1 ]] ||
-  ! printf '%s\n' "$plan_text" | grep -q '^  # featbit_policy.dev_operator will be destroyed$'; then
-  echo "refusing to apply: expected only featbit_policy.dev_operator to be destroyed." >&2
-  exit 1
-fi
-
-apply_output="$(terraform apply -no-color blocked.tfplan 2>&1)"
-apply_status=$?
-printf '%s\n' "$apply_output"
-
-if [[ "$apply_status" -eq 0 ]]; then
-  echo "expected Policy deletion to be refused while the Group binding exists." >&2
-  exit 1
-fi
-if [[ "$apply_output" != *"FeatBit Policy Still Has Live Associations"* ]]; then
-  echo "Policy deletion failed for an unexpected reason." >&2
-  exit 1
-fi
-
-if ! restore_binding; then
-  exit 1
-fi
-trap - EXIT
-
-if ! terraform plan; then
-  echo "the post-restore verification plan failed." >&2
-  exit 1
-fi
-
-rm -f step8-pretest.tfstate
-```
-
-The apply must fail with this Provider diagnostic title:
-
-```text
-FeatBit Policy Still Has Live Associations
-```
-
-The detail explains that Destroy refuses to cascade a Policy still assigned
-to a Group or direct Member. No delete mutation is sent, the Policy remains in
-FeatBit, and Terraform preserves its state. The `finally`/`trap` recovery then
-imports the unchanged remote binding back to its original Terraform address.
-The final full plan must report `No changes`.
-
-If the isolated targeted plan contains anything except the one Policy destroy,
-the commands refuse to apply it and still restore the binding state. If the
-apply unexpectedly succeeds or the import fails, stop before continuing and
-retain `step8-pretest.tfstate` for recovery. This backup contains Sensitive
-state and must never be committed.
+That guard protects a different real-world boundary: a Group or direct-Member
+association created outside this Terraform state, such as by another root or
+through FeatBit. Manufacturing that external ownership with state operations
+would not help a first-time Getting Started workflow, so it remains covered by
+the Provider's focused and Protocol tests rather than by this tutorial. Steps
+9 and 10 now demonstrate the normal customer cleanup order.
 
 <a id="cleanup"></a>
 
