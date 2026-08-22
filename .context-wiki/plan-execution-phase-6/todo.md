@@ -625,8 +625,13 @@ only the concise result under the active item. The current item is **P6-150**.
   A clean Terraform 1.5.6 directory installed exact `= 0.2.0-beta.2` directly
   from the Registry, verified the developer signature, validated successfully,
   and loaded five provider attributes, 10 resources, and seven data sources.
-  P6-150 remains open until the published artifact is exercised through the
-  corrected multi-Member scenario.
+  Continuing that scenario in a later shell produced uniform HTTP `401`
+  responses on Project, Group, and Member collection reads before Step 7 could
+  plan; the Step 7 HCL itself validates. The tutorial now treats token
+  replacement, matching API-origin selection, and the read-only HTTP `200`
+  check as a per-session gate, and requires a failed or stale saved plan to be
+  discarded before replanning. P6-150 remains open until the published
+  artifact is exercised through the corrected multi-Member scenario.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 

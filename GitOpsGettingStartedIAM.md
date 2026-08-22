@@ -362,6 +362,8 @@ if ! terraform validate -no-color; then
 fi
 ```
 
+<a id="replace-api-access-token"></a>
+
 ### Required: replace the API access token in the current shell
 
 Prefer a secret manager that injects `FEATBIT_ACCESS_TOKEN` into the Terraform
@@ -411,6 +413,8 @@ export FEATBIT_ACCESS_TOKEN
 echo "FeatBit API access token loaded (value hidden)."
 ```
 
+<a id="select-api-origin"></a>
+
 ### Required: select the matching API origin
 
 Choose exactly one of the following origins. The access token and API origin
@@ -449,6 +453,8 @@ export FEATBIT_API_URL="https://your-featbit-api.example.com/api/v1"
 Do not continue until you have completed both required authentication steps.
 Terraform deliberately does not write the environment-provided token into the
 HCL configuration.
+
+<a id="verify-api-authentication"></a>
 
 ### Required: verify authentication before Terraform mutates anything
 
@@ -526,6 +532,12 @@ esac
 
 Continue only after this preflight prints HTTP `200`.
 
+This is a per-session preflight, not a one-time setup step. Repeat the token
+replacement, API-origin selection, and read-only authentication check whenever
+you open a new shell, resume the tutorial after a time gap, or begin another
+day of testing. A non-empty `FEATBIT_ACCESS_TOKEN` can still be expired,
+revoked, or associated with another deployment.
+
 Create and apply a saved plan.
 
 **PowerShell**
@@ -564,12 +576,13 @@ if ! terraform plan; then
 fi
 ```
 
-If `terraform apply` reports HTTP `401`, the API origin rejected the supplied
-token. Do not add an Organization key. Return to the two required
-authentication sections above, replace the token, select its matching API
-origin, and then rerun `terraform apply tfplan` from the same shell. The
-Project create preflight runs before mutation, so this specific failure does
-not leave a partially created tutorial Project.
+If any later `terraform plan` or `terraform apply` reports HTTP `401`, the API
+origin rejected the supplied token before that operation could confirm its
+resource graph. Do not add an Organization key and do not reuse the failed or
+stale saved plan. Delete `tfplan`, [replace the token](#replace-api-access-token),
+[select its matching API origin](#select-api-origin), require the
+[read-only preflight](#verify-api-authentication) to return HTTP `200`, and
+generate a new saved plan from the same shell.
 
 The first plan should report:
 
@@ -1177,6 +1190,13 @@ during the access check.
 <a id="update-policy"></a>
 
 ## Step 7: Add one exact Prod Feature Flag permission
+
+Before continuing, delete any old `tfplan`, then repeat the required
+[token replacement](#replace-api-access-token),
+[API-origin selection](#select-api-origin), and
+[read-only authentication preflight](#verify-api-authentication) if this is a
+new shell or a later testing session. Do not proceed until it returns HTTP
+`200`.
 
 Append these two statement objects inside
 `featbit_policy.dev_operator.statements` in `policies.tf`, immediately before
