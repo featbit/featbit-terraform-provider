@@ -17,8 +17,8 @@
 </div>
 
 <div align="center">
-  <a href="GitOpsGettingStarted.md">Getting Started</a> &middot;
-  <a href="GitOpsGettingStartedIAM.md">IAM Tutorial</a> &middot;
+  <a href="docs/guides/GitOpsGettingStarted.md">Getting Started</a> &middot;
+  <a href="docs/guides/GitOpsGettingStartedIAM.md">IAM Tutorial</a> &middot;
   <a href="docs/index.md">Registry Documentation</a> &middot;
   <a href="examples">Examples</a> &middot;
   <a href="SUPPORT.md">Support</a> &middot;
@@ -39,14 +39,14 @@ public FeatBit API and never selects the first fuzzy search result.
 
 ## Getting started
 
-**[FeatBit Terraform GitOps Tutorial](GitOpsGettingStarted.md)**. It walks
+**[FeatBit Terraform GitOps Tutorial](docs/guides/GitOpsGettingStarted.md)**. It walks
 through provider installation and authentication, then evolves one Terraform
 root across Dev, Stage, and Prod with Projects, Environments, Feature Flags,
 and environment-specific Segments. The workflow verifies empty second plans,
 demonstrates promotion and rollback, and finishes with reviewed cleanup.
 
 For IAM, follow the
-**[FeatBit Terraform IAM GitOps Tutorial](GitOpsGettingStartedIAM.md)**. It
+**[FeatBit Terraform IAM GitOps Tutorial](docs/guides/GitOpsGettingStartedIAM.md)**. It
 creates two custom Policies and one Group, exercises direct and inherited
 access with two existing Members, updates one exact Prod Feature Flag
 permission, and performs dependency-ordered cleanup. The focused

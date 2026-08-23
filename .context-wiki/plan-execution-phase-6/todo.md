@@ -3,7 +3,7 @@
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
 only the concise result under the active item. The current item is
-**P6-DOC-3**; do not begin **P6-DOC-4** until the maintainer reviews it and
+**P6-DOC-4**; do not begin **P6-DOC-5** until the maintainer reviews it and
 explicitly authorizes the next item.
 
 ## Scope and API contract
@@ -643,9 +643,9 @@ explicitly authorizes the next item.
   associations owned by another state or FeatBit, and leaves same-root binding,
   Group, and Policy cleanup to Steps 9 and 10. The guard remains covered by
   focused and Protocol tests. The published artifact then completed every
-  remaining step of `GitOpsGettingStartedIAM.md` against a real FeatBit
-  environment: each apply converged to an empty second plan, effective access
-  matched the documented inherited-only and direct-only paths, dependency-
+  remaining step of `docs/guides/GitOpsGettingStartedIAM.md` against a real
+  FeatBit environment: each apply converged to an empty second plan, effective
+  access matched the documented inherited-only and direct-only paths, dependency-
   ordered cleanup completed, both existing Members remained with the
   tutorial's intended empty final direct-Policy sets, and the tutorial-owned
   resource graph was proven exactly absent. P6-150 is complete. Stable
@@ -660,7 +660,8 @@ starting the next.
 - [x] **P6-DOC-1 — Restore the IAM tutorial navigation anchors.**
 
   Scope: restore only the `getting-started` and `cleanup` fragment targets in
-  `GitOpsGettingStartedIAM.md`; do not change tutorial behavior or prose.
+  `docs/guides/GitOpsGettingStartedIAM.md`; do not change tutorial behavior or
+  prose.
   Done when every internal fragment link in both Getting Started guides
   resolves and the working tree contains no unrelated change.
 
@@ -694,12 +695,19 @@ starting the next.
   record the published Registry artifact and full real-environment tutorial
   result, and keep stable `v0.2.0` explicitly unpublished.
 
-- [ ] **P6-DOC-4 — Choose one canonical Registry tutorial-link strategy.**
+- [x] **P6-DOC-4 — Choose one canonical Registry tutorial-link strategy.**
 
   Decide between moving the two existing tutorials into `docs/guides` or
   retaining them at the repository root and using absolute GitHub links. Do
   not duplicate tutorial bodies. Implement the selected structure and verify
   repository and Registry-facing navigation.
+
+  Result: selected Registry-native, versioned guides rather than links to the
+  mutable GitHub default branch. The two tutorial bodies now live only under
+  `docs/guides`, with required `page_title` frontmatter. README, Registry
+  index, cross-guide, and resource-reference links all target that canonical
+  location; generated documentation validation and repository-local link and
+  fragment checks pass.
 
 - [ ] **P6-DOC-5 — Switch public examples to stable `v0.2.0` in the release commit.**
 

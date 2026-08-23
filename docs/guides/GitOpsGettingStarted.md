@@ -1,3 +1,7 @@
+---
+page_title: "FeatBit Terraform GitOps Tutorial"
+---
+
 <a id="top"></a>
 
 # FeatBit Terraform GitOps Tutorial

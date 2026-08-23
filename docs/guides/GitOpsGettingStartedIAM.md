@@ -1,3 +1,7 @@
+---
+page_title: "FeatBit Terraform IAM GitOps Tutorial"
+---
+
 <a id="top"></a>
 
 # FeatBit Terraform IAM GitOps Tutorial
@@ -1591,12 +1595,12 @@ handling policy. Never commit it.
 ## Further reading
 
 - [FeatBit Terraform Provider](https://registry.terraform.io/providers/featbit/featbit/latest/docs)
-- [Policy resource](docs/resources/policy.md)
-- [Group resource](docs/resources/group.md)
-- [Group-Policy binding resource](docs/resources/group_policy_binding.md)
-- [Group-Member binding resource](docs/resources/group_member_binding.md)
-- [Member-Policy binding resource (additive alternative)](docs/resources/member_policy_binding.md)
-- [Member direct Policies resource](docs/resources/member_direct_policies.md)
+- [Policy resource](../resources/policy.md)
+- [Group resource](../resources/group.md)
+- [Group-Policy binding resource](../resources/group_policy_binding.md)
+- [Group-Member binding resource](../resources/group_member_binding.md)
+- [Member-Policy binding resource (additive alternative)](../resources/member_policy_binding.md)
+- [Member direct Policies resource](../resources/member_direct_policies.md)
 - [Core FeatBit Terraform GitOps Tutorial](GitOpsGettingStarted.md)
 
 [Back to top](#top)

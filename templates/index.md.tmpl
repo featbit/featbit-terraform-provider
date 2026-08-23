@@ -37,12 +37,12 @@ their Environment prerequisites to exist independently. IAM Policy statements
 can authorize Segment operations, but they do not add those prerequisites.
 
 For a hands-on workflow across Dev, Stage, and Prod, follow the
-[FeatBit Terraform GitOps Tutorial](../GitOpsGettingStarted.md).
+[FeatBit Terraform GitOps Tutorial](guides/GitOpsGettingStarted.md).
 It complements this reference with an end-to-end Terraform root, idempotence
 checks, promotion, cleanup, and explicit current capability boundaries.
 
 For a hands-on IAM workflow, follow the
-[FeatBit Terraform IAM GitOps Tutorial](../GitOpsGettingStartedIAM.md).
+[FeatBit Terraform IAM GitOps Tutorial](guides/GitOpsGettingStartedIAM.md).
 It covers two custom Policies on one Group, direct and inherited access for
 two existing Members, scoped Policy updates, and dependency-ordered cleanup.
 

@@ -45,13 +45,28 @@ func main() {
 		fatal(fmt.Errorf("locate Terraform CLI: %w", err))
 	}
 	terraformDirectory := filepath.Dir(terraformBinary)
+	staticGuidesSnapshot := filepath.Join(temporaryRoot, "static-guides")
+	if err := copyOptionalDirectory(
+		filepath.Join(root, "docs", "guides"),
+		staticGuidesSnapshot,
+	); err != nil {
+		fatal(fmt.Errorf("snapshot static Registry guides: %w", err))
+	}
 
 	renderedDirectory := filepath.Join(root, "docs")
 	if !*write {
 		renderedDirectory = filepath.Join(temporaryRoot, "generated-docs")
 	}
 
-	if err := generate(root, renderedDirectory, terraformDirectory); err != nil {
+	generationErr := generate(root, renderedDirectory, terraformDirectory)
+	restoreErr := copyOptionalDirectory(
+		staticGuidesSnapshot,
+		filepath.Join(renderedDirectory, "guides"),
+	)
+	if restoreErr != nil {
+		restoreErr = fmt.Errorf("restore static Registry guides: %w", restoreErr)
+	}
+	if err := errors.Join(generationErr, restoreErr); err != nil {
 		fatal(err)
 	}
 	if !*write {
@@ -216,6 +231,51 @@ func regularFiles(root string) (map[string]string, error) {
 		return nil
 	})
 	return files, err
+}
+
+// copyOptionalDirectory copies a static documentation directory when present.
+// terraform-plugin-docs recreates the rendered docs tree during generation, so
+// hand-authored Registry guides must be snapshotted and restored around it.
+func copyOptionalDirectory(source string, destination string) error {
+	info, err := os.Stat(source)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("inspect source directory: %w", err)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("source %s is not a directory", source)
+	}
+
+	return filepath.WalkDir(source, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		relative, err := filepath.Rel(source, path)
+		if err != nil {
+			return fmt.Errorf("resolve static documentation path: %w", err)
+		}
+		target := filepath.Join(destination, relative)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		entryInfo, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("inspect static documentation file: %w", err)
+		}
+		if !entryInfo.Mode().IsRegular() {
+			return fmt.Errorf("unexpected non-regular static documentation entry %s", path)
+		}
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read static documentation file: %w", err)
+		}
+		if err := os.WriteFile(target, contents, entryInfo.Mode().Perm()); err != nil {
+			return fmt.Errorf("write static documentation file: %w", err)
+		}
+		return nil
+	})
 }
 
 func joinLines(lines []string) string {
