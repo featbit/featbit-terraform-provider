@@ -2,7 +2,9 @@
 
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
-only the concise result under the active item. The current item is **P6-150**.
+only the concise result under the active item. The current item is
+**P6-DOC-1**; do not begin **P6-DOC-2** until the maintainer reviews it and
+explicitly authorizes the next item.
 
 ## Scope and API contract
 
@@ -641,6 +643,50 @@ only the concise result under the active item. The current item is **P6-150**.
   Group, and Policy cleanup to Steps 9 and 10. The guard remains covered by
   focused and Protocol tests. P6-150 remains open until the published artifact
   completes the remaining corrected multi-Member scenario.
+
+## Stable documentation closeout
+
+Complete these items strictly in order. Finish and review one item before
+starting the next.
+
+- [x] **P6-DOC-1 — Restore the IAM tutorial navigation anchors.**
+
+  Scope: restore only the `getting-started` and `cleanup` fragment targets in
+  `GitOpsGettingStartedIAM.md`; do not change tutorial behavior or prose.
+  Done when every internal fragment link in both Getting Started guides
+  resolves and the working tree contains no unrelated change.
+
+  Result: restored `getting-started` immediately before "Before you begin"
+  and `cleanup` immediately before Step 9. A repository-local heading and
+  explicit-anchor check reports no unresolved internal fragment in either
+  Getting Started guide.
+
+- [ ] **P6-DOC-2 — Remove the obsolete association-safe deletion claim.**
+
+  Align the README and Registry index template with the tutorial's normal
+  dependency-ordered cleanup. Regenerate Registry documentation and verify no
+  remaining text claims that the tutorial exercises the external-association
+  delete guard.
+
+- [ ] **P6-DOC-3 — Record the completed `v0.2.0-beta.2` publication and exercise.**
+
+  Replace stale candidate-status wording with the completed published-artifact
+  and real-scenario result, without claiming that stable `v0.2.0` is already
+  released. Align the active Phase 6 execution status with that fact.
+
+- [ ] **P6-DOC-4 — Choose one canonical Registry tutorial-link strategy.**
+
+  Decide between moving the two existing tutorials into `docs/guides` or
+  retaining them at the repository root and using absolute GitHub links. Do
+  not duplicate tutorial bodies. Implement the selected structure and verify
+  repository and Registry-facing navigation.
+
+- [ ] **P6-DOC-5 — Switch public examples to stable `v0.2.0` in the release commit.**
+
+  Perform this only in the final stable-release candidate after the preceding
+  documentation items and release qualification pass. Update every frozen
+  public-example and validation version consistently, then rerun generated
+  documentation, example, Protocol schema, and release-contract checks.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 

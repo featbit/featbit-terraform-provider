@@ -65,6 +65,8 @@ The Project observer Policy grants only the parent visibility actions. The Dev
 operator Policy enumerates its allowed actions rather than using `*`, because
 `*` would also grant deletion.
 
+<a id="getting-started"></a>
+
 ## Before you begin
 
 You need:
@@ -1331,6 +1333,8 @@ authoritative ownership of its now-empty complete direct set. Confirm that
 Member B no longer receives the tutorial Dev operator access, while Member A
 still inherits it through the Project operators Group. The verification plan
 must report `No changes`.
+
+<a id="cleanup"></a>
 
 ## Step 9: Delete the Group and its exact bindings
 
