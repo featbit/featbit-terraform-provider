@@ -3,7 +3,7 @@
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
 only the concise result under the active item. The current item is
-**P6-DOC-1**; do not begin **P6-DOC-2** until the maintainer reviews it and
+**P6-DOC-2**; do not begin **P6-DOC-3** until the maintainer reviews it and
 explicitly authorizes the next item.
 
 ## Scope and API contract
@@ -661,12 +661,17 @@ starting the next.
   explicit-anchor check reports no unresolved internal fragment in either
   Getting Started guide.
 
-- [ ] **P6-DOC-2 — Remove the obsolete association-safe deletion claim.**
+- [x] **P6-DOC-2 — Remove the obsolete association-safe deletion claim.**
 
   Align the README and Registry index template with the tutorial's normal
   dependency-ordered cleanup. Regenerate Registry documentation and verify no
   remaining text claims that the tutorial exercises the external-association
   delete guard.
+
+  Result: the README and Registry index now describe the tutorial's actual
+  scoped Policy update and dependency-ordered cleanup. Generated Registry
+  documentation is current, and no public or template text claims that the
+  tutorial exercises association-safe Policy deletion.
 
 - [ ] **P6-DOC-3 — Record the completed `v0.2.0-beta.2` publication and exercise.**
 
