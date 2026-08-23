@@ -86,12 +86,6 @@ The provider block deliberately leaves authentication to the process
 environment. Optional timeout, concurrency, and read-retry settings can also
 be supplied through the environment variables documented in the schema.
 
-The corrected IAM release candidate is `v0.2.0-beta.2`. Terraform prereleases
-require an explicit version selection, so this example deliberately pins that
-exact beta. The published `v0.2.0-beta.1` lacks additive Member-Policy
-bindings. Review the release notes and update the constraint and lock file
-deliberately for a later beta or stable `v0.2.0`.
-
 ## Exact identity and Import
 
 Data sources never select the first fuzzy search result. Project and Policy

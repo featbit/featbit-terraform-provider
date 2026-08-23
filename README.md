@@ -110,12 +110,9 @@ disclosing vulnerability details publicly.
 
 ## Upgrading
 
-The published first IAM candidate is `v0.2.0-beta.1`; manual Member scenarios
-found that its complete-set-only assignment surface is unsafe when callers do
-not know every existing direct Policy. The corrected `v0.2.0-beta.2` candidate
-adds exact additive Member-Policy bindings and must be published and exercised
-before stable release. Terraform requires an explicit prerelease selection;
-do not assume a broad `~> 0.2.0` constraint selects a beta. Existing core-only
+Terraform requires an explicit prerelease selection; do not assume a broad
+stable constraint selects a beta. Review the target release's notes before
+changing the version constraint and dependency lock file. Existing core-only
 `0.1.x` configurations remain covered by the compatibility contract.
 [UPGRADING.md](UPGRADING.md) defines the SemVer, schema, state, and Import
 contract plus a safe plan-first upgrade and rollback workflow.

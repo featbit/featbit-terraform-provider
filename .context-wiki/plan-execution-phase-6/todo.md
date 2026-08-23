@@ -3,7 +3,7 @@
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
 only the concise result under the active item. The current item is
-**P6-DOC-2**; do not begin **P6-DOC-3** until the maintainer reviews it and
+**P6-DOC-3**; do not begin **P6-DOC-4** until the maintainer reviews it and
 explicitly authorizes the next item.
 
 ## Scope and API contract
@@ -565,10 +565,10 @@ explicitly authorizes the next item.
   with direct installation and exact `= 0.2.0-beta.1` selection, verified the
   developer signature, locked the published hashes, validated successfully,
   and loaded the frozen five provider attributes, nine resources, and seven
-  data sources. No credential was used or retained. Phase 6 remains open for
-  P6-150 real-scenario validation.
+  data sources. No credential was used or retained. P6-150 subsequently
+  remediated the real-scenario finding on the corrected beta.
 
-- [ ] **P6-150 — Exercise real scenarios and remediate the beta.**
+- [x] **P6-150 — Exercise real scenarios and remediate the beta.**
 
   Use the published beta in the intended real customer scenarios. Record only
   current actionable findings, fix every release-blocking defect, and rerun the
@@ -583,11 +583,12 @@ explicitly authorizes the next item.
   ownership for both selected Members, so the manual tutorial must replace
   each complete direct set rather than preserve Policies managed outside this
   root. The additive resource remains supported for other consumers but is not
-  part of this scenario. Stable publication remains blocked until
-  focused, Protocol, documentation, real-scenario, and complete P6-130 gates
-  pass on the corrected surface.
+  part of this scenario. The corrected surface passed the focused, Protocol,
+  documentation, real-scenario, and complete P6-130 gates. Stable publication
+  remains separately blocked by documentation closeout, final stable
+  qualification, and P6-160 authorization.
 
-  Candidate status: the corrected `v0.2.0-beta.2` source now registers
+  Result: the corrected `v0.2.0-beta.2` source registers
   `featbit_member_policy_binding`, which owns one exact direct pair and reuses
   the existing exact endpoint, list, add, remove, reconciliation, Import,
   redaction, and one-shot lifecycle. Focused tests prove an existing two-Policy
@@ -641,8 +642,15 @@ explicitly authorizes the next item.
   removes Member B's direct Policy normally, explains that the guard protects
   associations owned by another state or FeatBit, and leaves same-root binding,
   Group, and Policy cleanup to Steps 9 and 10. The guard remains covered by
-  focused and Protocol tests. P6-150 remains open until the published artifact
-  completes the remaining corrected multi-Member scenario.
+  focused and Protocol tests. The published artifact then completed every
+  remaining step of `GitOpsGettingStartedIAM.md` against a real FeatBit
+  environment: each apply converged to an empty second plan, effective access
+  matched the documented inherited-only and direct-only paths, dependency-
+  ordered cleanup completed, both existing Members remained with the
+  tutorial's intended empty final direct-Policy sets, and the tutorial-owned
+  resource graph was proven exactly absent. P6-150 is complete. Stable
+  `v0.2.0` remains unpublished pending documentation closeout, final stable
+  qualification, and P6-160.
 
 ## Stable documentation closeout
 
@@ -673,11 +681,18 @@ starting the next.
   documentation is current, and no public or template text claims that the
   tutorial exercises association-safe Policy deletion.
 
-- [ ] **P6-DOC-3 — Record the completed `v0.2.0-beta.2` publication and exercise.**
+- [x] **P6-DOC-3 — Record the completed `v0.2.0-beta.2` publication and exercise.**
 
   Replace stale candidate-status wording with the completed published-artifact
   and real-scenario result, without claiming that stable `v0.2.0` is already
   released. Align the active Phase 6 execution status with that fact.
+
+  Result: public upgrade guidance now contains only the actionable exact
+  prerelease-selection instruction and no longer carries beta publication
+  history, exercise status, or future-stable conditionals. The Phase 6 README,
+  TODO, and master plan own those execution facts: they mark P6-150 complete,
+  record the published Registry artifact and full real-environment tutorial
+  result, and keep stable `v0.2.0` explicitly unpublished.
 
 - [ ] **P6-DOC-4 — Choose one canonical Registry tutorial-link strategy.**
 

@@ -9,13 +9,14 @@ release only; deferred Segment prerequisite work remains in Phase 7.
 ## Current entry point
 
 The published `v0.2.0-beta.1` passed its original automated scenarios, but a
-manual Member workflow exposed a release blocker: its authoritative
-direct-Policy-set resource requires callers to know every pre-existing direct
-Policy and cannot safely express additive assignment across multiple Members.
-Start with [P6-150](todo.md): qualify the additive exact Member-Policy binding
-candidate, publish and exercise `v0.2.0-beta.2` only with explicit maintainer
-authorization, and rerun the complete release gate. Stable `v0.2.0` remains
-blocked.
+manual Member workflow exposed a release blocker in its complete-set-only
+assignment surface. The corrected `v0.2.0-beta.2` adds the exact additive
+Member-Policy binding, passed the complete qualification gate, was separately
+authorized and published, installed directly from the Registry, and completed
+the full real-environment two-Member tutorial. P6-150 is complete. Continue
+the [stable documentation closeout](todo.md#stable-documentation-closeout) one
+reviewed item at a time; P6-DOC-3 remains the active item until its review is
+accepted. Stable `v0.2.0` remains unpublished.
 
 ## IAM v1 scope
 

@@ -4,9 +4,8 @@
 
 The provider follows Semantic Versioning with an explicit pre-1.0 boundary:
 
-- prereleases such as `0.2.0-beta.2` are explicit validation candidates and
-  may change before the corresponding stable version based on real-scenario
-  findings;
+- prereleases are explicit validation versions and may change before the
+  corresponding stable version based on real-scenario findings;
 - patch releases in a published minor line, such as `0.1.x`, contain
   backward-compatible bug or security fixes;
 - additive resources, data sources, and optional capabilities use a minor
@@ -58,8 +57,9 @@ removed or reinterpreted in a compatible release.
 
 ## Pin the intended release line
 
-Terraform does not select a prerelease through a broad stable constraint. Once
-the corrected IAM beta is published, opt in to that exact version:
+Terraform does not select a prerelease through a broad stable constraint. To
+evaluate the IAM prerelease used by the current examples, select its exact
+version:
 
 ```hcl
 terraform {
@@ -72,8 +72,6 @@ terraform {
 }
 ```
 
-After real-scenario validation, required fixes, and stable `v0.2.0`
-qualification, use `~> 0.2.0` to stay within the IAM-enabled `0.2.x` line.
 Core-only roots that intentionally remain on `0.1.x` can retain `~> 0.1.0`.
 Commit `.terraform.lock.hcl` for deployed root configurations. Change an exact
 prerelease, minor, or major constraint only after reviewing that release's
