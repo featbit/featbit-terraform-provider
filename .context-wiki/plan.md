@@ -18,10 +18,10 @@ assignment when callers did not know every existing direct Policy. The
 corrected `v0.2.0-beta.2` adds an exact additive Member-Policy binding, passed
 the complete qualification gate, was separately authorized and published,
 installed directly from the Registry, and completed the full real-environment
-two-Member tutorial. The final stable candidate now freezes every public
-example and release-validation version at `0.2.0`. Stable `v0.2.0` remains
-unpublished pending the complete release gate and maintainer-authorized
-publication.
+two-Member tutorial. The final stable candidate freezes every public example
+and release-validation version at `0.2.0` and passes the complete release gate.
+Stable `v0.2.0` remains unpublished pending the protected tag workflow, signed
+draft inspection, and maintainer-authorized publication.
 The current branch owns only that IAM surface and its release; it must not
 implement the deferred Phase 7 Segment prerequisite work.
 

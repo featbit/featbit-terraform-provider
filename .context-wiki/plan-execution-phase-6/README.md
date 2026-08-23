@@ -15,8 +15,9 @@ Member-Policy binding, passed the complete qualification gate, was separately
 authorized and published, installed directly from the Registry, and completed
 the full real-environment two-Member tutorial. P6-150 is complete. Continue
 the [stable documentation closeout](todo.md#stable-documentation-closeout) one
-reviewed item at a time; P6-DOC-5 remains the active item until its review is
-accepted. Stable `v0.2.0` remains unpublished.
+reviewed item at a time. P6-DOC-5 is accepted; P6-160 is now the active item,
+and its final candidate passes the complete release gate. Stable `v0.2.0`
+remains unpublished pending the protected tag workflow and draft inspection.
 
 ## IAM v1 scope
 

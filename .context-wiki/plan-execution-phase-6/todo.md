@@ -3,8 +3,8 @@
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
 only the concise result under the active item. The current item is
-**P6-DOC-5**; do not begin **P6-160** until the maintainer reviews it and
-explicitly authorizes the next item.
+**P6-160**. Stable tag creation must wait for its complete release gate; inspect
+the protected-workflow draft before publication.
 
 ## Scope and API contract
 
@@ -731,3 +731,14 @@ starting the next.
   `v0.2.0`; then merge only still-current facts into the master plan and remove
   the completed Phase 6 package. Do not start Phase 7 implementation on this
   branch.
+
+  Candidate gate: **passed on 2026-08-23; stable remains unpublished.** The
+  exact stable public examples and both frozen release validators use `0.2.0`.
+  Formatting, unit and Protocol tests, vet, build, module checks, generated
+  Registry documentation, all 18 examples, workflow syntax, licenses,
+  reachable-vulnerability and secret scans, and GoReleaser configuration pass.
+  The snapshot contains only the frozen five single-executable archives; all
+  six SHA-256 entries, including the Protocol 6.0 manifest, verify. GitHub Tests
+  run `32649235544` passes the Linux race/supply-chain job and Terraform
+  `1.0.11`, `1.5.7`, and `1.15.8` Protocol jobs. No stable tag, signed draft, or
+  publication has been created.
