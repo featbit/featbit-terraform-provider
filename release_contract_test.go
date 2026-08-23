@@ -22,18 +22,30 @@ import (
 )
 
 const (
-	initialReleaseVersion = "0.1.0"
-	releaseSchemaPath     = "internal/provider/testdata/release-schema.json"
-	releaseProjectID      = "11111111-1111-4111-8111-111111111111"
-	releaseEnvironmentID  = "22222222-2222-4222-8222-222222222222"
-	releaseSegmentID      = "33333333-3333-4333-8333-333333333333"
+	iamReleaseVersion            = "0.2.0"
+	releaseSchemaPath            = "internal/provider/testdata/release-schema.json"
+	releaseProjectID             = "11111111-1111-4111-8111-111111111111"
+	releaseEnvironmentID         = "22222222-2222-4222-8222-222222222222"
+	releaseSegmentID             = "33333333-3333-4333-8333-333333333333"
+	releasePolicyID              = "44444444-4444-4444-8444-444444444444"
+	releaseGroupID               = "55555555-5555-4555-8555-555555555555"
+	releaseMemberID              = "66666666-6666-4666-8666-666666666666"
+	releaseGroupPolicyBindingID  = releaseGroupID + "/" + releasePolicyID
+	releaseGroupMemberBindingID  = releaseGroupID + "/" + releaseMemberID
+	releaseMemberPolicyBindingID = releaseMemberID + "/" + releasePolicyID
 )
 
 var releaseImportForms = map[string]string{
-	"featbit_project":      "<project_uuid>",
-	"featbit_environment":  "<project_uuid>/<environment_uuid>",
-	"featbit_feature_flag": "<environment_uuid>/<exact_key>",
-	"featbit_segment":      "<environment_uuid>/<segment_uuid>",
+	"featbit_project":                "<project_uuid>",
+	"featbit_environment":            "<project_uuid>/<environment_uuid>",
+	"featbit_feature_flag":           "<environment_uuid>/<exact_key>",
+	"featbit_group":                  "<group_uuid>",
+	"featbit_group_member_binding":   "<group_uuid>/<member_uuid>",
+	"featbit_group_policy_binding":   "<group_uuid>/<policy_uuid>",
+	"featbit_member_direct_policies": "<member_uuid>",
+	"featbit_member_policy_binding":  "<member_uuid>/<policy_uuid>",
+	"featbit_policy":                 "<policy_uuid>",
+	"featbit_segment":                "<environment_uuid>/<segment_uuid>",
 }
 
 type releaseContractSnapshot struct {
@@ -95,10 +107,10 @@ type releaseNestedBlockSnapshot struct {
 	Block    releaseBlockSnapshot `json:"block"`
 }
 
-func TestInitialReleaseProtocolSchemaSnapshot(t *testing.T) {
+func TestIAMReleaseProtocolSchemaSnapshot(t *testing.T) {
 	t.Parallel()
 
-	server := providerserver.NewProtocol6(featbitprovider.New(initialReleaseVersion)())()
+	server := providerserver.NewProtocol6(featbitprovider.New(iamReleaseVersion)())()
 	response, err := server.GetProviderSchema(
 		context.Background(),
 		&tfprotov6.GetProviderSchemaRequest{},
@@ -112,6 +124,12 @@ func TestInitialReleaseProtocolSchemaSnapshot(t *testing.T) {
 	assertReleaseSurfaceNames(t, response)
 
 	actual := releaseSnapshotJSON(t, response)
+	if os.Getenv("FEATBIT_UPDATE_RELEASE_SCHEMA") == "1" {
+		if err := os.WriteFile(releaseSchemaPath, actual, 0o600); err != nil {
+			t.Fatalf("update release schema snapshot: %v", err)
+		}
+		return
+	}
 	expectedBytes, err := os.ReadFile(releaseSchemaPath)
 	if err != nil {
 		t.Fatalf("read release schema snapshot: %v", err)
@@ -136,10 +154,10 @@ func TestInitialReleaseProtocolSchemaSnapshot(t *testing.T) {
 	t.Fatal("Protocol v6 release schema differs from internal/provider/testdata/release-schema.json")
 }
 
-func TestInitialReleaseImportForms(t *testing.T) {
+func TestIAMReleaseImportForms(t *testing.T) {
 	t.Parallel()
 
-	server := providerserver.NewProtocol6(featbitprovider.New(initialReleaseVersion)())()
+	server := providerserver.NewProtocol6(featbitprovider.New(iamReleaseVersion)())()
 	schemaResponse, err := server.GetProviderSchema(
 		context.Background(),
 		&tfprotov6.GetProviderSchemaRequest{},
@@ -185,6 +203,81 @@ func TestInitialReleaseImportForms(t *testing.T) {
 				releaseEnvironmentID,
 				releaseEnvironmentID + "/invalid key",
 				releaseEnvironmentID + "/exact-key/extra",
+			},
+		},
+		"featbit_group": {
+			validID:  releaseGroupID,
+			identity: map[string]string{"id": releaseGroupID},
+			rejectedForms: []string{
+				"",
+				"not-a-uuid",
+				releaseGroupID + "/extra",
+			},
+		},
+		"featbit_group_policy_binding": {
+			validID: releaseGroupPolicyBindingID,
+			identity: map[string]string{
+				"id":        releaseGroupPolicyBindingID,
+				"group_id":  releaseGroupID,
+				"policy_id": releasePolicyID,
+			},
+			rejectedForms: []string{
+				"",
+				releaseGroupID,
+				"not-a-uuid/" + releasePolicyID,
+				releaseGroupID + "/not-a-uuid",
+				releaseGroupPolicyBindingID + "/extra",
+			},
+		},
+		"featbit_group_member_binding": {
+			validID: releaseGroupMemberBindingID,
+			identity: map[string]string{
+				"id":        releaseGroupMemberBindingID,
+				"group_id":  releaseGroupID,
+				"member_id": releaseMemberID,
+			},
+			rejectedForms: []string{
+				"",
+				releaseGroupID,
+				"not-a-uuid/" + releaseMemberID,
+				releaseGroupID + "/not-a-uuid",
+				releaseGroupMemberBindingID + "/extra",
+			},
+		},
+		"featbit_member_direct_policies": {
+			validID: releaseMemberID,
+			identity: map[string]string{
+				"id":        releaseMemberID,
+				"member_id": releaseMemberID,
+			},
+			rejectedForms: []string{
+				"",
+				"not-a-uuid",
+				releaseMemberID + "/extra",
+			},
+		},
+		"featbit_member_policy_binding": {
+			validID: releaseMemberPolicyBindingID,
+			identity: map[string]string{
+				"id":        releaseMemberPolicyBindingID,
+				"member_id": releaseMemberID,
+				"policy_id": releasePolicyID,
+			},
+			rejectedForms: []string{
+				"",
+				releaseMemberID,
+				"not-a-uuid/" + releasePolicyID,
+				releaseMemberID + "/not-a-uuid",
+				releaseMemberPolicyBindingID + "/extra",
+			},
+		},
+		"featbit_policy": {
+			validID:  releasePolicyID,
+			identity: map[string]string{"id": releasePolicyID},
+			rejectedForms: []string{
+				"",
+				"not-a-uuid",
+				releasePolicyID + "/extra",
 			},
 		},
 		"featbit_segment": {
@@ -240,17 +333,17 @@ func TestInitialReleaseImportForms(t *testing.T) {
 	}
 }
 
-func TestInitialReleaseMetadataAndManifest(t *testing.T) {
+func TestIAMReleaseMetadataAndManifest(t *testing.T) {
 	t.Parallel()
 
-	providerUnderTest := featbitprovider.New(initialReleaseVersion)()
+	providerUnderTest := featbitprovider.New(iamReleaseVersion)()
 	var metadata frameworkprovider.MetadataResponse
 	providerUnderTest.Metadata(
 		context.Background(),
 		frameworkprovider.MetadataRequest{},
 		&metadata,
 	)
-	if metadata.TypeName != "featbit" || metadata.Version != initialReleaseVersion {
+	if metadata.TypeName != "featbit" || metadata.Version != iamReleaseVersion {
 		t.Fatalf("provider metadata = %q/%q", metadata.TypeName, metadata.Version)
 	}
 	if providerAddress != "registry.terraform.io/featbit/featbit" {
@@ -430,7 +523,7 @@ func sortedReleaseKeys[T any](values map[string]T) []string {
 func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSchemaResponse) {
 	t.Helper()
 	if response.Provider == nil || response.Provider.Block == nil {
-		t.Fatal("initial release provider schema is nil")
+		t.Fatal("IAM release provider schema is nil")
 	}
 
 	providerAttributes := make([]string, 0, len(response.Provider.Block.Attributes))
@@ -445,9 +538,24 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		"max_concurrency",
 		"max_retries",
 	}
-	wantObjects := []string{
+	wantResources := []string{
 		"featbit_environment",
 		"featbit_feature_flag",
+		"featbit_group",
+		"featbit_group_member_binding",
+		"featbit_group_policy_binding",
+		"featbit_member_direct_policies",
+		"featbit_member_policy_binding",
+		"featbit_policy",
+		"featbit_project",
+		"featbit_segment",
+	}
+	wantDataSources := []string{
+		"featbit_environment",
+		"featbit_feature_flag",
+		"featbit_group",
+		"featbit_member",
+		"featbit_policy",
 		"featbit_project",
 		"featbit_segment",
 	}
@@ -456,8 +564,8 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 		want []string
 	}{
 		"provider attributes": {got: providerAttributes, want: wantProviderAttributes},
-		"resources":           {got: sortedReleaseKeys(response.ResourceSchemas), want: wantObjects},
-		"data sources":        {got: sortedReleaseKeys(response.DataSourceSchemas), want: wantObjects},
+		"resources":           {got: sortedReleaseKeys(response.ResourceSchemas), want: wantResources},
+		"data sources":        {got: sortedReleaseKeys(response.DataSourceSchemas), want: wantDataSources},
 		"functions":           {got: sortedReleaseKeys(response.Functions), want: []string{}},
 		"ephemeral resources": {got: sortedReleaseKeys(response.EphemeralResourceSchemas), want: []string{}},
 		"list resources":      {got: sortedReleaseKeys(response.ListResourceSchemas), want: []string{}},
@@ -466,7 +574,7 @@ func assertReleaseSurfaceNames(t *testing.T, response *tfprotov6.GetProviderSche
 	}
 	for name, check := range checks {
 		if !slices.Equal(check.got, check.want) {
-			t.Fatalf("initial release %s = %v, want %v", name, check.got, check.want)
+			t.Fatalf("IAM release %s = %v, want %v", name, check.got, check.want)
 		}
 	}
 }

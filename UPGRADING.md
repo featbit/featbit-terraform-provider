@@ -4,6 +4,8 @@
 
 The provider follows Semantic Versioning with an explicit pre-1.0 boundary:
 
+- prereleases are explicit validation versions and may change before the
+  corresponding stable version based on real-scenario findings;
 - patch releases in a published minor line, such as `0.1.x`, contain
   backward-compatible bug or security fixes;
 - additive resources, data sources, and optional capabilities use a minor
@@ -30,7 +32,7 @@ an explicit, tested schema-version migration. A change that removes or renames
 an attribute or object, changes its type/default/ownership, rejects previously
 valid configuration, or reinterprets identity, state, or Import is breaking.
 
-The initial Import contracts are:
+The core Import contracts introduced in `0.1.x` are:
 
 | Resource | Import ID |
 |---|---|
@@ -39,28 +41,40 @@ The initial Import contracts are:
 | Feature Flag | `<environment_uuid>/<exact_key>` |
 | Segment | `<environment_uuid>/<segment_uuid>` |
 
-An additional Import spelling may be additive, but these forms are not removed
-or reinterpreted in a compatible release.
+The IAM Import contracts introduced in `0.2.x` are:
+
+| Resource | Import ID |
+|---|---|
+| Custom Policy | `<policy_uuid>` |
+| Group | `<group_uuid>` |
+| Group-Policy binding | `<group_uuid>/<policy_uuid>` |
+| Group-Member binding | `<group_uuid>/<member_uuid>` |
+| Member-Policy binding | `<member_uuid>/<policy_uuid>` |
+| Member direct Policies | `<member_uuid>` |
+
+An additional Import spelling may be additive, but none of these forms are
+removed or reinterpreted in a compatible release.
 
 ## Pin the intended release line
 
-For the initial `0.1.x` line, use a three-component pessimistic constraint so
-Terraform cannot select a potentially breaking `0.2.0` automatically:
+The examples pin the initial stable IAM release exactly for reproducibility:
 
 ```hcl
 terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "~> 0.1.0"
+      version = "= 0.2.0"
     }
   }
 }
 ```
 
-Commit `.terraform.lock.hcl` for deployed root configurations. Change the
-minor or major constraint only after reviewing that release's notes and any
-migration instructions.
+Production roots that accept backward-compatible `0.2.x` patches can use
+`~> 0.2.0`. Core-only roots that intentionally remain on `0.1.x` can retain
+`~> 0.1.0`. Commit `.terraform.lock.hcl` for deployed root configurations.
+Change an exact, minor, or major constraint only after reviewing that
+release's notes and any migration instructions.
 
 ## Safe upgrade workflow
 

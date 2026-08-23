@@ -152,6 +152,35 @@ func (c *Client) GetEnvironment(
 	return parentEnvironment, true, nil
 }
 
+// GetEnvironmentByKey reads the exact parent Project and resolves one
+// case-sensitive Environment key from its complete nested Environment list.
+// The boolean is true only when the parent exists and exactly one match is
+// confirmed; duplicate exact keys are ambiguous.
+func (c *Client) GetEnvironmentByKey(
+	ctx context.Context,
+	projectID string,
+	key string,
+) (Environment, bool, error) {
+	if !ValidUUID(projectID) {
+		return Environment{}, false, newAPIError(
+			ClassificationValidation,
+			0,
+			"get_environment_by_key",
+			nil,
+			c.redactor,
+		)
+	}
+
+	project, found, err := c.GetProject(ctx, projectID)
+	if err != nil || !found {
+		return Environment{}, false, err
+	}
+	return c.ResolveEnvironmentByKey(
+		project.Environments,
+		key,
+	)
+}
+
 // CreateEnvironment executes the documented mutation exactly once. Exact-key
 // preflight and ambiguous-outcome reconciliation belong to the Terraform
 // lifecycle caller.
@@ -416,33 +445,46 @@ func resolveEnvironmentByID(
 	environmentID string,
 	redactor *Redactor,
 ) (Environment, bool, error) {
-	var match ProjectEnvironment
-	matchCount := 0
-	for _, environment := range environments {
-		if EqualUUID(environment.ID, environmentID) {
-			match = environment
-			matchCount++
-		}
+	match, found, err := resolveExactOne(
+		environments,
+		func(environment ProjectEnvironment) bool {
+			return EqualUUID(environment.ID, environmentID)
+		},
+		"resolve_environment",
+		redactor.With(environmentID),
+	)
+	if err != nil || !found {
+		return Environment{}, found, err
 	}
+	return environmentFromProject(match), true, nil
+}
 
-	switch matchCount {
-	case 0:
-		return Environment{}, false, nil
-	case 1:
-		return Environment{
-			ID:          match.ID,
-			Name:        match.Name,
-			Key:         match.Key,
-			Description: match.Description,
-		}, true, nil
-	default:
-		return Environment{}, false, newAPIError(
-			ClassificationAmbiguous,
-			0,
-			"resolve_environment",
-			nil,
-			redactor.With(environmentID),
-		)
+// ResolveEnvironmentByKey applies the shared case-sensitive exact zero/one/
+// duplicate contract to a complete, already-validated nested Environment
+// collection. It is reused by lookup and create preflight/reconciliation
+// callers.
+func (c *Client) ResolveEnvironmentByKey(
+	environments []ProjectEnvironment,
+	key string,
+) (Environment, bool, error) {
+	match, found, err := resolveExactOne(
+		environments,
+		func(environment ProjectEnvironment) bool { return environment.Key == key },
+		"resolve_environment_by_key",
+		c.redactor.With(key),
+	)
+	if err != nil || !found {
+		return Environment{}, found, err
+	}
+	return environmentFromProject(match), true, nil
+}
+
+func environmentFromProject(environment ProjectEnvironment) Environment {
+	return Environment{
+		ID:          environment.ID,
+		Name:        environment.Name,
+		Key:         environment.Key,
+		Description: environment.Description,
 	}
 }
 

@@ -3,33 +3,40 @@
 page_title: "featbit_environment Data Source - FeatBit"
 subcategory: "Core"
 description: |-
-  Reads one FeatBit Environment by exact parent Project and Environment UUIDs.
+  Reads one FeatBit Environment within an exact parent Project by UUID or key.
 ---
 
 # featbit_environment (Data Source)
 
-Reads one FeatBit Environment by its exact parent Project UUID and Environment UUID.
+Reads one FeatBit Environment within an exact parent Project by exact UUID or case-sensitive exact key.
 
-Both UUIDs are required. The Environment must be present in the exact parent
-Project; a same-looking Environment elsewhere is never returned. Secret values
-and UI-owned Environment settings are not exposed.
+The exact parent Project UUID is always required. Configure exactly one
+Environment selector: `id` for a UUID or `key` for a case-sensitive exact key
+within that Project. Key lookup consumes the parent's complete Environment
+list and rejects zero or duplicate exact matches; a same-looking Environment
+elsewhere is never returned. Secret values and UI-owned Environment settings
+are not exposed.
 
 ## Example Usage
 
 ```terraform
-variable "project_id" {
-  description = "Exact parent FeatBit Project UUID."
+variable "project_key" {
+  description = "Organization-scoped, case-sensitive exact FeatBit Project key."
   type        = string
 }
 
-variable "environment_id" {
-  description = "Exact FeatBit Environment UUID."
+variable "environment_key" {
+  description = "Case-sensitive exact Environment key within the selected Project."
   type        = string
+}
+
+data "featbit_project" "parent" {
+  key = var.project_key
 }
 
 data "featbit_environment" "exact" {
-  project_id = var.project_id
-  id         = var.environment_id
+  project_id = data.featbit_project.parent.id
+  key        = var.environment_key
 }
 ```
 
@@ -38,11 +45,14 @@ data "featbit_environment" "exact" {
 
 ### Required
 
-- `id` (String) Exact Environment UUID.
 - `project_id` (String) Exact parent Project UUID.
+
+### Optional
+
+- `id` (String) Exact Environment UUID. Configure exactly one of `id` or `key`.
+- `key` (String) Case-sensitive exact Environment key within `project_id`. Configure exactly one of `id` or `key`.
 
 ### Read-Only
 
 - `description` (String) Environment description, canonicalized to an empty string when absent.
-- `key` (String) Environment key.
 - `name` (String) Environment display name.

@@ -82,19 +82,6 @@ func TestProviderSchema(t *testing.T) {
 	}
 }
 
-func TestProviderRegistrations(t *testing.T) {
-	t.Parallel()
-
-	providerUnderTest := New("test")()
-
-	if got := len(providerUnderTest.Resources(context.Background())); got != 4 {
-		t.Fatalf("expected Project, Environment, Feature Flag, and Segment resources, got %d", got)
-	}
-	if got := len(providerUnderTest.DataSources(context.Background())); got != 4 {
-		t.Fatalf("expected Project, Environment, Feature Flag, and Segment data sources, got %d", got)
-	}
-}
-
 func TestProtocol6ProviderFactory(t *testing.T) {
 	t.Parallel()
 

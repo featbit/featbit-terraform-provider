@@ -18,3 +18,15 @@ func mutationOutcomeAmbiguous(err error) bool {
 		return false
 	}
 }
+
+func mutationNeedsReconciliation(err error) bool {
+	if mutationOutcomeAmbiguous(err) {
+		return true
+	}
+	switch client.Classify(0, nil, err) {
+	case client.ClassificationConflict, client.ClassificationNotFoundUnconfirmed:
+		return true
+	default:
+		return false
+	}
+}

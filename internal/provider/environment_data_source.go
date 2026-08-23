@@ -15,9 +15,12 @@ import (
 )
 
 var (
-	_ datasource.DataSource              = (*environmentDataSource)(nil)
-	_ datasource.DataSourceWithConfigure = (*environmentDataSource)(nil)
+	_ datasource.DataSource                   = (*environmentDataSource)(nil)
+	_ datasource.DataSourceWithConfigure      = (*environmentDataSource)(nil)
+	_ datasource.DataSourceWithValidateConfig = (*environmentDataSource)(nil)
 )
+
+const environmentDataSourceSelectorDetail = "Configure exactly one Environment selector: `id` for an exact UUID or `key` for a case-sensitive exact key within `project_id`."
 
 type environmentDataSource struct {
 	client *client.Client
@@ -41,7 +44,7 @@ func (d *environmentDataSource) Schema(
 	resp *datasource.SchemaResponse,
 ) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Reads one FeatBit Environment by its exact parent Project UUID and Environment UUID.",
+		MarkdownDescription: "Reads one FeatBit Environment within an exact parent Project by exact UUID or case-sensitive exact key.",
 		Attributes: map[string]schema.Attribute{
 			"project_id": schema.StringAttribute{
 				Required:            true,
@@ -51,8 +54,9 @@ func (d *environmentDataSource) Schema(
 				},
 			},
 			"id": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Exact Environment UUID.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Exact Environment UUID. Configure exactly one of `id` or `key`.",
 				Validators: []validator.String{
 					uuidValidator{},
 				},
@@ -62,8 +66,9 @@ func (d *environmentDataSource) Schema(
 				MarkdownDescription: "Environment display name.",
 			},
 			"key": schema.StringAttribute{
+				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Environment key.",
+				MarkdownDescription: "Case-sensitive exact Environment key within `project_id`. Configure exactly one of `id` or `key`.",
 			},
 			"description": schema.StringAttribute{
 				Computed:            true,
@@ -71,6 +76,22 @@ func (d *environmentDataSource) Schema(
 			},
 		},
 	}
+}
+
+func (d *environmentDataSource) ValidateConfig(
+	ctx context.Context,
+	req datasource.ValidateConfigRequest,
+	resp *datasource.ValidateConfigResponse,
+) {
+	_, _, diagnostics := readExactlyOneStringSelector(
+		ctx,
+		req.Config,
+		path.Root("id"),
+		path.Root("key"),
+		"Invalid FeatBit Environment Selector",
+		environmentDataSourceSelectorDetail,
+	)
+	resp.Diagnostics.Append(diagnostics...)
 }
 
 func (d *environmentDataSource) Configure(
@@ -87,21 +108,48 @@ func (d *environmentDataSource) Read(
 	resp *datasource.ReadResponse,
 ) {
 	var projectID types.String
-	var environmentID types.String
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("project_id"), &projectID)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &environmentID)...)
+	environmentID, key, diagnostics := readExactlyOneStringSelector(
+		ctx,
+		req.Config,
+		path.Root("id"),
+		path.Root("key"),
+		"Invalid FeatBit Environment Selector",
+		environmentDataSourceSelectorDetail,
+	)
+	resp.Diagnostics.Append(diagnostics...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if projectID.IsUnknown() || environmentID.IsUnknown() || key.IsUnknown() {
+		resp.Diagnostics.AddError(
+			"Unable to Read FeatBit Environment",
+			"The configured Environment selector or parent Project UUID is not known yet. Terraform must resolve it before the Environment can be read.",
+		)
 		return
 	}
 	if !requireAPIClient(d.client, "reading an Environment", &resp.Diagnostics) {
 		return
 	}
 
-	environment, found, err := d.client.GetEnvironment(
-		ctx,
-		projectID.ValueString(),
-		environmentID.ValueString(),
-	)
+	var environment client.Environment
+	var found bool
+	var err error
+	selector := "UUID"
+	if !environmentID.IsNull() {
+		environment, found, err = d.client.GetEnvironment(
+			ctx,
+			projectID.ValueString(),
+			environmentID.ValueString(),
+		)
+	} else {
+		selector = "key"
+		environment, found, err = d.client.GetEnvironmentByKey(
+			ctx,
+			projectID.ValueString(),
+			key.ValueString(),
+		)
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Read FeatBit Environment",
@@ -113,7 +161,7 @@ func (d *environmentDataSource) Read(
 	if !found {
 		resp.Diagnostics.AddError(
 			"FeatBit Environment Not Found",
-			"No Environment with the configured exact UUID exists in the exact parent Project.",
+			"No Environment with the configured exact "+selector+" exists in the exact parent Project.",
 		)
 		return
 	}

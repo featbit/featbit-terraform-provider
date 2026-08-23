@@ -956,9 +956,10 @@ func (i *cloudAcceptanceInventory) cleanupAndVerify(ctx context.Context) error {
 		return fmt.Errorf("Cloud final collection verification failed")
 	}
 	for _, project := range remaining {
-		if _, tracked := i.projectKeys[project.Key]; tracked {
-			cleanupFailures++
+		if _, tracked := i.projectKeys[project.Key]; !tracked {
+			continue
 		}
+		cleanupFailures++
 		for _, environment := range project.Environments {
 			if _, tracked := i.environmentKeys[environment.Key]; tracked {
 				cleanupFailures++
@@ -973,6 +974,49 @@ func (i *cloudAcceptanceInventory) cleanupAndVerify(ctx context.Context) error {
 		return fmt.Errorf("Cloud cleanup retained an exact test object or pending owner")
 	}
 	return nil
+}
+
+func TestCloudAcceptanceInventoryScopesEnvironmentKeysToOwnedProjects(t *testing.T) {
+	fixture := newProjectProtocolFixture(t)
+	defer fixture.close()
+	apiURL, err := parseAPIURL(fixture.apiOrigin())
+	if err != nil {
+		t.Fatal("could not configure the scoped cleanup fixture URL")
+	}
+	apiClient, err := client.New(apiURL, syntheticProviderAccessToken, client.Options{
+		HTTPTimeout:     client.DefaultHTTPTimeout,
+		MaxConcurrency:  client.DefaultMaxConcurrency,
+		MaxRetries:      0,
+		ProviderVersion: "protocol-test",
+	})
+	if err != nil {
+		t.Fatal("could not construct the scoped cleanup fixture client")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), cloudAcceptanceTimeout)
+	defer cancel()
+	unrelated, err := apiClient.CreateProject(ctx, client.CreateProjectRequest{
+		Name: "Unrelated Project",
+		Key:  "unrelated-project",
+	})
+	if err != nil {
+		t.Fatal("could not create the unrelated cleanup fixture Project")
+	}
+	t.Cleanup(func() {
+		_ = apiClient.DeleteProject(context.Background(), unrelated.ID)
+	})
+
+	inventory := newCloudAcceptanceInventory(
+		apiClient,
+		[]string{"owned-project-that-was-never-created"},
+		[]string{"dev", "prod"},
+	)
+	if err := inventory.cleanupAndVerify(ctx); err != nil {
+		t.Fatal("cleanup inventory treated a common Environment key outside its Project as owned")
+	}
+	if _, found, err := apiClient.GetProject(ctx, unrelated.ID); err != nil || !found {
+		t.Fatal("cleanup inventory changed an unrelated Project")
+	}
 }
 
 type cloudSettingsLeaf struct {

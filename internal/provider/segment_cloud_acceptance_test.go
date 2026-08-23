@@ -954,7 +954,7 @@ func cloudSegmentDriftOwnedFields(
 	}
 	for _, mutation := range mutations {
 		mutationErr := mutation.apply()
-		if mutationErr != nil && !segmentMutationNeedsReconciliation(mutationErr) {
+		if mutationErr != nil && !mutationNeedsReconciliation(mutationErr) {
 			t.Fatal("could not prepare external Cloud Segment drift")
 		}
 		if !cloudWaitExactSegment(ctx, apiClient, environmentID, segmentID, mutation.match) {

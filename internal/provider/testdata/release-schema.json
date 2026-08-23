@@ -286,6 +286,391 @@
         "block_types": []
       }
     },
+    "featbit_group": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one FeatBit Group's settings through the documented public API. Group members and Policies are managed by separate binding resources.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Group description. An omitted value canonicalizes to an empty string.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Group UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Group display name.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_group_member_binding": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one exact FeatBit Group-to-Member binding through the documented public API. It owns only the configured pair, not either endpoint or the Group's complete Member collection.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "group_id",
+            "type": "string",
+            "description": "Exact Group UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Canonical synthetic binding ID in `\u003cgroup_uuid\u003e/\u003cmember_uuid\u003e` form.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "member_id",
+            "type": "string",
+            "description": "Exact existing Member UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_group_policy_binding": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one exact FeatBit Group-to-Policy binding through the documented public API. It owns only the configured pair, not either endpoint or the Group's complete Policy collection.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "group_id",
+            "type": "string",
+            "description": "Exact Group UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Canonical synthetic binding ID in `\u003cgroup_uuid\u003e/\u003cpolicy_uuid\u003e` form.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "policy_id",
+            "type": "string",
+            "description": "Exact custom or built-in Policy UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_member_direct_policies": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Authoritatively manages one existing FeatBit Member's complete direct Policy set through the documented public API. It never manages inherited Group Policies, Group bindings, or the Member lifecycle.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Canonical Member UUID, equal to `member_id`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "member_id",
+            "type": "string",
+            "description": "Exact existing Member UUID. Changing it replaces this authoritative direct-Policy set.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "policy_ids",
+            "type": [
+              "set",
+              "string"
+            ],
+            "description": "Complete unordered set of direct custom or built-in Policy UUIDs. An empty set removes every direct Policy without changing inherited Policies.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_member_policy_binding": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one exact FeatBit Member-to-Policy binding through the documented public API. It owns only the configured pair, not either endpoint or the Member's complete direct Policy collection.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Canonical synthetic binding ID in `\u003cmember_uuid\u003e/\u003cpolicy_uuid\u003e` form.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "member_id",
+            "type": "string",
+            "description": "Exact existing Member UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "policy_id",
+            "type": "string",
+            "description": "Exact custom or built-in Policy UUID. Changing it replaces the binding.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_policy": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Manages one custom FeatBit Policy and its complete statement set through the documented public API.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Policy description. An omitted value canonicalizes to an empty string.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Policy UUID.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Immutable organization-scoped exact Policy key.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Policy display name.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "statements",
+            "nested_type": {
+              "nesting": "SET",
+              "attributes": [
+                {
+                  "name": "actions",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Non-empty set of exact case-sensitive actions valid for resource_type.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "effect",
+                  "type": "string",
+                  "description": "Exact lowercase effect: allow or deny.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resource_type",
+                  "type": "string",
+                  "description": "Exact lowercase control level: project, env, flag, or segment.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resources",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Non-empty set of wildcard or exact-key selectors matching resource_type.",
+                  "description_kind": "MARKDOWN",
+                  "required": true,
+                  "optional": false,
+                  "computed": false,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Complete unordered Policy statement set. An empty set removes every statement. Statement actions and selectors are validated against the managed IAM v1 catalog.",
+            "description_kind": "MARKDOWN",
+            "required": true,
+            "optional": false,
+            "computed": false,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "description": "Policy ownership type. Managed resources are always CustomerManaged.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_project": {
       "version": 0,
       "block": {
@@ -652,7 +1037,7 @@
       "version": 0,
       "block": {
         "version": 0,
-        "description": "Reads one FeatBit Environment by its exact parent Project UUID and Environment UUID.",
+        "description": "Reads one FeatBit Environment within an exact parent Project by exact UUID or case-sensitive exact key.",
         "description_kind": "MARKDOWN",
         "deprecated": false,
         "attributes": [
@@ -671,11 +1056,11 @@
           {
             "name": "id",
             "type": "string",
-            "description": "Exact Environment UUID.",
+            "description": "Exact Environment UUID. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
-            "required": true,
-            "optional": false,
-            "computed": false,
+            "required": false,
+            "optional": true,
+            "computed": true,
             "sensitive": false,
             "write_only": false,
             "deprecated": false
@@ -683,10 +1068,10 @@
           {
             "name": "key",
             "type": "string",
-            "description": "Environment key.",
+            "description": "Case-sensitive exact Environment key within `project_id`. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
             "required": false,
-            "optional": false,
+            "optional": true,
             "computed": true,
             "sensitive": false,
             "write_only": false,
@@ -856,11 +1241,249 @@
         "block_types": []
       }
     },
+    "featbit_group": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one existing FeatBit Group by exact UUID or organization-scoped case-sensitive exact name without adopting its lifecycle or relationships.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Group description, canonicalized to an empty string when absent.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Group UUID. Configure exactly one of `id` or `name`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Organization-scoped case-sensitive exact Group name. Configure exactly one of `id` or `name`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_member": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one existing FeatBit Member by exact UUID or organization-scoped case-insensitive full email. It never invites, creates, updates, removes, or deletes the Member.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "email",
+            "type": "string",
+            "description": "Organization-scoped case-insensitive full Member email. Configure exactly one of `id` or `email`; state retains the server's canonical spelling.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Member UUID. Configure exactly one of `id` or `email`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Server-reported Member display name.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": true,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
+    "featbit_policy": {
+      "version": 0,
+      "block": {
+        "version": 0,
+        "description": "Reads one custom or built-in FeatBit Policy by exact UUID or organization-scoped case-sensitive exact key.",
+        "description_kind": "MARKDOWN",
+        "deprecated": false,
+        "attributes": [
+          {
+            "name": "description",
+            "type": "string",
+            "description": "Policy description, canonicalized to an empty string when absent.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Exact Policy UUID. Configure exactly one of `id` or `key`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "key",
+            "type": "string",
+            "description": "Organization-scoped case-sensitive exact Policy key. Configure exactly one of `id` or `key`.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": true,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Policy display name.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "statements",
+            "nested_type": {
+              "nesting": "SET",
+              "attributes": [
+                {
+                  "name": "actions",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Canonical statement action set.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "effect",
+                  "type": "string",
+                  "description": "Server-reported statement effect.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resource_type",
+                  "type": "string",
+                  "description": "Server-reported statement resource type.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                },
+                {
+                  "name": "resources",
+                  "type": [
+                    "set",
+                    "string"
+                  ],
+                  "description": "Canonical statement resource selector set.",
+                  "description_kind": "MARKDOWN",
+                  "required": false,
+                  "optional": false,
+                  "computed": true,
+                  "sensitive": false,
+                  "write_only": false,
+                  "deprecated": false
+                }
+              ]
+            },
+            "description": "Canonical unordered Policy statements. Built-in statement shapes are observed read-only and do not widen the managed Policy schema.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "description": "Policy type: CustomerManaged or SysManaged.",
+            "description_kind": "MARKDOWN",
+            "required": false,
+            "optional": false,
+            "computed": true,
+            "sensitive": false,
+            "write_only": false,
+            "deprecated": false
+          }
+        ],
+        "block_types": []
+      }
+    },
     "featbit_project": {
       "version": 0,
       "block": {
         "version": 0,
-        "description": "Reads one FeatBit Project by its exact UUID.",
+        "description": "Reads one FeatBit Project by exact UUID or organization-scoped case-sensitive exact key.",
         "description_kind": "MARKDOWN",
         "deprecated": false,
         "attributes": [
@@ -931,11 +1554,11 @@
           {
             "name": "id",
             "type": "string",
-            "description": "Exact Project UUID.",
+            "description": "Exact Project UUID. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
-            "required": true,
-            "optional": false,
-            "computed": false,
+            "required": false,
+            "optional": true,
+            "computed": true,
             "sensitive": false,
             "write_only": false,
             "deprecated": false
@@ -943,10 +1566,10 @@
           {
             "name": "key",
             "type": "string",
-            "description": "Project key.",
+            "description": "Organization-scoped case-sensitive exact Project key. Configure exactly one of `id` or `key`.",
             "description_kind": "MARKDOWN",
             "required": false,
-            "optional": false,
+            "optional": true,
             "computed": true,
             "sensitive": false,
             "write_only": false,
@@ -1223,9 +1846,15 @@
   "actions": [],
   "state_stores": [],
   "import_forms": {
-    "featbit_environment": "<project_uuid>/<environment_uuid>",
-    "featbit_feature_flag": "<environment_uuid>/<exact_key>",
-    "featbit_project": "<project_uuid>",
-    "featbit_segment": "<environment_uuid>/<segment_uuid>"
+    "featbit_environment": "\u003cproject_uuid\u003e/\u003cenvironment_uuid\u003e",
+    "featbit_feature_flag": "\u003cenvironment_uuid\u003e/\u003cexact_key\u003e",
+    "featbit_group": "\u003cgroup_uuid\u003e",
+    "featbit_group_member_binding": "\u003cgroup_uuid\u003e/\u003cmember_uuid\u003e",
+    "featbit_group_policy_binding": "\u003cgroup_uuid\u003e/\u003cpolicy_uuid\u003e",
+    "featbit_member_direct_policies": "\u003cmember_uuid\u003e",
+    "featbit_member_policy_binding": "\u003cmember_uuid\u003e/\u003cpolicy_uuid\u003e",
+    "featbit_policy": "\u003cpolicy_uuid\u003e",
+    "featbit_project": "\u003cproject_uuid\u003e",
+    "featbit_segment": "\u003cenvironment_uuid\u003e/\u003csegment_uuid\u003e"
   }
 }

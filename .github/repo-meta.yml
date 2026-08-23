@@ -1,4 +1,4 @@
-description: Terraform provider for managing FeatBit projects, environments, feature flags, and environment-specific segments.
+description: Terraform provider for managing FeatBit core configuration and supported IAM relationships as reviewable infrastructure code.
 homepage: ""
 topics:
   - featbit

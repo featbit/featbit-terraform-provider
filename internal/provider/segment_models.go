@@ -11,13 +11,11 @@ import (
 	"io"
 	"math"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/featbit/terraform-provider-featbit/internal/client"
 	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -570,54 +568,4 @@ func deterministicSegmentTargetingID(parts ...string) string {
 	parts = append([]string(nil), parts...)
 	parts[1] = canonicalEnvironmentID
 	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(strings.Join(parts, "\x00"))).String()
-}
-
-func canonicalStringSet(values []string) []string {
-	seen := make(map[string]struct{}, len(values))
-	canonical := make([]string, 0, len(values))
-	for _, value := range values {
-		if _, duplicate := seen[value]; duplicate {
-			continue
-		}
-		seen[value] = struct{}{}
-		canonical = append(canonical, value)
-	}
-	sort.Strings(canonical)
-	return canonical
-}
-
-func stringSetsIntersect(left, right []string) bool {
-	leftValues := make(map[string]struct{}, len(left))
-	for _, value := range left {
-		leftValues[value] = struct{}{}
-	}
-	for _, value := range right {
-		if _, exists := leftValues[value]; exists {
-			return true
-		}
-	}
-	return false
-}
-
-func terraformStringSet(ctx context.Context, value types.Set) ([]string, error) {
-	if value.IsNull() || value.IsUnknown() {
-		return nil, errInvalidSegmentDefinition
-	}
-	var values []string
-	if diagnostics := value.ElementsAs(ctx, &values, false); diagnostics.HasError() {
-		return nil, errInvalidSegmentDefinition
-	}
-	return canonicalStringSet(values), nil
-}
-
-func terraformStringSetValue(values []string) types.Set {
-	elements := make([]attr.Value, 0, len(values))
-	for _, value := range canonicalStringSet(values) {
-		elements = append(elements, types.StringValue(value))
-	}
-	return types.SetValueMust(types.StringType, elements)
-}
-
-func knownString(value types.String) bool {
-	return !value.IsNull() && !value.IsUnknown()
 }

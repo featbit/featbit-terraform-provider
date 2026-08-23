@@ -1,14 +1,17 @@
-# Phase 6 TODO — Segment targeting prerequisites
+# Phase 7 TODO — Segment targeting prerequisites
 
 Work one item at a time. Before adding a helper, wire model, client method,
 lifecycle branch, or test fixture, search the existing implementation for a
 compatible contract. Record only concise current results under the active item.
-Do not begin IAM, publish a release, modify the FeatBit backend, or use a
-Portal-private endpoint without a separate explicit user authorization.
+Phase 7 is the next planned phase after stable `v0.2.0`, but it is intentionally
+unstarted on the IAM release branch. Activate P7-010 only on a separately
+authorized future branch after the required documented public API ships. Do
+not publish a release, modify the FeatBit backend, or use a Portal-private
+endpoint without separate explicit user authorization.
 
 ## Public API gate
 
-- [ ] **P6-010 — Verify the documented public prerequisite API.**
+- [ ] **P7-010 — Verify the documented public prerequisite API.**
 
   Read the official Swagger/OpenAPI document and its authentication contract.
   Trace the corresponding FeatBit UI, controller, application service, and
@@ -36,9 +39,9 @@ Portal-private endpoint without a separate explicit user authorization.
 
 ## Ownership and lifecycle design
 
-- [ ] **P6-020 — Freeze the Terraform ownership and drift contract.**
+- [ ] **P7-020 — Freeze the Terraform ownership and drift contract.**
 
-  Begin only if P6-010 proves a sufficient public API. Compare implicit
+  Begin only if P7-010 proves a sufficient public API. Compare implicit
   prerequisite ensure in `featbit_segment` with first-class resources. Prefer
   the smallest design that can truthfully handle Import, refresh, out-of-band
   prerequisite deletion, partial failure, retries, cancellation, and concurrent
@@ -53,7 +56,7 @@ Portal-private endpoint without a separate explicit user authorization.
 
 ## Provider implementation
 
-- [ ] **P6-030 — Add exact, redaction-safe prerequisite client operations.**
+- [ ] **P7-030 — Add exact, redaction-safe prerequisite client operations.**
 
   Reuse the existing transport, escaping, retry, cancellation, error
   classification, and diagnostic-redaction behavior. Keep endpoint wire models
@@ -61,7 +64,7 @@ Portal-private endpoint without a separate explicit user authorization.
   create-missing-only requests, already-existing/conflict outcomes, retry
   safety, cancellation, malformed responses, and protected-value redaction.
 
-- [ ] **P6-040 — Integrate the frozen prerequisite lifecycle with Segment.**
+- [ ] **P7-040 — Integrate the frozen prerequisite lifecycle with Segment.**
 
   Canonicalize and deduplicate included/excluded keys and non-built-in rule
   properties. Query exact records and create only missing prerequisites before
@@ -70,23 +73,23 @@ Portal-private endpoint without a separate explicit user authorization.
   never delete prerequisites during update or destroy.
 
   Keep Create, Update, Read, Import, refresh, and drift behavior aligned with
-  P6-020. Reuse existing Segment request expansion and reconciliation instead
+  P7-020. Reuse existing Segment request expansion and reconciliation instead
   of introducing a second targeting implementation.
 
 ## Verification and documentation
 
-- [ ] **P6-050 — Freeze lifecycle, ordering, idempotence, and redaction tests.**
+- [ ] **P7-050 — Freeze lifecycle, ordering, idempotence, and redaction tests.**
 
   At minimum cover: creation registers missing included/excluded users;
   existing users are not modified; update registers only newly missing users;
   removal deletes no user; custom property registration is deduplicated and
   reused; built-ins trigger no registration; repeated apply is idempotent;
   user/property failure cannot report complete success; HTTP order and request
-  counts are exact; concurrent/conflicting inputs follow P6-020; logs and
+  counts are exact; concurrent/conflicting inputs follow P7-020; logs and
   diagnostics remain redacted; and all existing Segment
   Import/read/update/delete tests continue to pass.
 
-- [ ] **P6-060 — Pass a trusted current-Cloud acceptance gate.**
+- [ ] **P7-060 — Pass a trusted current-Cloud acceptance gate.**
 
   Use unique test-owned Project, Environment, Segment, user keys, and custom
   property. Prove exact Environment association, metadata existence, existing
@@ -95,16 +98,16 @@ Portal-private endpoint without a separate explicit user authorization.
   test-owned Project tree after evidence is captured. Never print protected
   IDs, keys, properties, targeting values, or credentials.
 
-- [ ] **P6-070 — Update supported-surface documentation and examples.**
+- [ ] **P7-070 — Update supported-surface documentation and examples.**
 
   If implementation proceeds, update the canonical resource example,
   templates, generated Registry docs, README, compatibility notes, and focused
   documentation assertions to describe the exact ownership boundary. If
-  P6-010 stops implementation, document the unsupported public-API prerequisite
+  P7-010 stops implementation, document the unsupported public-API prerequisite
   precisely without recommending Portal-private calls or SDK pre-registration
   as the only Terraform solution.
 
-- [ ] **P6-080 — Run the complete phase gate.**
+- [ ] **P7-080 — Run the complete phase gate.**
 
   Run formatting, `go test ./...`, vet, build, module verification, generated
   docs and examples checks, Protocol/schema contracts, GoReleaser snapshot,
@@ -113,9 +116,8 @@ Portal-private endpoint without a separate explicit user authorization.
 
 ## Phase exit
 
-- [ ] **P6-090 — Close Phase 6 before creating the IAM execution package.**
+- [ ] **P7-090 — Close Phase 7.**
 
   Confirm the README exit gate. Merge only still-current architecture and
   roadmap facts into the master plan, delete this completed package, and create
-  only the Phase 7 IAM README/TODO. Do not preserve phase history files or begin
-  IAM while any Phase 6 gate is unresolved.
+  only the next approved phase README/TODO. Do not preserve phase history files.

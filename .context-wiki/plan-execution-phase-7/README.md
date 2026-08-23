@@ -1,12 +1,15 @@
-# Phase 6 — Segment targeting prerequisites
+# Phase 7 — Segment targeting prerequisites
 
 ## Purpose
 
-Close the Environment-specific Segment prerequisite gap before any IAM work
-begins. A Segment can already persist included/excluded user keys and rule
-properties, but the Provider does not create missing Environment End Users or
-register custom End User Property metadata. Release `v0.1.1` documents that
-boundary without changing runtime behavior.
+Close the Environment-specific Segment prerequisite gap on a separate future
+branch after a later FeatBit version exposes the required public API. Phase 6
+closed with stable `v0.2.0`; Phase 7 is the next planned phase, but it is not
+active on the IAM release branch. A Segment can already persist
+included/excluded user keys and rule properties, but the Provider does not
+create missing Environment End Users or register custom End User Property
+metadata. Stable `v0.2.0` documents that boundary without claiming unsupported
+behavior.
 
 This phase starts with the public API, not with Provider code. The Provider may
 depend only on stable operations documented by FeatBit's official Swagger or
@@ -16,8 +19,10 @@ product behavior only; they are not Provider contracts.
 
 ## Current entry point
 
-Start with [P6-010](todo.md): establish whether the public API supports all of
-these operations with exact Environment scope and redaction-safe failures:
+When this phase is separately authorized and activated on a future branch,
+start with [P7-010](todo.md): establish whether the target version's released
+public API supports all of these operations with exact Environment scope and
+redaction-safe failures:
 
 - exact lookup of an End User by Environment and key;
 - idempotent create-missing-only End User registration;
@@ -31,7 +36,7 @@ workspace task.
 
 ## Intended Terraform contract
 
-The ownership design is not frozen until P6-010 proves the public API. The
+The ownership design is not frozen until P7-010 proves the public API. The
 preferred behavior, if the API can support it safely, is prerequisite ensure
 inside `featbit_segment` Create and Update:
 
@@ -51,7 +56,7 @@ Users or property metadata because those records may be shared by Flags,
 Segments, SDK traffic, and applications.
 
 If implicit ensure cannot provide truthful Import, refresh, drift, concurrency,
-and partial-failure behavior, P6-020 must evaluate first-class End User and End
+and partial-failure behavior, P7-020 must evaluate first-class End User and End
 User Property resources. Such a design is acceptable only with explicit,
 non-destructive ownership and migration semantics; it must not turn shared
 records into destroy-owned Terraform children accidentally.
@@ -75,13 +80,15 @@ records into destroy-owned Terraform children accidentally.
   surprising mutations.
 - Preserve the current Segment HCL and state shape unless an evidence-backed
   compatibility change is unavoidable.
-- Do not begin Phase 7 IAM until this phase's exit gate passes.
+- Do not begin this phase until a separate future branch is created and the
+  required documented public API is available in the target FeatBit version.
 
 ## Exit gate
 
 If the documented public API is insufficient, record the precise minimum
-upstream requirement and leave this phase stopped at that dependency; IAM must
-not begin while the Segment mission remains incomplete.
+upstream requirement and leave this phase stopped at that dependency. Never
+substitute a Portal-private endpoint or backend change for the missing public
+contract.
 
 The phase passes only when the public contract is sufficient and the
 implemented Terraform behavior proves all of the following locally, through
@@ -99,5 +106,5 @@ Protocol tests, and in a trusted current-Cloud acceptance run:
 - diagnostics and logs expose none of the protected identifiers or values.
 
 Only after this gate passes should the still-current architecture be folded
-into the master plan, this Phase 6 package be removed, and a Phase 7 IAM
-README/TODO be created.
+into the master plan, this Phase 7 package be removed, and the next approved
+phase README/TODO be created.

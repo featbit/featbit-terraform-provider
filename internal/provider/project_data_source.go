@@ -11,13 +11,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
-	_ datasource.DataSource              = (*projectDataSource)(nil)
-	_ datasource.DataSourceWithConfigure = (*projectDataSource)(nil)
+	_ datasource.DataSource                   = (*projectDataSource)(nil)
+	_ datasource.DataSourceWithConfigure      = (*projectDataSource)(nil)
+	_ datasource.DataSourceWithValidateConfig = (*projectDataSource)(nil)
 )
+
+const projectDataSourceSelectorDetail = "Configure exactly one Project selector: `id` for an exact UUID or `key` for an organization-scoped case-sensitive exact key."
 
 type projectDataSource struct {
 	client *client.Client
@@ -41,11 +43,12 @@ func (d *projectDataSource) Schema(
 	resp *datasource.SchemaResponse,
 ) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Reads one FeatBit Project by its exact UUID.",
+		MarkdownDescription: "Reads one FeatBit Project by exact UUID or organization-scoped case-sensitive exact key.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Exact Project UUID.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Exact Project UUID. Configure exactly one of `id` or `key`.",
 				Validators: []validator.String{
 					uuidValidator{},
 				},
@@ -55,12 +58,29 @@ func (d *projectDataSource) Schema(
 				MarkdownDescription: "Project display name.",
 			},
 			"key": schema.StringAttribute{
+				Optional:            true,
 				Computed:            true,
-				MarkdownDescription: "Project key.",
+				MarkdownDescription: "Organization-scoped case-sensitive exact Project key. Configure exactly one of `id` or `key`.",
 			},
 			"environments": projectDataSourceEnvironmentsAttribute(),
 		},
 	}
+}
+
+func (d *projectDataSource) ValidateConfig(
+	ctx context.Context,
+	req datasource.ValidateConfigRequest,
+	resp *datasource.ValidateConfigResponse,
+) {
+	_, _, diagnostics := readExactlyOneStringSelector(
+		ctx,
+		req.Config,
+		path.Root("id"),
+		path.Root("key"),
+		"Invalid FeatBit Project Selector",
+		projectDataSourceSelectorDetail,
+	)
+	resp.Diagnostics.Append(diagnostics...)
 }
 
 func projectDataSourceEnvironmentsAttribute() schema.ListNestedAttribute {
@@ -104,16 +124,39 @@ func (d *projectDataSource) Read(
 	req datasource.ReadRequest,
 	resp *datasource.ReadResponse,
 ) {
-	var projectID types.String
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &projectID)...)
+	projectID, key, diagnostics := readExactlyOneStringSelector(
+		ctx,
+		req.Config,
+		path.Root("id"),
+		path.Root("key"),
+		"Invalid FeatBit Project Selector",
+		projectDataSourceSelectorDetail,
+	)
+	resp.Diagnostics.Append(diagnostics...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+	if projectID.IsUnknown() || key.IsUnknown() {
+		resp.Diagnostics.AddError(
+			"Unable to Read FeatBit Project",
+			"The configured Project selector is not known yet. Terraform must resolve it before the Project can be read.",
+		)
 		return
 	}
 	if !requireAPIClient(d.client, "reading a Project", &resp.Diagnostics) {
 		return
 	}
 
-	project, found, err := d.client.GetProject(ctx, projectID.ValueString())
+	var project client.Project
+	var found bool
+	var err error
+	selector := "UUID"
+	if !projectID.IsNull() {
+		project, found, err = d.client.GetProject(ctx, projectID.ValueString())
+	} else {
+		selector = "key"
+		project, found, err = d.client.GetProjectByKey(ctx, key.ValueString())
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Read FeatBit Project",
@@ -125,7 +168,7 @@ func (d *projectDataSource) Read(
 	if !found {
 		resp.Diagnostics.AddError(
 			"FeatBit Project Not Found",
-			"No Project with the configured exact UUID exists in the complete Project collection.",
+			"No Project with the configured exact "+selector+" exists in the complete Project collection.",
 		)
 		return
 	}

@@ -77,12 +77,6 @@ func (s *segmentHTTPScript) ServeHTTP(response http.ResponseWriter, request *htt
 	writeProjectResourceEnvelope(s.t, response, expectation.status, expectation.data)
 }
 
-func (s *segmentHTTPScript) consumed() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.next
-}
-
 func (s *segmentHTTPScript) assertComplete(t *testing.T) {
 	t.Helper()
 	s.mu.Lock()
@@ -132,9 +126,6 @@ func TestSegmentResourceMetadataSchemaConfigureAndRegistration(t *testing.T) {
 	}
 
 	providerResources := New("test")().Resources(context.Background())
-	if len(providerResources) != 4 {
-		t.Fatalf("registered resource count = %d, want 4", len(providerResources))
-	}
 	registered := false
 	for _, factory := range providerResources {
 		if _, ok := factory().(*segmentResource); ok {
@@ -327,7 +318,6 @@ func TestSegmentResourceCreateInitializesOnlyPlannedTargetingAndTags(t *testing.
 					},
 					segmentExactExpectation(t, targeted),
 				)
-				current = targeted
 				expectations = append(expectations,
 					segmentHTTPExpectation{
 						method: http.MethodPut,

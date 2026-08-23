@@ -3,16 +3,19 @@
 page_title: "featbit_environment Data Source - FeatBit"
 subcategory: "Core"
 description: |-
-  Reads one FeatBit Environment by exact parent Project and Environment UUIDs.
+  Reads one FeatBit Environment within an exact parent Project by UUID or key.
 ---
 
 # featbit_environment (Data Source)
 
 {{ .Description | trimspace }}
 
-Both UUIDs are required. The Environment must be present in the exact parent
-Project; a same-looking Environment elsewhere is never returned. Secret values
-and UI-owned Environment settings are not exposed.
+The exact parent Project UUID is always required. Configure exactly one
+Environment selector: `id` for a UUID or `key` for a case-sensitive exact key
+within that Project. Key lookup consumes the parent's complete Environment
+list and rejects zero or duplicate exact matches; a same-looking Environment
+elsewhere is never returned. Secret values and UI-owned Environment settings
+are not exposed.
 
 ## Example Usage
 

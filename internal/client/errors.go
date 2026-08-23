@@ -149,6 +149,25 @@ func newTransportError(err error) *APIError {
 	return apiError
 }
 
+// readErrorWithoutDetails retains classification, status, and cancellation
+// sentinels while discarding server detail strings that a caller cannot
+// exhaustively enumerate and redact.
+func readErrorWithoutDetails(operation string, err error, redactor *Redactor) error {
+	var apiError *APIError
+	if !errors.As(err, &apiError) {
+		return newTransportError(err)
+	}
+	sanitized := newAPIError(
+		apiError.Classification(),
+		apiError.StatusCode(),
+		operation,
+		nil,
+		redactor,
+	)
+	sanitized.cause = apiError.cause
+	return sanitized
+}
+
 func safeOperationName(operation string) string {
 	if operation == "" || strings.IndexFunc(operation, func(r rune) bool {
 		return r > unicode.MaxASCII || !(unicode.IsLetter(r) || unicode.IsDigit(r) ||

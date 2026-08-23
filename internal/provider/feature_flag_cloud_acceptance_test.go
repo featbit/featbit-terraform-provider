@@ -672,7 +672,7 @@ func cloudFeatureFlagDriftNames(
 		if err == nil {
 			continue
 		}
-		if !featureFlagMutationNeedsReconciliation(err) {
+		if !mutationNeedsReconciliation(err) {
 			t.Fatalf("could not prepare external Cloud Feature Flag name drift: %v", err)
 		}
 		flag, status, resolveErr := apiClient.ResolveFeatureFlag(

@@ -133,10 +133,10 @@ func (r *environmentResource) Create(
 		)
 		return
 	}
-	matchCount := countProjectEnvironmentsByKey(project.Environments, key)
-	if matchCount != 0 {
+	_, matchFound, resolveErr := r.client.ResolveEnvironmentByKey(project.Environments, key)
+	if matchFound || resolveErr != nil {
 		detail := "An Environment with the configured exact key already exists in the parent Project. Terraform will not adopt it automatically; import the intended Environment by its two UUIDs or choose another key."
-		if matchCount > 1 {
+		if resolveErr != nil {
 			detail = "Multiple Environments have the configured exact key in the parent Project, so creation is ambiguous. Resolve the duplicates before retrying."
 		}
 		resp.Diagnostics.AddError("FeatBit Environment Create Preflight Failed", detail)
@@ -388,25 +388,26 @@ func (r *environmentResource) reconcileAmbiguousCreate(
 		)
 		return
 	}
-	matchCount := 0
+	matchFound := false
+	var resolveErr error
 	if found {
-		matchCount = countProjectEnvironmentsByKey(project.Environments, key)
+		_, matchFound, resolveErr = r.client.ResolveEnvironmentByKey(project.Environments, key)
 	}
-	switch matchCount {
-	case 0:
+	switch {
+	case resolveErr != nil:
 		diagnostics.AddError(
-			"Unable to Create FeatBit Environment",
-			"The create result was ambiguous, but the exact parent Project contains no Environment with the configured key. Terraform did not retry the mutation. "+createErr.Error()+".",
+			"FeatBit Environment Create Outcome Is Ambiguous",
+			"The create result was ambiguous and multiple Environments now have the configured exact key in the parent Project. Terraform did not retry or adopt any object. Resolve the duplicates before continuing.",
 		)
-	case 1:
+	case matchFound:
 		diagnostics.AddError(
 			"FeatBit Environment Create Outcome Requires Recovery",
 			"The create result was ambiguous and exactly one Environment now has the configured key in the parent Project. Terraform did not retry or adopt it. Verify that object, then import it by its two UUIDs or remove it before retrying.",
 		)
 	default:
 		diagnostics.AddError(
-			"FeatBit Environment Create Outcome Is Ambiguous",
-			"The create result was ambiguous and multiple Environments now have the configured exact key in the parent Project. Terraform did not retry or adopt any object. Resolve the duplicates before continuing.",
+			"Unable to Create FeatBit Environment",
+			"The create result was ambiguous, but the exact parent Project contains no Environment with the configured key. Terraform did not retry the mutation. "+createErr.Error()+".",
 		)
 	}
 }
@@ -418,14 +419,4 @@ func (r *environmentResource) environmentLocks() *keyedLockManager {
 		}
 	})
 	return r.locks
-}
-
-func countProjectEnvironmentsByKey(environments []client.ProjectEnvironment, key string) int {
-	count := 0
-	for _, environment := range environments {
-		if environment.Key == key {
-			count++
-		}
-	}
-	return count
 }

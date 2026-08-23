@@ -10,6 +10,10 @@ import (
 
 func TestSanitized(t *testing.T) {
 	t.Setenv("FEATBIT_ACCESS_TOKEN", "must-not-escape")
+	t.Setenv("FEATBIT_TEST_SERVICE_TOKEN", "must-not-escape")
+	t.Setenv("FEATBIT_TEST_MEMBER_ID", "must-not-escape")
+	t.Setenv("FEATBIT_TEST_MEMBER_TOKEN", "must-not-escape")
+	t.Setenv("TF_VAR_featbit_test_member_id", "must-not-escape")
 	t.Setenv("TF_ACC", "1")
 	t.Setenv("FEATBIT_DOCS_SAFE_TEST", "preserved")
 	t.Setenv("PATH", "ambient-path")
@@ -34,6 +38,10 @@ func TestSanitized(t *testing.T) {
 		present bool
 	}{
 		{name: "FeatBit credential removed", key: "FEATBIT_ACCESS_TOKEN"},
+		{name: "FeatBit acceptance credential removed", key: "FEATBIT_TEST_SERVICE_TOKEN"},
+		{name: "FeatBit acceptance identity removed", key: "FEATBIT_TEST_MEMBER_ID"},
+		{name: "FeatBit Member credential removed", key: "FEATBIT_TEST_MEMBER_TOKEN"},
+		{name: "Terraform acceptance identity removed", key: "TF_VAR_FEATBIT_TEST_MEMBER_ID"},
 		{name: "acceptance opt-in removed", key: "TF_ACC"},
 		{name: "unrelated setting preserved", key: "FEATBIT_DOCS_SAFE_TEST", want: "preserved", present: true},
 		{name: "ambient setting replaced", key: "PATH", want: "pinned-tool-path", present: true},

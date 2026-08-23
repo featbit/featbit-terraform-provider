@@ -411,7 +411,7 @@ func (r *featureFlagResource) Update(
 		prior.ID.ValueString(),
 		client.UpdateFeatureFlagNameRequest{Name: plan.Name.ValueString()},
 	)
-	if updateErr != nil && !featureFlagMutationNeedsReconciliation(updateErr) {
+	if updateErr != nil && !mutationNeedsReconciliation(updateErr) {
 		resp.Diagnostics.AddError(
 			"Unable to Update FeatBit Feature Flag Name",
 			"The specialized name update did not complete. Terraform state has been preserved. "+updateErr.Error()+".",
@@ -526,7 +526,7 @@ func (r *featureFlagResource) Delete(
 	if status == client.FeatureFlagStatusActive {
 		archiveErr := r.client.ArchiveFeatureFlag(ctx, environmentID, key)
 		if archiveErr != nil {
-			if !featureFlagMutationNeedsReconciliation(archiveErr) {
+			if !mutationNeedsReconciliation(archiveErr) {
 				resp.Diagnostics.AddError(
 					"Unable to Archive FeatBit Feature Flag",
 					"The required archive request failed. Permanent deletion was not attempted and Terraform state has been preserved. "+archiveErr.Error()+".",
@@ -571,7 +571,7 @@ func (r *featureFlagResource) Delete(
 
 	deleteErr := r.client.DeleteFeatureFlag(ctx, environmentID, key)
 	if deleteErr != nil {
-		if !featureFlagMutationNeedsReconciliation(deleteErr) {
+		if !mutationNeedsReconciliation(deleteErr) {
 			resp.Diagnostics.AddError(
 				"Unable to Permanently Delete FeatBit Feature Flag",
 				"The permanent delete request failed. Terraform state has been preserved. "+deleteErr.Error()+".",
@@ -922,18 +922,6 @@ func preserveEquivalentFeatureFlagVariationValues(
 		if priorErr == nil && canonicalErr == nil && priorValue == canonicalValue {
 			canonicalState.Variations[index].Value = priorVariation.Value
 		}
-	}
-}
-
-func featureFlagMutationNeedsReconciliation(err error) bool {
-	if mutationOutcomeAmbiguous(err) {
-		return true
-	}
-	switch client.Classify(0, nil, err) {
-	case client.ClassificationConflict, client.ClassificationNotFoundUnconfirmed:
-		return true
-	default:
-		return false
 	}
 }
 
