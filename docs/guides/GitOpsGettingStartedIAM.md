@@ -155,7 +155,7 @@ terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "= 0.2.0-beta.2"
+      version = "= 0.2.0"
     }
   }
 }
@@ -163,13 +163,12 @@ terraform {
 provider "featbit" {}
 ```
 
-This manual exercise pins the exact qualified `0.2.0-beta.2` prerelease. Both
-Members intentionally use `featbit_member_direct_policies` for complete-set
-ownership; the beta.2 additive `featbit_member_policy_binding` remains
-available but is not used by this closed-world scenario. Do not substitute
-`0.2.0-beta.1` or `latest`.
+This tutorial pins the exact stable `0.2.0` release. Both Members intentionally
+use `featbit_member_direct_policies` for complete-set ownership; the additive
+`featbit_member_policy_binding` remains available but is not used by this
+closed-world scenario. Do not substitute a prerelease or `latest`.
 
-If this practice root was initialized before selecting `0.2.0-beta.2`, refresh
+If this practice root was initialized before selecting stable `0.2.0`, refresh
 the dependency lock selection before continuing:
 
 ```console

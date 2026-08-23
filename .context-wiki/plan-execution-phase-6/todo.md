@@ -3,7 +3,7 @@
 Work one item at a time. Search the existing implementation before adding a
 helper, wire model, client method, schema, lifecycle branch, or fixture. Record
 only the concise result under the active item. The current item is
-**P6-DOC-4**; do not begin **P6-DOC-5** until the maintainer reviews it and
+**P6-DOC-5**; do not begin **P6-160** until the maintainer reviews it and
 explicitly authorizes the next item.
 
 ## Scope and API contract
@@ -585,8 +585,8 @@ explicitly authorizes the next item.
   root. The additive resource remains supported for other consumers but is not
   part of this scenario. The corrected surface passed the focused, Protocol,
   documentation, real-scenario, and complete P6-130 gates. Stable publication
-  remains separately blocked by documentation closeout, final stable
-  qualification, and P6-160 authorization.
+  remains separately blocked by final-candidate review, the complete release
+  gate, and P6-160 authorization.
 
   Result: the corrected `v0.2.0-beta.2` source registers
   `featbit_member_policy_binding`, which owns one exact direct pair and reuses
@@ -649,8 +649,8 @@ explicitly authorizes the next item.
   ordered cleanup completed, both existing Members remained with the
   tutorial's intended empty final direct-Policy sets, and the tutorial-owned
   resource graph was proven exactly absent. P6-150 is complete. Stable
-  `v0.2.0` remains unpublished pending documentation closeout, final stable
-  qualification, and P6-160.
+  documentation closeout produced the final candidate; `v0.2.0` remains
+  unpublished pending the complete release gate and P6-160.
 
 ## Stable documentation closeout
 
@@ -709,12 +709,19 @@ starting the next.
   location; generated documentation validation and repository-local link and
   fragment checks pass.
 
-- [ ] **P6-DOC-5 — Switch public examples to stable `v0.2.0` in the release commit.**
+- [x] **P6-DOC-5 — Switch public examples to stable `v0.2.0` in the release commit.**
 
   Perform this only in the final stable-release candidate after the preceding
   documentation items and release qualification pass. Update every frozen
   public-example and validation version consistently, then rerun generated
   documentation, example, Protocol schema, and release-contract checks.
+
+  Result: every public Terraform version selection and both frozen validation
+  versions now use exact stable `0.2.0`; customer guidance describes the
+  stable line without beta release-process prose. Generated Registry
+  documentation, all 18 example sets, the frozen Protocol v6 schema, and the
+  release contract pass. Historical beta publication and exercise records
+  remain unchanged. Stable `v0.2.0` is still unpublished pending P6-160.
 
 - [ ] **P6-160 — Publish and close stable `v0.2.0`.**
 

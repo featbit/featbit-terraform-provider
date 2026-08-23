@@ -110,10 +110,11 @@ disclosing vulnerability details publicly.
 
 ## Upgrading
 
-Terraform requires an explicit prerelease selection; do not assume a broad
-stable constraint selects a beta. Review the target release's notes before
-changing the version constraint and dependency lock file. Existing core-only
-`0.1.x` configurations remain covered by the compatibility contract.
+The tutorials pin stable `0.2.0` exactly for reproducibility. Production roots
+that accept backward-compatible `0.2.x` patches can use `~> 0.2.0`; existing
+core-only `0.1.x` configurations remain covered by the compatibility contract.
+Review the target release's notes before changing the version constraint and
+dependency lock file.
 [UPGRADING.md](UPGRADING.md) defines the SemVer, schema, state, and Import
 contract plus a safe plan-first upgrade and rollback workflow.
 

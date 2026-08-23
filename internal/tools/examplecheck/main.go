@@ -20,7 +20,7 @@ import (
 	"github.com/featbit/terraform-provider-featbit/internal/tools/toolenv"
 )
 
-const validationProviderVersion = "0.2.0-beta.2"
+const validationProviderVersion = "0.2.0"
 
 func main() {
 	root, err := repositoryRoot()

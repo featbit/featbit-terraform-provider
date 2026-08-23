@@ -57,25 +57,24 @@ removed or reinterpreted in a compatible release.
 
 ## Pin the intended release line
 
-Terraform does not select a prerelease through a broad stable constraint. To
-evaluate the IAM prerelease used by the current examples, select its exact
-version:
+The examples pin the initial stable IAM release exactly for reproducibility:
 
 ```hcl
 terraform {
   required_providers {
     featbit = {
       source  = "featbit/featbit"
-      version = "= 0.2.0-beta.2"
+      version = "= 0.2.0"
     }
   }
 }
 ```
 
-Core-only roots that intentionally remain on `0.1.x` can retain `~> 0.1.0`.
-Commit `.terraform.lock.hcl` for deployed root configurations. Change an exact
-prerelease, minor, or major constraint only after reviewing that release's
-notes and any migration instructions.
+Production roots that accept backward-compatible `0.2.x` patches can use
+`~> 0.2.0`. Core-only roots that intentionally remain on `0.1.x` can retain
+`~> 0.1.0`. Commit `.terraform.lock.hcl` for deployed root configurations.
+Change an exact, minor, or major constraint only after reviewing that
+release's notes and any migration instructions.
 
 ## Safe upgrade workflow
 
