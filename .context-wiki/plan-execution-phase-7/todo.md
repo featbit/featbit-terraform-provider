@@ -3,10 +3,11 @@
 Work one item at a time. Before adding a helper, wire model, client method,
 lifecycle branch, or test fixture, search the existing implementation for a
 compatible contract. Record only concise current results under the active item.
-This package is deferred to a separate future branch until the Phase 6 IAM
-release is complete and the required documented public API ships. Do not
-publish a release, modify the FeatBit backend, or use a Portal-private endpoint
-without a separate explicit user authorization.
+Phase 7 is the next planned phase after stable `v0.2.0`, but it is intentionally
+unstarted on the IAM release branch. Activate P7-010 only on a separately
+authorized future branch after the required documented public API ships. Do
+not publish a release, modify the FeatBit backend, or use a Portal-private
+endpoint without separate explicit user authorization.
 
 ## Public API gate
 

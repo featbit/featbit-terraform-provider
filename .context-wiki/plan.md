@@ -3,38 +3,29 @@
 - Status: **Active**
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Next phase: [Phase 6 — IAM and release](plan-execution-phase-6/README.md)
+- Next phase: [Phase 7 — Segment targeting prerequisites](plan-execution-phase-7/README.md)
 
 This file contains the current architecture, product contract, and phase
 roadmap.
 
 ## 1. Current position
 
-The Phase 6 public IAM API, Terraform contracts, runtime implementation, local
-Protocol workflow, trusted current-Cloud workflow, and Registry documentation
-are complete. Exercise of the published `v0.2.0-beta.1` found that its
-complete-set-only Member assignment surface could not safely express additive
-assignment when callers did not know every existing direct Policy. The
-corrected `v0.2.0-beta.2` adds an exact additive Member-Policy binding, passed
-the complete qualification gate, was separately authorized and published,
-installed directly from the Registry, and completed the full real-environment
-two-Member tutorial. The final stable candidate freezes every public example
-and release-validation version at `0.2.0` and passes the complete release gate.
-Stable `v0.2.0` remains unpublished pending the protected tag workflow, signed
-draft inspection, and maintainer-authorized publication.
-The current branch owns only that IAM surface and its release; it must not
-implement the deferred Phase 7 Segment prerequisite work.
+Phase 6 is complete. Stable `v0.2.0` is publicly available from the Terraform
+Registry and is GitHub's latest release. Its protected tag workflow built the
+five-platform archive set, checksum manifest, and detached signature from
+qualified commit `cb6662d`. A clean Terraform root installed exact version
+`0.2.0` from the Registry, verified the published signing key, validated the
+configuration, and exposed the frozen five provider attributes, ten resources,
+and seven data sources. The current branch must not implement Phase 7 Segment
+prerequisite work.
 
 Stable releases `v0.1.0` and documentation-only `v0.1.1` remain core-only.
-Published `v0.2.0-beta.1` exposes the initial IAM beta surface, while published
-and exercised `v0.2.0-beta.2` exposes the corrected surface. The corrected
-`0.2.x` surface is a Protocol v6 provider with five
-configuration attributes, a shared handwritten HTTP client, ten managed
-resources, and seven exact single-object data sources. In addition to Project,
-Environment, Feature Flag, and Segment, it implements custom Policies with
-complete statements, Groups, exact Group-Policy, Group-Member, and additive
-Member-Policy bindings, an explicit authoritative direct-Policy-set option,
-and exact Policy, Group, and Member lookup.
+Current stable `v0.2.0` adds the corrected IAM surface to the Protocol v6
+provider while preserving the shared handwritten HTTP client. In addition to
+Project, Environment, Feature Flag, and Segment, it implements custom Policies
+with complete statements, Groups, exact Group-Policy, Group-Member, and
+additive Member-Policy bindings, an explicit authoritative direct-Policy-set
+option, and exact Policy, Group, and Member lookup.
 The lifecycle-owned adapters implement exact reads, CRUD or narrow relationship
 mutation as applicable, Import, canonical state, authoritative absence
 composition, replacement-aware stable ID planning, one-shot mutation
@@ -46,16 +37,18 @@ active/archived absence. Segment targeting writes do not create Environment
 End Users or register custom End User Property metadata because those
 prerequisites are not exposed through the documented public API. The required
 public operations are planned for a later FeatBit version, so that unfinished
-Segment work is deferred until Phase 7, after IAM, and must not be implemented
-through Portal-private endpoints in the meantime. All four core resource
-phases passed their local, Protocol, and trusted current-Cloud gates with exact
-cleanup. The exact `v0.2.0-beta.2` Registry artifact passes the customer-state
+Segment work is deferred until Phase 7 and must not be implemented through
+Portal-private endpoints in the meantime. All four core resource phases and
+the IAM phase passed their local, Protocol, and trusted current-Cloud gates
+with exact cleanup. The stable Registry artifact retains the customer-state
 upgrade, IAM create/update/import, empty-plan, permission, dependency-ordered
-cleanup, and exact-absence scenarios, while `v0.1.1` remains GitHub's latest
-stable release. Its checked-in Protocol v6 snapshot and focused registration,
-Import, lifecycle, and generated-document checks include the additive
-Member-Policy pair. GoReleaser owns tag-derived version injection; the frozen
-five-platform archive matrix remains unchanged.
+cleanup, and exact-absence behavior exercised before release. Its checked-in
+Protocol v6 snapshot and focused registration, Import, lifecycle, and
+generated-document checks include the additive Member-Policy pair. GoReleaser
+owns tag-derived version injection; the frozen five-platform archive matrix
+remains unchanged. Phase 7 is the next planned phase but remains unstarted
+until a later FeatBit version exposes its required documented public API and
+work moves to a separate branch.
 
 ## 2. Product boundary
 
@@ -192,9 +185,9 @@ configuration or transport changes.
 | Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
 | Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 7 will close that gap after the required public API ships, without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
 | Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
-| IAM member | Corrected surface published and exercised in `v0.2.0-beta.2` | `featbit_member` reads one existing Member by exact ID or case-insensitive full email and exposes only sensitive ID/email/name. `featbit_member_policy_binding` owns one exact direct pair and preserves every unrelated Policy, so ordinary `for_each` supports multiple Members without baseline inventory. `featbit_member_direct_policies` remains the explicit complete-set owner; an empty set and Destroy remove direct Policies only. The two ownership models must not overlap for one Member. Invitation, profile, organization/workspace membership, deletion, and inherited Policies remain external, and `initialPassword` is never decoded into the Provider model. |
-| IAM group and custom policy | Published and exercised in `v0.2.0-beta.2` | The `featbit_group` resource owns Group existence and name/description but no relationships; its data source observes an existing Group by exact ID or organization-scoped, case-sensitive exact name without adopting it. `featbit_policy` owns one custom Policy's settings and complete unordered statement set; its exact-key data source can also observe built-in Policies, but every built-in mutation is structurally forbidden. Statements cover only Project, Environment, Feature Flag, and Segment with exact lower-case types/effects, the frozen action catalogs, and canonical wildcard/exact-key/tag selectors. |
-| IAM relationship edge | All three edge types published and exercised in `v0.2.0-beta.2` | `featbit_group_policy_binding`, `featbit_group_member_binding`, and `featbit_member_policy_binding` each own one exact pair and never a complete relationship collection. Group and Policy destroy refuse to cascade live relationships. Member-Policy Read uses only the direct collection, and Destroy removes only its pair. The authoritative direct-Policy resource never reads inherited Policies as owned state or changes Group edges. |
+| IAM member | Published and Registry-verified in stable `v0.2.0` | `featbit_member` reads one existing Member by exact ID or case-insensitive full email and exposes only sensitive ID/email/name. `featbit_member_policy_binding` owns one exact direct pair and preserves every unrelated Policy, so ordinary `for_each` supports multiple Members without baseline inventory. `featbit_member_direct_policies` remains the explicit complete-set owner; an empty set and Destroy remove direct Policies only. The two ownership models must not overlap for one Member. Invitation, profile, organization/workspace membership, deletion, and inherited Policies remain external, and `initialPassword` is never decoded into the Provider model. |
+| IAM group and custom policy | Published and Registry-verified in stable `v0.2.0` | The `featbit_group` resource owns Group existence and name/description but no relationships; its data source observes an existing Group by exact ID or organization-scoped, case-sensitive exact name without adopting it. `featbit_policy` owns one custom Policy's settings and complete unordered statement set; its exact-key data source can also observe built-in Policies, but every built-in mutation is structurally forbidden. Statements cover only Project, Environment, Feature Flag, and Segment with exact lower-case types/effects, the frozen action catalogs, and canonical wildcard/exact-key/tag selectors. |
+| IAM relationship edge | All three edge types published and Registry-verified in stable `v0.2.0` | `featbit_group_policy_binding`, `featbit_group_member_binding`, and `featbit_member_policy_binding` each own one exact pair and never a complete relationship collection. Group and Policy destroy refuse to cascade live relationships. Member-Policy Read uses only the direct collection, and Destroy removes only its pair. The authoritative direct-Policy resource never reads inherited Policies as owned state or changes Group edges. |
 
 Common lifecycle rules:
 
@@ -219,8 +212,8 @@ Implemented core Import IDs are stable public contracts:
 | Feature flag | `<environment_uuid>/<exact_key>` |
 | Segment | `<environment_uuid>/<segment_uuid>` |
 
-IAM remains absent from the stable `0.1.x` releases. The published
-`v0.2.0-beta.2` Phase 6 Import forms include the additive Member-Policy pair:
+IAM remains absent from the stable `0.1.x` releases. Stable `v0.2.0` supports
+these Phase 6 Import forms, including the additive Member-Policy pair:
 
 | Object | Import ID |
 |---|---|
@@ -281,33 +274,27 @@ resources and four data sources; it contains no IAM surface.
 Gate: a clean directory can initialize, plan, apply, destroy, and import using
 the Registry provider; release assets satisfy Registry requirements.
 
-### Phase 6 — IAM and release
+### Phase 6 — IAM and release (complete)
 
-Verify access-token tenant scope, optional context-header behavior, complete
-exact lookup, and every required IAM mutation before freezing schemas. The
-aligned surface consists of custom Policies with statements, Groups, exact
-Group-Member, Group-Policy, and additive Member-Policy bindings, an
+Implemented the frozen IAM surface: custom Policies with statements, Groups,
+exact Group-Member, Group-Policy, and additive Member-Policy bindings, an
 authoritative direct-Policy set for one existing Member, exact built-in Policy,
 existing Group, and Member lookup, and exact-key Project/Environment lookup.
-Policy statements cover Project, Environment,
-Feature Flag, and Segment control levels, including documented wildcard and
-exact-key resource selectors. Member lifecycle and Service Tokens are external.
+Policy statements cover Project, Environment, Feature Flag, and Segment
+control levels, including documented wildcard and exact-key resource
+selectors. Member lifecycle and Service Tokens remain external.
 
-Gate: every consumed operation is documented and exact; lifecycle and Import
-identities are frozen before publication; exact-pair bindings and the explicit
-per-Member direct-Policy set preserve non-overlapping ownership boundaries; all four
-Policy control levels round-trip with canonical effects, actions, and resource
-selectors; current-Cloud verification is redaction-safe; Registry documentation
-and release artifacts describe exactly the implemented IAM surface; the beta
-is published and exercised in real scenarios; every resulting release blocker
-is resolved and requalified; and stable `v0.2.0` is published only afterward.
-Tag creation, signing, draft finalization, and publication remain separately
-maintainer-authorized.
+Gate: passed. Every consumed operation and Import identity is exact; pair and
+complete-set ownership do not overlap; all four Policy control levels
+round-trip canonically; the full local, Protocol, current-Cloud, documentation,
+packaging, signing, publication, clean Registry-install, and release-schema
+checks passed; stable `v0.2.0` is published as GitHub Latest and indexed by the
+Terraform Registry.
 
-### Phase 7 — Segment targeting prerequisites (deferred)
+### Phase 7 — Segment targeting prerequisites (next; API-blocked)
 
-Begin only on a separate future branch after the IAM release and after a later
-FeatBit version exposes the required documented public operations. Verify that
+Begin only on a separate future branch after a later FeatBit version exposes
+the required documented public operations. Verify that
 the official Swagger and OpenAPI authentication expose stable operations for
 exact Environment End User and End User Property lookup plus
 create-missing-only registration. If that contract is still absent, record the
@@ -344,15 +331,18 @@ Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
 Log `v0.10.0`. Protocol is `6.0`, so the minimum Terraform CLI is `1.0.0`.
 Release qualification passes on credential-free Linux/AMD64 with Terraform
 `1.0.11`, `1.5.7`, and `1.15.8` through the existing Protocol contract.
-Initial archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
+Release archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
 `linux_arm64`, and `windows_amd64`, cross-built without CGO and checked by the
 GoReleaser snapshot. The credential-free Go 1.26.6 snapshot produces
 exactly those five archives. This archive matrix is a distribution contract,
 not a claim that every target has a separate native-runner qualification. The
-Registry serves stable non-prerelease releases `v0.1.0` and `v0.1.1` plus
-exact IAM prereleases `v0.2.0-beta.1` and `v0.2.0-beta.2`; `v0.1.1` changes
-documentation, examples, and roadmap context only and does not change runtime
-behavior, schema, state, or compatibility.
+Registry serves stable non-prerelease releases `v0.1.0`, `v0.1.1`, and
+`v0.2.0`, plus the exact IAM prereleases `v0.2.0-beta.1` and
+`v0.2.0-beta.2`. Stable `v0.2.0` is GitHub Latest; its public archives match
+the signed checksum manifest, and a clean Registry installation verified the
+official signing key and frozen schema. `v0.1.1` changes documentation,
+examples, and roadmap context only and does not change runtime behavior,
+schema, state, or compatibility.
 The repository contains fork-safe, read-only, credential-free CI with pinned
 actions and quality/supply-chain tools; deterministic five-platform GoReleaser
 packaging; a protected SemVer-tag workflow that creates a signed draft and

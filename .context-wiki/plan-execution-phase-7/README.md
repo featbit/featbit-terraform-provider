@@ -3,12 +3,13 @@
 ## Purpose
 
 Close the Environment-specific Segment prerequisite gap on a separate future
-branch after the Phase 6 IAM release and after a later FeatBit version exposes
-the required public API. A Segment can already persist included/excluded user
-keys and rule properties, but the Provider does not create missing Environment
-End Users or register custom End User Property metadata. Release `v0.1.1`
-documents that boundary without changing runtime behavior. This phase is
-intentionally deferred and is not part of the IAM release branch.
+branch after a later FeatBit version exposes the required public API. Phase 6
+closed with stable `v0.2.0`; Phase 7 is the next planned phase, but it is not
+active on the IAM release branch. A Segment can already persist
+included/excluded user keys and rule properties, but the Provider does not
+create missing Environment End Users or register custom End User Property
+metadata. Stable `v0.2.0` documents that boundary without claiming unsupported
+behavior.
 
 This phase starts with the public API, not with Provider code. The Provider may
 depend only on stable operations documented by FeatBit's official Swagger or
@@ -18,9 +19,10 @@ product behavior only; they are not Provider contracts.
 
 ## Current entry point
 
-When this phase becomes active, start with [P7-010](todo.md): establish whether
-the released public API supports all of these operations with exact Environment
-scope and redaction-safe failures:
+When this phase is separately authorized and activated on a future branch,
+start with [P7-010](todo.md): establish whether the target version's released
+public API supports all of these operations with exact Environment scope and
+redaction-safe failures:
 
 - exact lookup of an End User by Environment and key;
 - idempotent create-missing-only End User registration;
@@ -78,9 +80,8 @@ records into destroy-owned Terraform children accidentally.
   surprising mutations.
 - Preserve the current Segment HCL and state shape unless an evidence-backed
   compatibility change is unavoidable.
-- Do not begin this phase until the Phase 6 IAM release is complete, a separate
-  future branch is created, and the required documented public API is available
-  in the target FeatBit version.
+- Do not begin this phase until a separate future branch is created and the
+  required documented public API is available in the target FeatBit version.
 
 ## Exit gate
 
