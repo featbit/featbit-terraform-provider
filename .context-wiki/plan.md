@@ -1,366 +1,179 @@
 # FeatBit Terraform Provider Plan
 
 - Status: **Active**
+- Current release: `v0.2.0`
 - Module: `github.com/featbit/terraform-provider-featbit`
 - Registry address: `registry.terraform.io/featbit/featbit`
-- Next phase: [Phase 7 — Segment targeting prerequisites](plan-execution-phase-7/README.md)
+- Next phase: **Not selected**
+- Next task: **Not selected**
 
-This file contains the current architecture, product contract, and phase
-roadmap.
+This file contains only the current Provider position, product boundary, and
+prioritized future work with its blockers. It is not a completed-phase or
+release-history archive.
 
 ## 1. Current position
 
-Phase 6 is complete. Stable `v0.2.0` is publicly available from the Terraform
-Registry and is GitHub's latest release. Its protected tag workflow built the
-five-platform archive set, checksum manifest, and detached signature from
-qualified commit `cb6662d`. A clean Terraform root installed exact version
-`0.2.0` from the Registry, verified the published signing key, validated the
-configuration, and exposed the frozen five provider attributes, ten resources,
-and seven data sources. The current branch must not implement Phase 7 Segment
-prerequisite work.
+Stable `v0.2.0` exposes five Provider attributes, ten resources, and seven data
+sources across the implemented core and IAM surfaces.
 
-Stable releases `v0.1.0` and documentation-only `v0.1.1` remain core-only.
-Current stable `v0.2.0` adds the corrected IAM surface to the Protocol v6
-provider while preserving the shared handwritten HTTP client. In addition to
-Project, Environment, Feature Flag, and Segment, it implements custom Policies
-with complete statements, Groups, exact Group-Policy, Group-Member, and
-additive Member-Policy bindings, an explicit authoritative direct-Policy-set
-option, and exact Policy, Group, and Member lookup.
-The lifecycle-owned adapters implement exact reads, CRUD or narrow relationship
-mutation as applicable, Import, canonical state, authoritative absence
-composition, replacement-aware stable ID planning, one-shot mutation
-reconciliation, and redaction-safe diagnostics.
-The Segment resource manages only environment-specific metadata, targeting,
-and tags through specialized public endpoints; exact shared Segment reads
-remain data-source-only, and reference-aware destroy proves complete
-active/archived absence. Segment targeting writes do not create Environment
-End Users or register custom End User Property metadata because those
-prerequisites are not exposed through the documented public API. The required
-public operations are planned for a later FeatBit version, so that unfinished
-Segment work is deferred until Phase 7 and must not be implemented through
-Portal-private endpoints in the meantime. All four core resource phases and
-the IAM phase passed their local, Protocol, and trusted current-Cloud gates
-with exact cleanup. The stable Registry artifact retains the customer-state
-upgrade, IAM create/update/import, empty-plan, permission, dependency-ordered
-cleanup, and exact-absence behavior exercised before release. Its checked-in
-Protocol v6 snapshot and focused registration, Import, lifecycle, and
-generated-document checks include the additive Member-Policy pair. GoReleaser
-owns tag-derived version injection; the frozen five-platform archive matrix
-remains unchanged. Phase 7 is the next planned phase but remains unstarted
-until a later FeatBit version exposes its required documented public API and
-work moves to a separate branch.
+The Provider manages Projects, Environments, Feature Flag definitions,
+environment-specific Segments, custom Policies, Groups, explicit IAM bindings,
+and exact lookup of existing core and IAM objects. Feature Flag operational
+state remains UI-owned; shared Segments remain read-only; Segment End
+User/property prerequisites, Member account lifecycle, and Service Access
+Token lifecycle remain outside the implemented surface.
+
+FeatBit Cloud is the verified runtime target. A configurable API origin keeps
+self-hosted deployments as an intended target, but no exact self-hosted release
+is currently certified. No next phase or implementation task is selected.
 
 ## 2. Product boundary
 
-Core v1 manages these environment-scoped customer workflows:
+The Provider manages FeatBit configuration through documented public REST
+APIs. Terraform owns only fields and relationships explicitly declared by each
+resource.
 
-- `featbit_project`
-- `featbit_environment`
-- `featbit_feature_flag`
-- `featbit_segment`
-- one exact single-object data source and Import support for each resource
+Terraform does not implicitly own UI-managed operational Flag state, shared
+End Users or custom-property metadata, inherited IAM permissions, Member or
+workspace accounts, credentials, or secret values. Pair and complete-set IAM
+ownership must not overlap for the same relationship collection.
 
-IAM is the first post-initial-release phase. IAM v1 manages custom Policies and
-their statements as one Terraform resource, including Project, Environment,
-Feature Flag, and Segment control levels; Groups; exact Group-Policy and
-Group-Member bindings; and one existing Member's authoritative direct-Policy
-set plus exact additive Member-Policy pairs for one or more existing Members.
-It observes built-in Policies, existing organization-wide Groups, and existing
-Members, and extends the existing Project and Environment data sources with
-exact-key selection. The pair and complete-set ownership models must not
-overlap for one Member. Member
-invitation, creation, profile mutation, organization/workspace removal, and
-deletion remain external. Service Token management, including Service
-Token-to-Group assignment, is excluded because the required public resource and
-relationship contracts do not exist. The initial release exposes no IAM
-surface.
+It does not call UI-only APIs, access the FeatBit database directly, or expose
+an arbitrary HTTP resource. Runtime flag evaluation, FeatBit deployment, and
+feature-evaluation event pipelines remain outside this Provider.
 
-Segment targeting prerequisite closure follows IAM as Phase 7. It must wait
-for a later FeatBit version to expose documented public operations for exact
-Environment End User and End User Property lookup plus create-missing-only
-registration before the Provider depends on those operations. Phase 6 Segment
-Policy statements authorize Segment operations only and do not depend on or
-implement those targeting prerequisites.
+## 3. Prioritized future work
 
-Core v1 does not evaluate flags, deploy FeatBit, manage analytics/audit streams,
-copy LaunchDarkly's resource model, or expose a generic raw-REST resource. It
-uses documented public FeatBit endpoints only and does not depend on backend
-or public API changes.
+This order is based on customer GitOps value and the 2026-08-24 comparison of
+the current Provider with FeatBit `v5.4.7`. Readiness does not change business
+priority: a blocked item keeps its position, but it must not force use of a
+private API or stop independent ready work.
 
-FeatBit Cloud behavior for the planned core scope was verified on 2026-07-31.
-The implemented Project/Environment contracts and exact-zero cleanup were
-reverified against the current Cloud API on 2026-08-03, and the four-type
-Feature Flag lifecycle passed its current-Cloud gate with exact active and
-archived cleanup on the same date. The environment-specific Segment lifecycle
-passed on 2026-08-04 with exact Segment and parent cleanup. No safely owned
-shared Segment fixture was available, so shared reads remain verified through
-public-contract and Protocol tests without inspecting or mutating unrelated
-objects. Each post-release resource must pass its own current-Cloud gate.
-Self-hosted is an intended target through a configurable API origin, but no
-exact self-hosted release is currently certified and the initial release must
-not claim otherwise.
-
-## 3. Current architecture
-
-```text
-Terraform Core
-  -> Protocol v6 provider
-     -> resource or data-source lifecycle
-        -> endpoint adapter owned by that lifecycle
-           -> shared handwritten HTTP client
-              -> documented FeatBit /api/v1 endpoint
-```
-
-| Area | Responsibility |
-|---|---|
-| `main.go` | Starts the Protocol v6 provider and supplies the build version. |
-| `internal/provider` | Provider schema, configuration, resources, data sources, Terraform models, expand/flatten, and diagnostics. |
-| `internal/client` | Shared transport, authentication, request execution, envelope/errors, retries, concurrency, and redaction. |
-| Resource-phase endpoint files | Only the request/response types and methods used by their production Terraform caller. |
-
-Architecture rules:
-
-- The root provider is the only Go module.
-- API client code is handwritten. There is no OpenAPI snapshot, generator,
-  generated package, probe module, or speculative tools module.
-- Add an endpoint adapter only with its first production resource or data
-  source. Its focused tests define method, escaped path, query, JSON body,
-  envelope, error, and cancellation behavior.
-- Add pagination, exact-existence composition, normalization, reconciliation,
-  and per-object write serialization with the concrete lifecycle that needs
-  them.
-- Reuse the existing escaped request construction, UUID validation, exact
-  zero/one/duplicate resolution, ProviderData checks, error classification,
-  cancellation, retry, and redaction contracts whenever their ownership and
-  safety boundaries match.
-- Computed resource IDs remain known during in-place plans only when every
-  identity-defining input is unchanged; replacement plans leave them unknown.
-- Terraform schemas remain handwritten because ownership, Null/Unknown,
-  Sensitive, ordering, replacement, Import, and state behavior are product
-  decisions rather than transport shapes.
-
-### Provider configuration
-
-| Attribute | Environment fallback | Default and bounds |
+| Priority | Outcome | Current readiness |
 |---|---|---|
-| `api_url` | `FEATBIT_API_URL` | `https://app-api.featbit.co`, normalized to `/api/v1` |
-| `access_token` | `FEATBIT_ACCESS_TOKEN` | Required and Sensitive |
-| `http_timeout_seconds` | `FEATBIT_HTTP_TIMEOUT_SECONDS` | `30`, range `1..300` |
-| `max_concurrency` | `FEATBIT_MAX_CONCURRENCY` | `4`, range `1..32` |
-| `max_retries` | `FEATBIT_MAX_RETRIES` | `3`, range `0..10` |
+| 1 | Complete environment-specific Feature Flag operational GitOps | **Ready.** Required Flag and Environment operations are public. |
+| 2 | Close Segment and Flag End User/custom-property prerequisites | **API-blocked.** Public End User and End User Property operations are missing. |
+| 3 | Manage least-privilege Service Access Tokens | **API-blocked.** Public Access Token lifecycle operations are missing. |
+| 4 | Improve Feature Flag definition and retirement lifecycle | **Provider-ready after priority 1.** Public description, variation, tag, archive, and restore operations exist. |
+| 5 | Add safely bounded Organization Member lifecycle | **Design-gated.** Basic public Member add/read/remove operations exist. |
+| 6 | Manage shared Segments | **API/ownership-gated.** Safe shared-scope mutation ownership is not proven. |
+| 7 | Add remaining governance and integrations | **Mixed.** Some Workspace/OIDC/audit operations are public; Webhook, scheduling, approval mutation, and secret lifecycle gaps remain. |
 
-The token is sent directly in `Authorization`, without a Bearer prefix, login
-exchange, or token-kind selector. The implemented core transport strips
-organization/workspace context headers and never sends credentials outside the
-configured origin and `/api/v1` path. The initial release preserves that
-five-attribute schema and transport boundary. Any future IAM tenant/context
-contract must be proven in its post-release phase before provider
-configuration or transport changes.
+### Priority 1 — Manage Feature Flag targeting and enabled state
 
-### Shared HTTP contract
+Goal: let Terraform opt into ownership of one Feature Flag's
+environment-specific behavior instead of managing only its definition.
 
-- Send `terraform-provider-featbit/<version>` as User-Agent.
-- Propagate context cancellation through admission, HTTP execution, and retry
-  waits.
-- Limit each buffered response to 16 MiB and hold one concurrency permit until
-  its body is completely read.
-- Decode FeatBit's `{success,data,errors}` envelope, including HTTP `2xx` with
-  `success=false`.
-- Classify validation, authentication, authorization, unconfirmed absence,
-  conflict, rate limit, transient server, application, timeout, cancellation,
-  network, and ambiguous failures centrally.
-- Retry only bodyless `GET` requests on `429`, transient `5xx`, timeout, or
-  network failure. Mutations execute once.
-- Treat `401` and `403` as authentication/authorization failures that preserve
-  state. A direct `404` is not automatically authoritative absence.
-- Never expose tokens, secret values, tenant/member identities, request paths,
-  raw response bodies, or unsafe network errors in logs or diagnostics.
+Readiness: the current public OpenAPI exposes Environment update plus Feature
+Flag read, targeting, toggle, off variation, variations, tags, archive,
+restore, and pending-change operations. The base work has no known external API
+blocker, but the selected implementation phase must freeze the exact request,
+authentication, ownership, and conflict contract before writing runtime code.
 
-## 4. Current and planned resource contracts
+Implement in this order:
 
-| Object | Status | Terraform ownership and lifecycle |
-|---|---|---|
-| Project | Implemented | UUID identity. Manage verified safe fields; key replaces. Server-created `Dev/dev` and `Prod/prod` environments are Computed. Confirm absence through the complete project collection when direct Read is ambiguous. |
-| Environment | Implemented | Project-scoped UUID identity. Name/description update; project and key replace. Discard secret values from ordinary state. Confirm absence through the parent project's environment collection and preserve UI-owned settings across Update. |
-| Feature flag | Implemented | Environment plus exact key identity. Support Boolean, String, Number, and JSON. Only name updates in place; environment, key, type, description, and variations replace. Targeting, rules, rollouts, enabled state, and tags remain UI-owned. Destroy archives, hard-deletes, then proves exact zero in complete active and archived views. |
-| Environment-specific segment | Implemented with a targeting prerequisite gap | Environment plus UUID identity. Manage name, description, included/excluded targeting keys, ordered rules/conditions, and tags through specialized endpoints; key and scopes are immutable. The current public API does not let the Provider create missing Environment users or custom-property metadata. Phase 7 will close that gap after the required public API ships, without overwriting or deleting shared prerequisite data. Destroy refuses exact Feature Flag references, then archives, hard-deletes, and proves exact active/archived absence without deleting users or property metadata. |
-| Shared segment | Implemented, read-only | Exact data-source observation only; Terraform cannot create, update, archive, restore, or delete it. |
-| IAM member | Published and Registry-verified in stable `v0.2.0` | `featbit_member` reads one existing Member by exact ID or case-insensitive full email and exposes only sensitive ID/email/name. `featbit_member_policy_binding` owns one exact direct pair and preserves every unrelated Policy, so ordinary `for_each` supports multiple Members without baseline inventory. `featbit_member_direct_policies` remains the explicit complete-set owner; an empty set and Destroy remove direct Policies only. The two ownership models must not overlap for one Member. Invitation, profile, organization/workspace membership, deletion, and inherited Policies remain external, and `initialPassword` is never decoded into the Provider model. |
-| IAM group and custom policy | Published and Registry-verified in stable `v0.2.0` | The `featbit_group` resource owns Group existence and name/description but no relationships; its data source observes an existing Group by exact ID or organization-scoped, case-sensitive exact name without adopting it. `featbit_policy` owns one custom Policy's settings and complete unordered statement set; its exact-key data source can also observe built-in Policies, but every built-in mutation is structurally forbidden. Statements cover only Project, Environment, Feature Flag, and Segment with exact lower-case types/effects, the frozen action catalogs, and canonical wildcard/exact-key/tag selectors. |
-| IAM relationship edge | All three edge types published and Registry-verified in stable `v0.2.0` | `featbit_group_policy_binding`, `featbit_group_member_binding`, and `featbit_member_policy_binding` each own one exact pair and never a complete relationship collection. Group and Policy destroy refuse to cascade live relationships. Member-Policy Read uses only the direct collection, and Destroy removes only its pair. The authoritative direct-Policy resource never reads inherited Policies as owned state or changes Group edges. |
+1. Freeze the current public request/read contract for Environment
+   `requireChangeComment`, mutation audit comments, enabled state, off
+   variation, targeting, ordered rules, and fallthrough or percentage
+   distribution.
+2. Add optional mutation-comment plumbing and narrowly owned
+   `require_change_comment` Environment governance. CI must be able to supply a
+   useful PR/commit comment without making it ordinary object state or causing
+   perpetual diffs.
+3. Add a separate opt-in operational resource, working name
+   `featbit_feature_flag_targeting`. It references one exact existing
+   Environment and Feature Flag key and owns only the frozen operational
+   surface. The existing `featbit_feature_flag` remains the definition owner.
+4. Define explicit coexistence behavior for UI edits, pending changes,
+   experiments, approvals, archived Flags, concurrent changes, Import, drift,
+   and removal of Terraform ownership.
+5. Prove canonical readback, one-shot mutation reconciliation, stable Import,
+   non-destructive ownership release, and an empty second plan.
 
-Common lifecycle rules:
+Direct user targets and custom-property rules retain the existing prerequisite
+limitation until priority 2 is unblocked: the referenced Environment user and
+property metadata must already exist. Priority 1 must not call Portal-private
+prerequisite endpoints.
 
-- Match exact IDs, parent-scoped exact keys, or organization-scoped exact names
-  across every page; never select the first fuzzy search result.
-- Before Create, require exact zero. After an ambiguous mutation, reconcile by
-  exact identity instead of retrying blindly or adopting an unrelated object.
-- Read after each logical write and persist the canonical server form.
-- Keep a computed ID known only for an in-place plan; an identity-changing
-  replacement must plan a new unknown ID.
-- Serialize writes only when a real multi-call lifecycle requires it.
-- Archive is an internal deletion prerequisite, never final Terraform destroy
-  state or a user-facing destroy option.
-- Preserve state whenever absence or mutation outcome is ambiguous.
+Flag tags and safe in-place definition variation changes belong to priority 4,
+not to the operational resource, unless contract analysis proves a field is
+inseparable from canonical operational state.
 
-Implemented core Import IDs are stable public contracts:
+### Priority 2 — Targeting prerequisite closure
 
-| Object | Import ID |
-|---|---|
-| Project | `<project_uuid>` |
-| Environment | `<project_uuid>/<environment_uuid>` |
-| Feature flag | `<environment_uuid>/<exact_key>` |
-| Segment | `<environment_uuid>/<segment_uuid>` |
+Goal: make fresh direct targets and custom-property rules fully declarative for
+both Segments and Feature Flags.
 
-IAM remains absent from the stable `0.1.x` releases. Stable `v0.2.0` supports
-these Phase 6 Import forms, including the additive Member-Policy pair:
+External condition: this priority is blocked until the documented public API
+and Access Token authentication provide:
 
-| Object | Import ID |
-|---|---|
-| Custom Policy | `<policy_uuid>` |
-| Group | `<group_uuid>` |
-| Group-Policy binding | `<group_uuid>/<policy_uuid>` |
-| Group-Member binding | `<group_uuid>/<member_uuid>` |
-| Member-Policy binding | `<member_uuid>/<policy_uuid>` |
-| Member direct Policies | `<member_uuid>` |
+- exact Environment-scoped End User lookup by exact key, across complete
+  pagination when applicable;
+- idempotent create-missing-only End User registration with explicit
+  non-overwrite and conflict behavior;
+- exact Environment-scoped End User Property lookup by exact property name;
+- idempotent create-missing-only custom-property registration; and
+- documented case, duplicate, authorization, retry, pagination, and
+  redaction-safe failure semantics.
 
-## 5. Roadmap
+A destructive upsert, fuzzy search, Portal-private route, or direct database
+operation does not satisfy this dependency.
 
-### Phase 1 — Provider foundation (complete)
+After the required public API ships, the Provider should:
 
-Establish the shared client, local developer workflow, local override, and
-provider schema verification. Do not add resource endpoint models in this
-phase.
+- collect and deterministically deduplicate exact user keys and non-built-in
+  custom property names;
+- look up each prerequisite in the exact Environment;
+- create only values proven missing;
+- never overwrite an existing user's name, custom properties, or metadata;
+- complete prerequisite registration before targeting mutation;
+- preserve truthful state after partial failure or an ambiguous outcome; and
+- never delete shared End Users or property metadata when targeting changes or
+  a Segment/Flag resource is removed.
 
-Gate: local override loads the provider; `terraform providers schema -json`
-succeeds; format, vet, unit/race, build, redaction, and dependency checks pass.
+The implementation should be shared by Segment and Feature Flag targeting only
+where their semantics and safety boundaries genuinely match.
 
-### Phase 2 — Project and environment (complete)
+### Priority 3 — Service Access Tokens
 
-Add only the Project/Environment endpoint adapters needed by their resources
-and data sources. Implement exact lookup, CRUD, Import, replacement semantics,
-canonical state, drift, and out-of-band deletion tests.
+Goal: bootstrap with an externally supplied Personal Token, then let Terraform
+create least-privilege Service Tokens for downstream CI/CD workloads.
 
-Gate: Create/Read/Update/Delete and Import converge to an empty plan.
+External condition: this priority is blocked until the documented public API
+provides:
 
-### Phase 3 — Feature flags (complete)
+- exact list/read metadata and a stable token identifier;
+- server-side Service Token creation with a clearly defined one-time secret;
+- inline Policy-statement permissions matching the current product model;
+- name/permission update, enable/disable, rotation or replacement, and
+  revoke/delete behavior;
+- Import/read behavior that never requires returning an existing plaintext
+  secret; and
+- redaction-safe authorization, conflict, and failure responses.
 
-Implement the constrained four-type feature-flag resource/data source with
-stable variation identity, precise normalization, UI-field preservation,
-replacement, Import, and archive-plus-hard-delete behavior.
+The future resource should manage one server-created Service Token, its name,
+inline Policy statements, active/inactive status, rotation or replacement, and
+revocation. Its creation secret must be computed and Sensitive, with an
+explicit warning that Terraform state contains the plaintext value.
 
-Gate: every supported type converges without rewriting UI-owned operations.
+FeatBit Service Tokens currently use inline permission statements. No
+Token-to-Group relationship should be invented unless the FeatBit product and
+public API add that relationship explicitly.
 
-### Phase 4 — Segments (complete)
+### Priorities 4–7 — Follow-up completeness
 
-Implement environment-specific segment resource/data source behavior,
-ordered rules, set-valued users/tags, scope resolution, reference preflight,
-Import, drift, and exact destroy. Keep shared segments read/bind only, and keep
-Environment-user and custom-property metadata registration outside the
-resource while the documented public API does not expose those prerequisites.
+After priority 1, recheck the external conditions for priorities 2 and 3. If
+they remain blocked, continue with the highest independent ready item:
 
-Gate: lifecycle and Import converge; reference conflicts preserve valid state.
+1. Feature Flag tags, safe in-place description/variation changes, and explicit
+   archive/restore or archive-on-destroy semantics.
+2. Organization Member lifecycle limited to organization membership; never
+   leak generated passwords or delete a shared workspace account implicitly.
+3. Shared Segment mutation only after shared-scope identity, ownership,
+   reference, archive, and destroy behavior are public and safe.
+4. Webhooks, schedules, approvals/change requests, Workspace OIDC, audit
+   observation, and Environment secret rotation, each as a separate capability
+   with its own public-API and sensitive-state contract.
 
-### Phase 5 — Initial release (complete)
-
-Add fork-safe credential-free pull-request CI with pinned quality tools, while
-keeping live acceptance jobs separately trusted and scoped. Add Registry
-documentation/examples, security and support guidance, upgrade policy,
-cross-platform release packaging, checksums/signatures, Cloud and self-hosted
-compatibility claims backed by evidence, prerelease smoke tests, and Registry
-publication. The release schema contains exactly the four implemented core
-resources and four data sources; it contains no IAM surface.
-
-Gate: a clean directory can initialize, plan, apply, destroy, and import using
-the Registry provider; release assets satisfy Registry requirements.
-
-### Phase 6 — IAM and release (complete)
-
-Implemented the frozen IAM surface: custom Policies with statements, Groups,
-exact Group-Member, Group-Policy, and additive Member-Policy bindings, an
-authoritative direct-Policy set for one existing Member, exact built-in Policy,
-existing Group, and Member lookup, and exact-key Project/Environment lookup.
-Policy statements cover Project, Environment, Feature Flag, and Segment
-control levels, including documented wildcard and exact-key resource
-selectors. Member lifecycle and Service Tokens remain external.
-
-Gate: passed. Every consumed operation and Import identity is exact; pair and
-complete-set ownership do not overlap; all four Policy control levels
-round-trip canonically; the full local, Protocol, current-Cloud, documentation,
-packaging, signing, publication, clean Registry-install, and release-schema
-checks passed; stable `v0.2.0` is published as GitHub Latest and indexed by the
-Terraform Registry.
-
-### Phase 7 — Segment targeting prerequisites (next; API-blocked)
-
-Begin only on a separate future branch after a later FeatBit version exposes
-the required documented public operations. Verify that
-the official Swagger and OpenAPI authentication expose stable operations for
-exact Environment End User and End User Property lookup plus
-create-missing-only registration. If that contract is still absent, record the
-minimum upstream API requirement and stop: the Provider must not call
-Portal-private endpoints, modify the FeatBit backend, or infer authority from
-UI behavior.
-
-Once the public contract exists, choose and freeze the Terraform ownership
-model before implementation. The preferred Segment lifecycle behavior is to
-deduplicate included/excluded keys and custom rule properties, query the exact
-Environment prerequisites, register only missing values, never overwrite an
-existing user's name or custom properties, ignore built-in properties such as
-`keyId` and `name`, and never delete users or property metadata when targeting
-changes or a Segment is destroyed. Registration must complete before the
-targeting mutation; partial failure must preserve truthful state and produce
-redacted diagnostics. Concurrency, duplicate/conflicting keys, Import,
-refresh, drift detection, cancellation, and second-plan idempotence require
-focused contracts. If a first-class End User or End User Property resource is
-safer than implicit ensure behavior, the phase must document a non-destructive
-migration and ownership model before adding it.
-
-Gate: a fresh Environment-specific Segment with new included/excluded user
-keys and a repeated custom property registers only missing prerequisites,
-preserves existing records, converges to an empty second plan, reports any
-registration failure instead of false success, and leaves every prerequisite
-intact after targeting removal and Segment destroy. Trusted current-Cloud
-acceptance must query exact Environment users and properties and expose no
-token, Environment ID, user key, property name, or targeting value.
-
-## 6. Global verification
-
-Current runtime pins are authoritative in `go.mod`: Go `1.26.6`, Plugin
-Framework `v1.19.0`, Plugin Go `v0.31.0`, Plugin Testing `v1.16.0`, and Plugin
-Log `v0.10.0`. Protocol is `6.0`, so the minimum Terraform CLI is `1.0.0`.
-Release qualification passes on credential-free Linux/AMD64 with Terraform
-`1.0.11`, `1.5.7`, and `1.15.8` through the existing Protocol contract.
-Release archives are limited to `darwin_amd64`, `darwin_arm64`, `linux_amd64`,
-`linux_arm64`, and `windows_amd64`, cross-built without CGO and checked by the
-GoReleaser snapshot. The credential-free Go 1.26.6 snapshot produces
-exactly those five archives. This archive matrix is a distribution contract,
-not a claim that every target has a separate native-runner qualification. The
-Registry serves stable non-prerelease releases `v0.1.0`, `v0.1.1`, and
-`v0.2.0`, plus the exact IAM prereleases `v0.2.0-beta.1` and
-`v0.2.0-beta.2`. Stable `v0.2.0` is GitHub Latest; its public archives match
-the signed checksum manifest, and a clean Registry installation verified the
-official signing key and frozen schema. `v0.1.1` changes documentation,
-examples, and roadmap context only and does not change runtime behavior,
-schema, state, or compatibility.
-The repository contains fork-safe, read-only, credential-free CI with pinned
-actions and quality/supply-chain tools; deterministic five-platform GoReleaser
-packaging; a protected SemVer-tag workflow that creates a signed draft and
-keeps prereleases from replacing the latest stable release; and the existing
-frozen Protocol schema contract. The current release design
-intentionally follows the scaffold without a custom artifact verifier or
-clean-install harness. Release signing identity, protected environment, tag
-creation, draft inspection/finalization, Registry connection, and publication
-remain maintainer-owned gates and do not expand the frozen core schema.
-
-Every applicable phase gate includes:
-
-- `gofmt`, `go vet`, `go test`, `go test -race`, `go build`, and module
-  verification;
-- focused mock contracts for every consumed endpoint;
-- acceptance coverage for CRUD, Import, second-plan idempotence, drift,
-  replacement, out-of-band deletion, exact lookup, and cleanup;
-- zero credential/secret leakage in diagnostics, logs, fixtures, or repository
-  content; and
-- preservation of existing user changes and cleanup of every test-created
-  remote object.
+These priorities are not assigned to phase numbers. Create a phase README/TODO
+only after the user explicitly selects the next scope.
